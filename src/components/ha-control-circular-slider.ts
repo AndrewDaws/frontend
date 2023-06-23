@@ -531,14 +531,17 @@ export class HaControlCircularSlider extends LitElement {
     return css`
       :host {
         --control-circular-slider-color: var(--primary-color);
-        --control-circular-slider-background: #8b97a3;
+        --control-circular-slider-color-opacty: 1;
+        --control-circular-slider-background: var(--disabled-color);
         --control-circular-slider-background-opacity: 0.3;
         --control-circular-slider-low-color: var(
           --control-circular-slider-color
         );
+        --control-circular-slider-low-color-opacity: 1;
         --control-circular-slider-high-color: var(
           --control-circular-slider-color
         );
+        --control-circular-slider-high-color-opacity: 1;
       }
       svg {
         width: 320px;
@@ -598,14 +601,17 @@ export class HaControlCircularSlider extends LitElement {
 
       #value {
         stroke: var(--control-circular-slider-color);
+        opacity: var(--control-circular-slider-color-opacity);
       }
 
       #low {
         stroke: var(--control-circular-slider-low-color);
+        opacity: var(--control-circular-slider-low-color-opacity);
       }
 
       #high {
         stroke: var(--control-circular-slider-high-color);
+        opacity: var(--control-circular-slider-high-color-opacity);
       }
     `;
   }
