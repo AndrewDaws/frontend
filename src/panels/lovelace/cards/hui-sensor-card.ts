@@ -1,13 +1,14 @@
-import { css, CSSResultGroup } from "lit";
-import { HassEntity } from "home-assistant-js-websocket/dist/types";
+import type { HassEntity } from "home-assistant-js-websocket/dist/types";
+import type { CSSResultGroup } from "lit";
+import { css } from "lit";
 import { customElement } from "lit/decorators";
 import { computeDomain } from "../../../common/entity/compute_domain";
-import { HomeAssistant } from "../../../types";
+import type { HomeAssistant } from "../../../types";
 import { findEntities } from "../common/find-entities";
-import { GraphHeaderFooterConfig } from "../header-footer/types";
-import { LovelaceCardEditor } from "../types";
+import type { GraphHeaderFooterConfig } from "../header-footer/types";
+import type { LovelaceCardEditor, LovelaceGridOptions } from "../types";
 import { HuiEntityCard } from "./hui-entity-card";
-import { EntityCardConfig, SensorCardConfig } from "./types";
+import type { EntityCardConfig, SensorCardConfig } from "./types";
 
 const includeDomains = ["counter", "input_number", "number", "sensor"];
 
@@ -70,6 +71,15 @@ class HuiSensorCard extends HuiEntityCard {
     }
 
     super.setConfig(entityCardConfig);
+  }
+
+  public getGridOptions(): LovelaceGridOptions {
+    return {
+      columns: 6,
+      rows: 2,
+      min_columns: 6,
+      min_rows: 2,
+    };
   }
 
   static get styles(): CSSResultGroup {

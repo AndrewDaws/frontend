@@ -17,7 +17,7 @@ export const registerServiceWorker = async (
     location.reload();
   });
 
-  const reg = await navigator.serviceWorker.register("/service_worker.js");
+  const reg = await navigator.serviceWorker.register(`/sw-${__BUILD__}.js`);
 
   if (!notifyUpdate || __DEV__ || __DEMO__) {
     return;
@@ -48,7 +48,7 @@ export const registerServiceWorker = async (
           action: () => installingWorker.postMessage({ type: "skipWaiting" }),
           text: "reload",
         },
-        duration: 0,
+        duration: -1,
         dismissable: false,
       });
     });

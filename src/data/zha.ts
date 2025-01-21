@@ -1,6 +1,6 @@
-import { HassEntity } from "home-assistant-js-websocket";
+import type { HassEntity } from "home-assistant-js-websocket";
 import type { HaFormSchema } from "../components/ha-form/types";
-import { HomeAssistant } from "../types";
+import type { HomeAssistant } from "../types";
 
 export interface ZHAEntityReference extends HassEntity {
   name: string;
@@ -73,7 +73,7 @@ export interface ClusterAttributeData {
 export interface AttributeConfigurationStatus {
   id: number;
   name: string;
-  success: boolean | undefined;
+  status: string;
   min: number;
   max: number;
   change: number;
@@ -383,11 +383,13 @@ export const removeMembersFromGroup = (
 export const addGroup = (
   hass: HomeAssistant,
   groupName: string,
+  groupId?: number,
   membersToAdd?: ZHAGroupMember[]
 ): Promise<ZHAGroup> =>
   hass.callWS({
     type: "zha/group/add",
     group_name: groupName,
+    group_id: groupId,
     members: membersToAdd,
   });
 

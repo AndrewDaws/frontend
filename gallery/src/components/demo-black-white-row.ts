@@ -1,5 +1,7 @@
-import { Button } from "@material/mwc-button";
-import { html, LitElement, css, TemplateResult } from "lit";
+import "@material/mwc-button/mwc-button";
+import type { Button } from "@material/mwc-button";
+import type { TemplateResult } from "lit";
+import { html, LitElement, css, nothing } from "lit";
 import { customElement, property } from "lit/decorators";
 import { applyThemesOnElement } from "../../../src/common/dom/apply_themes_on_element";
 import { fireEvent } from "../../../src/common/dom/fire_event";
@@ -7,11 +9,12 @@ import "../../../src/components/ha-card";
 
 @customElement("demo-black-white-row")
 class DemoBlackWhiteRow extends LitElement {
+  // eslint-disable-next-line lit/no-native-attributes
   @property() title!: string;
 
-  @property() value!: any;
+  @property() value?: any;
 
-  @property() disabled = false;
+  @property({ type: Boolean }) public disabled = false;
 
   protected render(): TemplateResult {
     return html`
@@ -45,7 +48,9 @@ class DemoBlackWhiteRow extends LitElement {
               </mwc-button>
             </div>
           </ha-card>
-          <pre>${JSON.stringify(this.value, undefined, 2)}</pre>
+          ${this.value
+            ? html`<pre>${JSON.stringify(this.value, undefined, 2)}</pre>`
+            : nothing}
         </div>
       </div>
     `;

@@ -1,10 +1,8 @@
+import type { Auth, Connection, HassConfig } from "home-assistant-js-websocket";
 import {
-  Auth,
   callService,
-  Connection,
   ERR_CONNECTION_LOST,
   ERR_INVALID_AUTH,
-  HassConfig,
   subscribeConfig,
   subscribeEntities,
   subscribeServices,
@@ -13,7 +11,6 @@ import { fireEvent } from "../common/dom/fire_event";
 import { subscribeAreaRegistry } from "../data/area_registry";
 import { broadcastConnectionStatus } from "../data/connection-status";
 import { subscribeDeviceRegistry } from "../data/device_registry";
-import { subscribeEntityRegistryDisplay } from "../data/entity_registry";
 import { subscribeFrontendUserData } from "../data/frontend";
 import { forwardHaptic } from "../data/haptics";
 import { DEFAULT_PANEL } from "../data/panel";
@@ -27,17 +24,22 @@ import {
 } from "../data/translation";
 import { subscribePanels } from "../data/ws-panels";
 import { translationMetadata } from "../resources/translations-metadata";
-import { Constructor, HomeAssistant, ServiceCallResponse } from "../types";
+import type { Constructor, HomeAssistant, ServiceCallResponse } from "../types";
 import { getLocalLanguage } from "../util/common-translation";
 import { fetchWithAuth } from "../util/fetch-with-auth";
 import { getState } from "../util/ha-pref-storage";
-import hassCallApi from "../util/hass-call-api";
-import { HassBaseEl } from "./hass-base-mixin";
+import hassCallApi, { hassCallApiRaw } from "../util/hass-call-api";
+import type { HassBaseEl } from "./hass-base-mixin";
+import { promiseTimeout } from "../common/util/promise-timeout";
+import { subscribeFloorRegistry } from "../data/ws-floor_registry";
+import { subscribeEntityRegistryDisplay } from "../data/ws-entity_registry_display";
 
 export const connectionMixin = <T extends Constructor<HassBaseEl>>(
   superClass: T
 ) =>
   class extends superClass {
+    private __backendPingInterval?: ReturnType<typeof setInterval>;
+
     protected initializeHass(auth: Auth, conn: Connection) {
       const language = getLocalLanguage();
 
@@ -49,6 +51,7 @@ export const connectionMixin = <T extends Constructor<HassBaseEl>>(
         entities: null as any,
         devices: null as any,
         areas: null as any,
+        floors: null as any,
         config: null as any,
         themes: null as any,
         selectedTheme: null,
@@ -83,7 +86,8 @@ export const connectionMixin = <T extends Constructor<HassBaseEl>>(
           service,
           serviceData,
           target,
-          notifyOnError = true
+          notifyOnError = true,
+          returnResponse = false
         ) => {
           if (__DEV__ || this.hass?.debugConnection) {
             // eslint-disable-next-line no-console
@@ -101,7 +105,8 @@ export const connectionMixin = <T extends Constructor<HassBaseEl>>(
               domain,
               service,
               serviceData ?? {},
-              target
+              target,
+              returnResponse
             )) as ServiceCallResponse;
           } catch (err: any) {
             if (
@@ -122,25 +127,40 @@ export const connectionMixin = <T extends Constructor<HassBaseEl>>(
             }
             if (notifyOnError) {
               forwardHaptic("failure");
+              const lokalize = await this.hass!.loadBackendTranslation(
+                "exceptions",
+                err.translation_domain
+              );
+              const localizedErrorMessage = lokalize(
+                `component.${err.translation_domain}.exceptions.${err.translation_key}.message`,
+                err.translation_placeholders
+              );
               const message =
+                localizedErrorMessage ||
                 (this as any).hass.localize(
-                  "ui.notification_toast.service_call_failed",
+                  "ui.notification_toast.action_failed",
                   "service",
                   `${domain}/${service}`
                 ) +
-                ` ${
-                  err.message ||
-                  (err.error?.code === ERR_CONNECTION_LOST
-                    ? "connection lost"
-                    : "unknown error")
-                }`;
-              fireEvent(this as any, "hass-notification", { message });
+                  ` ${
+                    err.message ||
+                    (err.error?.code === ERR_CONNECTION_LOST
+                      ? "connection lost"
+                      : "unknown error")
+                  }`;
+              fireEvent(this as any, "hass-notification", {
+                message,
+                duration: 10000,
+              });
             }
             throw err;
           }
         },
         callApi: async (method, path, parameters, headers) =>
           hassCallApi(auth, method, path, parameters, headers),
+        // callApiRaw introduced in 2024.11
+        callApiRaw: async (method, path, parameters, headers, signal) =>
+          hassCallApiRaw(auth, method, path, parameters, headers, signal),
         fetchWithAuth: (
           path: string,
           init: Parameters<typeof fetchWithAuth>[2]
@@ -187,7 +207,7 @@ export const connectionMixin = <T extends Constructor<HassBaseEl>>(
           (state != null ? state : stateObj.state) ?? "",
         formatEntityAttributeName: (_stateObj, attribute) => attribute,
         formatEntityAttributeValue: (stateObj, attribute, value) =>
-          value != null ? value : stateObj.attributes[attribute] ?? "",
+          value != null ? value : (stateObj.attributes[attribute] ?? ""),
         ...getState(),
         ...this._pendingHass,
       };
@@ -220,6 +240,7 @@ export const connectionMixin = <T extends Constructor<HassBaseEl>>(
             entity_id: entity.ei,
             device_id: entity.di,
             area_id: entity.ai,
+            labels: entity.lb,
             translation_key: entity.tk,
             platform: entity.pl,
             entity_category:
@@ -227,6 +248,7 @@ export const connectionMixin = <T extends Constructor<HassBaseEl>>(
                 ? entityReg.entity_categories[entity.ec]
                 : undefined,
             name: entity.en,
+            icon: entity.ic,
             hidden: entity.hb,
             display_precision: entity.dp,
           };
@@ -247,22 +269,34 @@ export const connectionMixin = <T extends Constructor<HassBaseEl>>(
         }
         this._updateHass({ areas });
       });
-      subscribeConfig(conn, (config) => {
-        if (this.hass?.config?.time_zone !== config.time_zone) {
-          import("../resources/intl-polyfill").then(() => {
-            if ("__setDefaultTimeZone" in Intl.DateTimeFormat) {
-              // @ts-ignore
-              Intl.DateTimeFormat.__setDefaultTimeZone(config.time_zone);
-            }
-          });
+      subscribeFloorRegistry(conn, (floorReg) => {
+        const floors: HomeAssistant["floors"] = {};
+        for (const floor of floorReg) {
+          floors[floor.floor_id] = floor;
         }
-        this._updateHass({ config });
+        this._updateHass({ floors });
       });
+      subscribeConfig(conn, (config) => this._updateHass({ config }));
       subscribeServices(conn, (services) => this._updateHass({ services }));
       subscribePanels(conn, (panels) => this._updateHass({ panels }));
       subscribeFrontendUserData(conn, "core", (userData) =>
         this._updateHass({ userData })
       );
+
+      clearInterval(this.__backendPingInterval);
+      this.__backendPingInterval = setInterval(() => {
+        if (this.hass?.connected) {
+          promiseTimeout(5000, this.hass?.connection.ping()).catch(() => {
+            if (!this.hass?.connected) {
+              return;
+            }
+
+            // eslint-disable-next-line no-console
+            console.log("Websocket died, forcing reconnect...");
+            this.hass?.connection.reconnect(true);
+          });
+        }
+      }, 10000);
     }
 
     protected hassReconnected() {
@@ -274,6 +308,10 @@ export const connectionMixin = <T extends Constructor<HassBaseEl>>(
       // on reconnect always fetch config as we might miss an update while we were disconnected
       // @ts-ignore
       this.hass!.callWS({ type: "get_config" }).then((config: HassConfig) => {
+        if (config.safe_mode) {
+          // @ts-ignore Firefox supports forceGet
+          location.reload(true);
+        }
         this._updateHass({ config });
         this.checkDataBaseMigration();
       });
@@ -283,5 +321,6 @@ export const connectionMixin = <T extends Constructor<HassBaseEl>>(
       super.hassDisconnected();
       this._updateHass({ connected: false });
       broadcastConnectionStatus("disconnected");
+      clearInterval(this.__backendPingInterval);
     }
   };

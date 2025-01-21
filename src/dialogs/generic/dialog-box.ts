@@ -1,16 +1,17 @@
-import "@material/mwc-button/mwc-button";
 import { mdiAlertOutline } from "@mdi/js";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
-import { classMap } from "lit/directives/class-map";
 import { ifDefined } from "lit/directives/if-defined";
 import { fireEvent } from "../../common/dom/fire_event";
-import "../../components/ha-dialog";
+import "../../components/ha-md-dialog";
+import type { HaMdDialog } from "../../components/ha-md-dialog";
+import "../../components/ha-dialog-header";
 import "../../components/ha-svg-icon";
-import "../../components/ha-switch";
-import { HaTextField } from "../../components/ha-textfield";
-import { HomeAssistant } from "../../types";
-import { DialogBoxParams } from "./show-dialog-box";
+import "../../components/ha-button";
+import "../../components/ha-textfield";
+import type { HaTextField } from "../../components/ha-textfield";
+import type { HomeAssistant } from "../../types";
+import type { DialogBoxParams } from "./show-dialog-box";
 
 @customElement("dialog-box")
 class DialogBox extends LitElement {
@@ -18,9 +19,20 @@ class DialogBox extends LitElement {
 
   @state() private _params?: DialogBoxParams;
 
+  @state() private _closeState?: "canceled" | "confirmed";
+
   @query("ha-textfield") private _textField?: HaTextField;
 
+  @query("ha-md-dialog") private _dialog?: HaMdDialog;
+
+  private _closePromise?: Promise<void>;
+
+  private _closeResolve?: () => void;
+
   public async showDialog(params: DialogBoxParams): Promise<void> {
+    if (this._closePromise) {
+      await this._closePromise;
+    }
     this._params = params;
   }
 
@@ -42,39 +54,39 @@ class DialogBox extends LitElement {
 
     const confirmPrompt = this._params.confirmation || this._params.prompt;
 
+    const dialogTitle =
+      this._params.title ||
+      (this._params.confirmation &&
+        this.hass.localize("ui.dialogs.generic.default_confirmation_title"));
+
     return html`
-      <ha-dialog
+      <ha-md-dialog
         open
-        ?scrimClickAction=${confirmPrompt}
-        ?escapeKeyAction=${confirmPrompt}
+        .disableCancelAction=${confirmPrompt || false}
         @closed=${this._dialogClosed}
-        defaultAction="ignore"
-        .heading=${html`${this._params.warning
-          ? html`<ha-svg-icon
-              .path=${mdiAlertOutline}
-              style="color: var(--warning-color)"
-            ></ha-svg-icon> `
-          : ""}${this._params.title
-          ? this._params.title
-          : this._params.confirmation &&
-            this.hass.localize(
-              "ui.dialogs.generic.default_confirmation_title"
-            )}`}
+        type="alert"
+        aria-labelledby="dialog-box-title"
+        aria-describedby="dialog-box-description"
       >
-        <div>
-          ${this._params.text
-            ? html`
-                <p class=${this._params.prompt ? "no-bottom-padding" : ""}>
-                  ${this._params.text}
-                </p>
-              `
-            : ""}
+        <div slot="headline">
+          <span .title=${dialogTitle} id="dialog-box-title">
+            ${this._params.warning
+              ? html`<ha-svg-icon
+                  .path=${mdiAlertOutline}
+                  style="color: var(--warning-color)"
+                ></ha-svg-icon> `
+              : nothing}
+            ${dialogTitle}
+          </span>
+        </div>
+        <div slot="content" id="dialog-box-description">
+          ${this._params.text ? html` <p>${this._params.text}</p> ` : ""}
           ${this._params.prompt
             ? html`
                 <ha-textfield
                   dialogInitialFocus
                   value=${ifDefined(this._params.defaultValue)}
-                  .placeholder=${ifDefined(this._params.placeholder)}
+                  .placeholder=${this._params.placeholder}
                   .label=${this._params.inputLabel
                     ? this._params.inputLabel
                     : ""}
@@ -87,95 +99,95 @@ class DialogBox extends LitElement {
               `
             : ""}
         </div>
-        ${confirmPrompt &&
-        html`
-          <mwc-button @click=${this._dismiss} slot="secondaryAction">
-            ${this._params.dismissText
-              ? this._params.dismissText
-              : this.hass.localize("ui.dialogs.generic.cancel")}
-          </mwc-button>
-        `}
-        <mwc-button
-          @click=${this._confirm}
-          ?dialogInitialFocus=${!this._params.prompt}
-          slot="primaryAction"
-          class=${classMap({
-            destructive: this._params.destructive || false,
-          })}
-        >
-          ${this._params.confirmText
-            ? this._params.confirmText
-            : this.hass.localize("ui.dialogs.generic.ok")}
-        </mwc-button>
-      </ha-dialog>
+        <div slot="actions">
+          ${confirmPrompt &&
+          html`
+            <ha-button
+              @click=${this._dismiss}
+              ?dialogInitialFocus=${!this._params.prompt &&
+              this._params.destructive}
+            >
+              ${this._params.dismissText
+                ? this._params.dismissText
+                : this.hass.localize("ui.dialogs.generic.cancel")}
+            </ha-button>
+          `}
+          <ha-button
+            @click=${this._confirm}
+            ?dialogInitialFocus=${!this._params.prompt &&
+            !this._params.destructive}
+            ?destructive=${this._params.destructive}
+          >
+            ${this._params.confirmText
+              ? this._params.confirmText
+              : this.hass.localize("ui.dialogs.generic.ok")}
+          </ha-button>
+        </div>
+      </ha-md-dialog>
     `;
   }
 
-  private _dismiss(): void {
+  private _cancel(): void {
     if (this._params?.cancel) {
       this._params.cancel();
     }
-    this._close();
+  }
+
+  private _dismiss(): void {
+    this._closeState = "canceled";
+    this._cancel();
+    this._closeDialog();
   }
 
   private _confirm(): void {
+    this._closeState = "confirmed";
     if (this._params!.confirm) {
       this._params!.confirm(this._textField?.value);
     }
-    this._close();
+    this._closeDialog();
   }
 
-  private _dialogClosed(ev) {
-    if (ev.detail.action === "ignore") {
-      return;
-    }
-    this._dismiss();
-  }
-
-  private _close(): void {
-    if (!this._params) {
-      return;
-    }
-    this._params = undefined;
+  private _closeDialog() {
     fireEvent(this, "dialog-closed", { dialog: this.localName });
+    this._dialog?.close();
+    this._closePromise = new Promise((resolve) => {
+      this._closeResolve = resolve;
+    });
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host([inert]) {
-        pointer-events: initial !important;
-        cursor: initial !important;
-      }
-      a {
-        color: var(--primary-color);
-      }
-      p {
-        margin: 0;
-        color: var(--primary-text-color);
-      }
-      .no-bottom-padding {
-        padding-bottom: 0;
-      }
-      .secondary {
-        color: var(--secondary-text-color);
-      }
-      .destructive {
-        --mdc-theme-primary: var(--error-color);
-      }
-      ha-dialog {
-        /* Place above other dialogs */
-        --dialog-z-index: 104;
-      }
-      @media all and (min-width: 600px) {
-        ha-dialog {
-          --mdc-dialog-min-width: 400px;
-        }
-      }
-      ha-textfield {
-        width: 100%;
-      }
-    `;
+  private _dialogClosed() {
+    if (!this._closeState) {
+      fireEvent(this, "dialog-closed", { dialog: this.localName });
+      this._cancel();
+    }
+    this._closeState = undefined;
+    this._params = undefined;
+    this._closeResolve?.();
+    this._closeResolve = undefined;
   }
+
+  static styles = css`
+    :host([inert]) {
+      pointer-events: initial !important;
+      cursor: initial !important;
+    }
+    a {
+      color: var(--primary-color);
+    }
+    p {
+      margin: 0;
+      color: var(--primary-text-color);
+    }
+    .no-bottom-padding {
+      padding-bottom: 0;
+    }
+    .secondary {
+      color: var(--secondary-text-color);
+    }
+    ha-textfield {
+      width: 100%;
+    }
+  `;
 }
 
 declare global {

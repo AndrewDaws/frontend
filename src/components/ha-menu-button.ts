@@ -1,17 +1,17 @@
 import { mdiMenu } from "@mdi/js";
-import { UnsubscribeFunc } from "home-assistant-js-websocket";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import type { UnsubscribeFunc } from "home-assistant-js-websocket";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { fireEvent } from "../common/dom/fire_event";
 import { subscribeNotifications } from "../data/persistent_notification";
-import { HomeAssistant } from "../types";
+import type { HomeAssistant } from "../types";
 import "./ha-icon-button";
 
 @customElement("ha-menu-button")
 class HaMenuButton extends LitElement {
   @property({ type: Boolean }) public hassio = false;
 
-  @property() public narrow!: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
   @property({ attribute: false }) public hass!: HomeAssistant;
 
@@ -123,24 +123,24 @@ class HaMenuButton extends LitElement {
     fireEvent(this, "hass-toggle-menu");
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host {
-        position: relative;
-      }
-      .dot {
-        pointer-events: none;
-        position: absolute;
-        background-color: var(--accent-color);
-        width: 12px;
-        height: 12px;
-        top: 9px;
-        right: 7px;
-        border-radius: 50%;
-        border: 2px solid var(--app-header-background-color);
-      }
-    `;
-  }
+  static styles = css`
+    :host {
+      position: relative;
+    }
+    .dot {
+      pointer-events: none;
+      position: absolute;
+      background-color: var(--accent-color);
+      width: 12px;
+      height: 12px;
+      top: 9px;
+      right: 7px;
+      inset-inline-end: 7px;
+      inset-inline-start: initial;
+      border-radius: 50%;
+      border: 2px solid var(--app-header-background-color);
+    }
+  `;
 }
 
 declare global {

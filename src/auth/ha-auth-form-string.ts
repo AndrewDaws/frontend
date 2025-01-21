@@ -1,5 +1,6 @@
 /* eslint-disable lit/prefer-static-styles */
-import { TemplateResult, html } from "lit";
+import type { TemplateResult } from "lit";
+import { html } from "lit";
 import { customElement } from "lit/decorators";
 import { HaFormString } from "../components/ha-form/ha-form-string";
 import "../components/ha-icon-button";
@@ -41,8 +42,8 @@ export class HaAuthFormString extends HaFormString {
         !this.isPassword
           ? this.stringType
           : this.unmaskedPassword
-          ? "text"
-          : "password"
+            ? "text"
+            : "password"
       }
         .label=${this.label}
         .value=${this.data || ""}
@@ -53,13 +54,14 @@ export class HaAuthFormString extends HaFormString {
         .autoValidate=${this.schema.required}
         .name=${this.schema.name}
         .autocomplete=${this.schema.autocomplete}
+        ?autofocus=${this.schema.autofocus}
         .suffix=${
           this.isPassword
             ? // reserve some space for the icon.
               html`<div style="width: 24px"></div>`
             : this.schema.description?.suffix
         }
-        .validationMessage=${this.schema.required ? "Required" : undefined}
+        .validationMessage=${this.schema.required ? this.localize?.("ui.panel.page-authorize.form.error_required") : undefined}
         @input=${this._valueChanged}
         @change=${this._valueChanged}
         ></ha-auth-textfield>

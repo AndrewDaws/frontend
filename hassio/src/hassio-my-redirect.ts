@@ -1,19 +1,20 @@
 import { sanitizeUrl } from "@braintree/sanitize-url";
-import { html, LitElement, TemplateResult, nothing } from "lit";
+import type { TemplateResult } from "lit";
+import { html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { navigate } from "../../src/common/navigate";
 import {
   createSearchParam,
   extractSearchParamsObject,
 } from "../../src/common/url/search-params";
-import { Supervisor } from "../../src/data/supervisor/supervisor";
+import type { Supervisor } from "../../src/data/supervisor/supervisor";
 import "../../src/layouts/hass-error-screen";
-import {
+import type {
   ParamType,
   Redirect,
   Redirects,
 } from "../../src/panels/my/ha-panel-my";
-import { HomeAssistant, Route } from "../../src/types";
+import type { HomeAssistant, Route } from "../../src/types";
 
 export const REDIRECTS: Redirects = {
   supervisor: {
@@ -76,24 +77,22 @@ class HassioMyRedirect extends LitElement {
     const redirect = REDIRECTS[path];
 
     if (!redirect) {
-      this._error = this.supervisor.localize(
-        "my.not_supported",
-        "link",
-        html`<a
+      this._error = this.supervisor.localize("my.not_supported", {
+        link: html`<a
           target="_blank"
           rel="noreferrer noopener"
           href="https://my.home-assistant.io/faq.html#supported-pages"
         >
           ${this.supervisor.localize("my.faq_link")}
-        </a>`
-      );
+        </a>`,
+      });
       return;
     }
 
     let url: string;
     try {
       url = this._createRedirectUrl(redirect);
-    } catch (err: any) {
+    } catch (_err: any) {
       this._error = this.supervisor.localize("my.error");
       return;
     }

@@ -1,8 +1,9 @@
-import { CSSResultGroup, html, LitElement } from "lit";
+import type { CSSResultGroup } from "lit";
+import { html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
 import { fireEvent } from "../../../../../common/dom/fire_event";
 import "../../../../../components/ha-textfield";
-import { Action, ParallelAction } from "../../../../../data/script";
+import type { Action, ParallelAction } from "../../../../../data/script";
 import { haStyle } from "../../../../../resources/styles";
 import type { HomeAssistant } from "../../../../../types";
 import "../ha-automation-action";
@@ -16,9 +17,7 @@ export class HaParallelAction extends LitElement implements ActionElement {
 
   @property({ attribute: false }) public action!: ParallelAction;
 
-  @property({ type: Boolean }) public reOrderMode = false;
-
-  public static get defaultConfig() {
+  public static get defaultConfig(): ParallelAction {
     return {
       parallel: [],
     };
@@ -29,9 +28,7 @@ export class HaParallelAction extends LitElement implements ActionElement {
 
     return html`
       <ha-automation-action
-        nested
         .actions=${action.parallel}
-        .reOrderMode=${this.reOrderMode}
         .disabled=${this.disabled}
         @value-changed=${this._actionsChanged}
         .hass=${this.hass}

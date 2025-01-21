@@ -1,6 +1,7 @@
+import type { Connection } from "home-assistant-js-websocket";
 import { computeStateName } from "../common/entity/compute_state_name";
-import { HaDurationData } from "../components/ha-duration-input";
-import { HomeAssistant } from "../types";
+import type { HaDurationData } from "../components/ha-duration-input";
+import type { HomeAssistant } from "../types";
 
 export interface RecorderInfo {
   backlog: number | null;
@@ -13,9 +14,7 @@ export interface RecorderInfo {
 
 export type StatisticType = "change" | "state" | "sum" | "min" | "max" | "mean";
 
-export interface Statistics {
-  [statisticId: string]: StatisticValue[];
-}
+export type Statistics = Record<string, StatisticValue[]>;
 
 export interface StatisticValue {
   start: number;
@@ -46,11 +45,19 @@ export interface StatisticsMetaData {
   unit_class: string | null;
 }
 
+export const STATISTIC_TYPES: StatisticsValidationResult["type"][] = [
+  "entity_not_recorded",
+  "entity_no_longer_recorded",
+  "state_class_removed",
+  "units_changed",
+  "no_state",
+];
+
 export type StatisticsValidationResult =
   | StatisticsValidationResultNoState
   | StatisticsValidationResultEntityNotRecorded
   | StatisticsValidationResultEntityNoLongerRecorded
-  | StatisticsValidationResultUnsupportedStateClass
+  | StatisticsValidationResultStateClassRemoved
   | StatisticsValidationResultUnitsChanged;
 
 export interface StatisticsValidationResultNoState {
@@ -68,9 +75,9 @@ export interface StatisticsValidationResultEntityNotRecorded {
   data: { statistic_id: string };
 }
 
-export interface StatisticsValidationResultUnsupportedStateClass {
-  type: "unsupported_state_class";
-  data: { statistic_id: string; state_class: string };
+export interface StatisticsValidationResultStateClassRemoved {
+  type: "state_class_removed";
+  data: { statistic_id: string };
 }
 
 export interface StatisticsValidationResultUnitsChanged {
@@ -100,7 +107,7 @@ export interface StatisticsUnitConfiguration {
   volume?: "L" | "gal" | "ft³" | "m³";
 }
 
-const statisticTypes = [
+const _statisticTypes = [
   "change",
   "last_reset",
   "max",
@@ -109,14 +116,15 @@ const statisticTypes = [
   "state",
   "sum",
 ] as const;
-export type StatisticsTypes = (typeof statisticTypes)[number][];
+export type StatisticsTypes = (typeof _statisticTypes)[number][];
 
-export interface StatisticsValidationResults {
-  [statisticId: string]: StatisticsValidationResult[];
-}
+export type StatisticsValidationResults = Record<
+  string,
+  StatisticsValidationResult[]
+>;
 
-export const getRecorderInfo = (hass: HomeAssistant) =>
-  hass.callWS<RecorderInfo>({
+export const getRecorderInfo = (conn: Connection) =>
+  conn.sendMessagePromise<RecorderInfo>({
     type: "recorder/info",
   });
 
@@ -143,6 +151,7 @@ export const fetchStatistics = (
   startTime: Date,
   endTime?: Date,
   statistic_ids?: string[],
+  // eslint-disable-next-line default-param-last
   period: "5minute" | "hour" | "day" | "week" | "month" = "hour",
   units?: StatisticsUnitConfiguration,
   types?: StatisticsTypes
@@ -197,14 +206,14 @@ export const updateStatisticsMetadata = (
   statistic_id: string,
   unit_of_measurement: string | null
 ) =>
-  hass.callWS<void>({
+  hass.callWS<undefined>({
     type: "recorder/update_statistics_metadata",
     statistic_id,
     unit_of_measurement,
   });
 
 export const clearStatistics = (hass: HomeAssistant, statistic_ids: string[]) =>
-  hass.callWS<void>({
+  hass.callWS<undefined>({
     type: "recorder/clear_statistics",
     statistic_ids,
   });
@@ -286,7 +295,7 @@ export const adjustStatisticsSum = (
   adjustment_unit_of_measurement: string | null
 ): Promise<void> => {
   const start_time_iso = new Date(start_time).toISOString();
-  return hass.callWS({
+  return hass.callWS<undefined>({
     type: "recorder/adjust_sum_statistics",
     statistic_id,
     start_time: start_time_iso,
@@ -323,3 +332,6 @@ export const getDisplayUnit = (
 
 export const isExternalStatistic = (statisticsId: string): boolean =>
   statisticsId.includes(":");
+
+export const updateStatisticsIssues = (hass: HomeAssistant) =>
+  hass.callWS<undefined>({ type: "recorder/update_statistics_issues" });

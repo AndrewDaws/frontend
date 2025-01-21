@@ -1,11 +1,11 @@
 // Parse array of entity objects from config
 import { isValidEntityId } from "../../../common/entity/valid_entity_id";
-import { EntityConfig, LovelaceRowConfig } from "../entity-rows/types";
+import type { EntityConfig, LovelaceRowConfig } from "../entity-rows/types";
 
 export const processConfigEntities = <
   T extends EntityConfig | LovelaceRowConfig,
 >(
-  entities: Array<T | string>,
+  entities: (T | string)[],
   checkEntityId = true
 ): T[] => {
   if (!entities || !Array.isArray(entities)) {

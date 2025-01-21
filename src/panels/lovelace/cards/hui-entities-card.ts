@@ -1,35 +1,28 @@
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  PropertyValues,
-  TemplateResult,
-  nothing,
-} from "lit";
+import type { PropertyValues, TemplateResult } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, state } from "lit/decorators";
 import { DOMAINS_TOGGLE } from "../../../common/const";
 import { applyThemesOnElement } from "../../../common/dom/apply_themes_on_element";
 import { computeDomain } from "../../../common/entity/compute_domain";
 import "../../../components/ha-card";
-import { HomeAssistant } from "../../../types";
+import type { HomeAssistant } from "../../../types";
 import { computeCardSize } from "../common/compute-card-size";
 import { findEntities } from "../common/find-entities";
 import { processConfigEntities } from "../common/process-config-entities";
 import "../components/hui-entities-toggle";
 import { createHeaderFooterElement } from "../create-element/create-header-footer-element";
 import { createRowElement } from "../create-element/create-row-element";
-import {
+import type {
   EntityConfig,
   LovelaceRow,
   LovelaceRowConfig,
 } from "../entity-rows/types";
-import {
+import type {
   LovelaceCard,
   LovelaceCardEditor,
   LovelaceHeaderFooter,
 } from "../types";
-import { EntitiesCardConfig } from "./types";
+import type { EntitiesCardConfig } from "./types";
 
 @customElement("hui-entities-card")
 class HuiEntitiesCard extends LitElement implements LovelaceCard {
@@ -220,7 +213,7 @@ class HuiEntitiesCard extends LitElement implements LovelaceCard {
             `}
         <div id="states" class="card-content">
           ${this._configEntities!.map((entityConf) =>
-            this.renderEntity(entityConf)
+            this._renderEntity(entityConf)
           )}
         </div>
 
@@ -231,78 +224,78 @@ class HuiEntitiesCard extends LitElement implements LovelaceCard {
     `;
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      ha-card {
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-      }
-      .card-header {
-        display: flex;
-        justify-content: space-between;
-      }
+  static styles = css`
+    ha-card {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+    }
 
-      .card-header .name {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
+    .card-header .name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
 
-      #states {
-        flex: 1;
-      }
+    #states {
+      flex: 1;
+    }
 
-      #states > * {
-        margin: 8px 0;
-      }
+    #states > * {
+      margin: 8px 0;
+    }
 
-      #states > *:first-child {
-        margin-top: 0;
-      }
+    #states > *:first-child {
+      margin-top: 0;
+    }
 
-      #states > *:last-child {
-        margin-bottom: 0;
-      }
+    #states > *:last-child {
+      margin-bottom: 0;
+    }
 
-      #states > div > * {
-        overflow: clip visible;
-      }
+    #states > div > * {
+      overflow: clip visible;
+    }
 
-      #states > div {
-        position: relative;
-      }
+    #states > div {
+      position: relative;
+    }
 
-      .icon {
-        padding: 0px 18px 0px 8px;
-      }
+    .icon {
+      padding: 0px 18px 0px 8px;
+    }
 
-      .header {
-        border-top-left-radius: var(--ha-card-border-radius, 12px);
-        border-top-right-radius: var(--ha-card-border-radius, 12px);
-        margin-bottom: 16px;
-        overflow: hidden;
-      }
+    .header {
+      border-top-left-radius: var(--ha-card-border-radius, 12px);
+      border-top-right-radius: var(--ha-card-border-radius, 12px);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
 
-      .footer {
-        border-bottom-left-radius: var(--ha-card-border-radius, 12px);
-        border-bottom-right-radius: var(--ha-card-border-radius, 12px);
-        margin-top: -16px;
-        overflow: hidden;
-      }
-    `;
-  }
+    .footer {
+      border-bottom-left-radius: var(--ha-card-border-radius, 12px);
+      border-bottom-right-radius: var(--ha-card-border-radius, 12px);
+      margin-top: -16px;
+      overflow: hidden;
+    }
+  `;
 
-  private renderEntity(entityConf: LovelaceRowConfig): TemplateResult {
+  private _renderEntity(entityConf: LovelaceRowConfig): TemplateResult {
     const element = createRowElement(
       (!("type" in entityConf) || entityConf.type === "conditional") &&
-        this._config!.state_color
+        "state_color" in this._config!
         ? ({
-            state_color: true,
+            state_color: this._config.state_color,
             ...(entityConf as EntityConfig),
           } as EntityConfig)
-        : entityConf
+        : entityConf.type === "perform-action"
+          ? { ...entityConf, type: "call-service" }
+          : entityConf
     );
     if (this._hass) {
       element.hass = this._hass;

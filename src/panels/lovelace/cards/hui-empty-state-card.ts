@@ -1,10 +1,10 @@
 import "@material/mwc-button/mwc-button";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property } from "lit/decorators";
 import "../../../components/ha-card";
-import { HomeAssistant } from "../../../types";
-import { LovelaceCard } from "../types";
-import { EmptyStateCardConfig } from "./types";
+import type { HomeAssistant } from "../../../types";
+import type { LovelaceCard } from "../types";
+import type { EmptyStateCardConfig } from "./types";
 
 @customElement("hui-empty-state-card")
 export class HuiEmptyStateCard extends LitElement implements LovelaceCard {
@@ -14,9 +14,8 @@ export class HuiEmptyStateCard extends LitElement implements LovelaceCard {
     return 2;
   }
 
-  public setConfig(_config: EmptyStateCardConfig): void {
-    // eslint-disable-next-line
-  }
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  public setConfig(_config: EmptyStateCardConfig): void {}
 
   protected render() {
     if (!this.hass) {
@@ -35,7 +34,7 @@ export class HuiEmptyStateCard extends LitElement implements LovelaceCard {
           )}
         </div>
         <div class="card-actions">
-          <a href="/config/integrations">
+          <a href="/config/integrations/dashboard">
             <mwc-button>
               ${this.hass.localize(
                 "ui.panel.lovelace.cards.empty_state.go_to_integrations_page"
@@ -47,22 +46,22 @@ export class HuiEmptyStateCard extends LitElement implements LovelaceCard {
     `;
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      .content {
-        margin-top: -1em;
-        padding: 16px;
-      }
+  static styles = css`
+    .content {
+      margin-top: -1em;
+      padding: 16px;
+    }
 
-      .card-actions a {
-        text-decoration: none;
-      }
+    .card-actions a {
+      text-decoration: none;
+    }
 
-      mwc-button {
-        margin-left: -8px;
-      }
-    `;
-  }
+    mwc-button {
+      margin-left: -8px;
+      margin-inline-start: -8px;
+      margin-inline-end: initial;
+    }
+  `;
 }
 
 declare global {

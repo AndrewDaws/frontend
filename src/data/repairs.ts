@@ -32,6 +32,17 @@ export const fetchRepairsIssues = (conn: Connection) =>
     type: "repairs/list_issues",
   });
 
+export const fetchRepairsIssueData = (
+  conn: Connection,
+  domain: string,
+  issue_id: string
+) =>
+  conn.sendMessagePromise<{ issue_data: { string: any } }>({
+    type: "repairs/get_issue_data",
+    domain,
+    issue_id,
+  });
+
 export const ignoreRepairsIssue = async (
   hass: HomeAssistant,
   issue: RepairsIssue,

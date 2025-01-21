@@ -6,14 +6,14 @@ import type {
 } from "@codemirror/autocomplete";
 import type { Extension, TransactionSpec } from "@codemirror/state";
 import type { EditorView, KeyBinding, ViewUpdate } from "@codemirror/view";
-import { HassEntities } from "home-assistant-js-websocket";
-import { css, CSSResultGroup, PropertyValues, ReactiveElement } from "lit";
+import type { HassEntities } from "home-assistant-js-websocket";
+import type { PropertyValues } from "lit";
+import { css, ReactiveElement } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { fireEvent } from "../common/dom/fire_event";
 import { stopPropagation } from "../common/dom/stop_propagation";
-import { CodeMirror, loadCodeMirror } from "../resources/codemirror.ondemand";
-import { HomeAssistant } from "../types";
+import type { HomeAssistant } from "../types";
 import "./ha-icon";
 
 declare global {
@@ -44,9 +44,12 @@ export class HaCodeEditor extends ReactiveElement {
 
   public hass?: HomeAssistant;
 
+  // eslint-disable-next-line lit/no-native-attributes
   @property({ type: Boolean }) public autofocus = false;
 
-  @property({ type: Boolean }) public readOnly = false;
+  @property({ attribute: "read-only", type: Boolean }) public readOnly = false;
+
+  @property({ type: Boolean }) public linewrap = false;
 
   @property({ type: Boolean, attribute: "autocomplete-entities" })
   public autocompleteEntities = false;
@@ -58,7 +61,8 @@ export class HaCodeEditor extends ReactiveElement {
 
   @state() private _value = "";
 
-  private _loadedCodeMirror?: CodeMirror;
+  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+  private _loadedCodeMirror?: typeof import("../resources/codemirror");
 
   private _iconList?: Completion[];
 
@@ -110,7 +114,7 @@ export class HaCodeEditor extends ReactiveElement {
 
   // Ensure CodeMirror module is loaded before any update
   protected override async scheduleUpdate() {
-    this._loadedCodeMirror ??= await loadCodeMirror();
+    this._loadedCodeMirror ??= await import("../resources/codemirror");
     super.scheduleUpdate();
   }
 
@@ -123,15 +127,25 @@ export class HaCodeEditor extends ReactiveElement {
     const transactions: TransactionSpec[] = [];
     if (changedProps.has("mode")) {
       transactions.push({
-        effects: this._loadedCodeMirror!.langCompartment!.reconfigure(
-          this._mode
-        ),
+        effects: [
+          this._loadedCodeMirror!.langCompartment!.reconfigure(this._mode),
+          this._loadedCodeMirror!.foldingCompartment.reconfigure(
+            this._getFoldingExtensions()
+          ),
+        ],
       });
     }
     if (changedProps.has("readOnly")) {
       transactions.push({
         effects: this._loadedCodeMirror!.readonlyCompartment!.reconfigure(
           this._loadedCodeMirror!.EditorView!.editable.of(!this.readOnly)
+        ),
+      });
+    }
+    if (changedProps.has("linewrap")) {
+      transactions.push({
+        effects: this._loadedCodeMirror!.linewrapCompartment!.reconfigure(
+          this.linewrap ? this._loadedCodeMirror!.EditorView.lineWrapping : []
         ),
       });
     }
@@ -169,6 +183,14 @@ export class HaCodeEditor extends ReactiveElement {
       this._loadedCodeMirror.crosshairCursor(),
       this._loadedCodeMirror.highlightSelectionMatches(),
       this._loadedCodeMirror.highlightActiveLine(),
+      this._loadedCodeMirror.indentationMarkers({
+        thickness: 0,
+        activeThickness: 1,
+        colors: {
+          activeLight: "var(--secondary-text-color)",
+          activeDark: "var(--secondary-text-color)",
+        },
+      }),
       this._loadedCodeMirror.keymap.of([
         ...this._loadedCodeMirror.defaultKeymap,
         ...this._loadedCodeMirror.searchKeymap,
@@ -182,7 +204,13 @@ export class HaCodeEditor extends ReactiveElement {
       this._loadedCodeMirror.readonlyCompartment.of(
         this._loadedCodeMirror.EditorView.editable.of(!this.readOnly)
       ),
+      this._loadedCodeMirror.linewrapCompartment.of(
+        this.linewrap ? this._loadedCodeMirror.EditorView.lineWrapping : []
+      ),
       this._loadedCodeMirror.EditorView.updateListener.of(this._onUpdate),
+      this._loadedCodeMirror.foldingCompartment.of(
+        this._getFoldingExtensions()
+      ),
     ];
 
     if (!this.readOnly) {
@@ -300,13 +328,22 @@ export class HaCodeEditor extends ReactiveElement {
     fireEvent(this, "value-changed", { value: this._value });
   };
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host(.error-state) .cm-gutters {
-        border-color: var(--error-state-color, red);
-      }
-    `;
-  }
+  private _getFoldingExtensions = (): Extension => {
+    if (this.mode === "yaml") {
+      return [
+        this._loadedCodeMirror!.foldGutter(),
+        this._loadedCodeMirror!.foldingOnIndent,
+      ];
+    }
+
+    return [];
+  };
+
+  static styles = css`
+    :host(.error-state) .cm-gutters {
+      border-color: var(--error-state-color, red);
+    }
+  `;
 }
 
 declare global {

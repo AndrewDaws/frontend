@@ -1,7 +1,7 @@
-import { html, LitElement, PropertyValues, nothing } from "lit";
+import type { PropertyValues } from "lit";
+import { html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
-import { computeRTLDirection } from "../../../../../common/util/compute_rtl";
 import "../../../../../components/data-table/ha-data-table";
 import type {
   DataTableColumnContainer,
@@ -9,8 +9,9 @@ import type {
 } from "../../../../../components/data-table/ha-data-table";
 import "../../../../../components/ha-circular-progress";
 import "../../../../../components/ha-code-editor";
-import { fetchDevices, ZHADevice } from "../../../../../data/zha";
-import { HomeAssistant } from "../../../../../types";
+import type { ZHADevice } from "../../../../../data/zha";
+import { fetchDevices } from "../../../../../data/zha";
+import type { HomeAssistant } from "../../../../../types";
 
 export interface DeviceRowData extends DataTableRowData {
   id: string;
@@ -24,9 +25,9 @@ export interface DeviceRowData extends DataTableRowData {
 class ZHADeviceNeighbors extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property({ type: Boolean }) public narrow!: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
-  @property() public device: ZHADevice | undefined;
+  @property({ attribute: false }) public device?: ZHADevice;
 
   @state() private _devices: Map<string, ZHADevice> | undefined;
 
@@ -70,14 +71,13 @@ class ZHADeviceNeighbors extends LitElement {
               sortable: true,
               filterable: true,
               direction: "asc",
-              grows: true,
+              flex: 2,
             },
             lqi: {
               title: this.hass.localize("ui.panel.config.zha.neighbors.lqi"),
               sortable: true,
               filterable: true,
               type: "numeric",
-              width: "75px",
             },
           }
         : {
@@ -86,14 +86,13 @@ class ZHADeviceNeighbors extends LitElement {
               sortable: true,
               filterable: true,
               direction: "asc",
-              grows: true,
+              flex: 2,
             },
             lqi: {
               title: this.hass.localize("ui.panel.config.zha.neighbors.lqi"),
               sortable: true,
               filterable: true,
               type: "numeric",
-              width: "75px",
             },
             relationship: {
               title: this.hass.localize(
@@ -101,14 +100,12 @@ class ZHADeviceNeighbors extends LitElement {
               ),
               sortable: true,
               filterable: true,
-              width: "150px",
             },
             depth: {
               title: this.hass.localize("ui.panel.config.zha.neighbors.depth"),
               sortable: true,
               filterable: true,
               type: "numeric",
-              width: "75px",
             },
           }
   );
@@ -120,16 +117,14 @@ class ZHADeviceNeighbors extends LitElement {
     return html`
       ${!this._devices
         ? html`<ha-circular-progress
-            alt="Loading"
             size="large"
-            active
+            indeterminate
           ></ha-circular-progress>`
         : html`<ha-data-table
             .hass=${this.hass}
             .columns=${this._columns(this.narrow)}
             .data=${this._deviceNeighbors(this.device, this._devices)}
             auto-height
-            .dir=${computeRTLDirection(this.hass)}
             .searchLabel=${this.hass.localize(
               "ui.components.data-table.search"
             )}

@@ -1,23 +1,25 @@
 import { mdiInformation } from "@mdi/js";
 import "@lrnwebcomponents/simple-tooltip/simple-tooltip";
-import { UnsubscribeFunc } from "home-assistant-js-websocket";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import type { UnsubscribeFunc } from "home-assistant-js-websocket";
+import type { PropertyValues } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { formatNumber } from "../../../../common/number/format_number";
 import "../../../../components/ha-card";
 import "../../../../components/ha-gauge";
 import type { LevelDefinition } from "../../../../components/ha-gauge";
 import "../../../../components/ha-svg-icon";
-import {
+import type {
   EnergyData,
-  getEnergyDataCollection,
   GridSourceTypeEnergyPreference,
 } from "../../../../data/energy";
+import { getEnergyDataCollection } from "../../../../data/energy";
 import { calculateStatisticsSumGrowth } from "../../../../data/recorder";
 import { SubscribeMixin } from "../../../../mixins/subscribe-mixin";
 import type { HomeAssistant } from "../../../../types";
 import type { LovelaceCard } from "../../types";
-import type { EnergyGridGaugeCardConfig } from "../types";
+import type { EnergyGridNeutralityGaugeCardConfig } from "../types";
+import { hasConfigChanged } from "../../common/has-changed";
 
 const LEVELS: LevelDefinition[] = [
   { level: -1, stroke: "var(--energy-grid-consumption-color)" },
@@ -31,7 +33,7 @@ class HuiEnergyGridGaugeCard
 {
   @property({ attribute: false }) public hass?: HomeAssistant;
 
-  @state() private _config?: EnergyGridGaugeCardConfig;
+  @state() private _config?: EnergyGridNeutralityGaugeCardConfig;
 
   @state() private _data?: EnergyData;
 
@@ -51,8 +53,16 @@ class HuiEnergyGridGaugeCard
     return 4;
   }
 
-  public setConfig(config: EnergyGridGaugeCardConfig): void {
+  public setConfig(config: EnergyGridNeutralityGaugeCardConfig): void {
     this._config = config;
+  }
+
+  protected shouldUpdate(changedProps: PropertyValues): boolean {
+    return (
+      hasConfigChanged(this, changedProps) ||
+      changedProps.size > 1 ||
+      !changedProps.has("hass")
+    );
   }
 
   protected render() {
@@ -145,51 +155,51 @@ class HuiEnergyGridGaugeCard
     `;
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      ha-card {
-        height: 100%;
-        overflow: hidden;
-        padding: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-        box-sizing: border-box;
-      }
+  static styles = css`
+    ha-card {
+      height: 100%;
+      overflow: hidden;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      box-sizing: border-box;
+    }
 
-      ha-gauge {
-        width: 100%;
-        max-width: 250px;
-        direction: ltr;
-      }
+    ha-gauge {
+      width: 100%;
+      max-width: 250px;
+      direction: ltr;
+    }
 
-      .name {
-        text-align: center;
-        line-height: initial;
-        color: var(--primary-text-color);
-        width: 100%;
-        font-size: 15px;
-        margin-top: 8px;
-      }
+    .name {
+      text-align: center;
+      line-height: initial;
+      color: var(--primary-text-color);
+      width: 100%;
+      font-size: 15px;
+      margin-top: 8px;
+    }
 
-      ha-svg-icon {
-        position: absolute;
-        right: 4px;
-        top: 4px;
-        color: var(--secondary-text-color);
-      }
-      simple-tooltip > span {
-        font-size: 12px;
-        line-height: 12px;
-      }
-      simple-tooltip {
-        width: 80%;
-        max-width: 250px;
-        top: 8px !important;
-      }
-    `;
-  }
+    ha-svg-icon {
+      position: absolute;
+      right: 4px;
+      inset-inline-end: 4px;
+      inset-inline-start: initial;
+      top: 4px;
+      color: var(--secondary-text-color);
+    }
+    simple-tooltip > span {
+      font-size: 12px;
+      line-height: 12px;
+    }
+    simple-tooltip {
+      width: 80%;
+      max-width: 250px;
+      top: 8px !important;
+    }
+  `;
 }
 
 declare global {

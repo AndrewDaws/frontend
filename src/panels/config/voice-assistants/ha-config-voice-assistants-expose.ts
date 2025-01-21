@@ -3,74 +3,65 @@ import "@lrnwebcomponents/simple-tooltip/simple-tooltip";
 import {
   mdiCloseBoxMultiple,
   mdiCloseCircleOutline,
-  mdiFilterVariant,
   mdiPlus,
   mdiPlusBoxMultiple,
 } from "@mdi/js";
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  nothing,
-  PropertyValues,
-} from "lit";
+import type { CSSResultGroup, PropertyValues } from "lit";
+import { LitElement, css, html } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
-import { classMap } from "lit/directives/class-map";
 import { ifDefined } from "lit/directives/if-defined";
 import memoize from "memoize-one";
-import { fireEvent, HASSDomEvent } from "../../../common/dom/fire_event";
+import type { HASSDomEvent } from "../../../common/dom/fire_event";
+import { fireEvent } from "../../../common/dom/fire_event";
 import { computeStateName } from "../../../common/entity/compute_state_name";
+import type { EntityFilter } from "../../../common/entity/entity_filter";
 import {
-  EntityFilter,
   generateFilter,
   isEmptyFilter,
 } from "../../../common/entity/entity_filter";
 import { navigate } from "../../../common/navigate";
-import { computeRTL } from "../../../common/util/compute_rtl";
-import {
+import type {
   DataTableColumnContainer,
   DataTableRowData,
   RowClickedEvent,
   SelectionChangedEvent,
+  SortingChangedEvent,
 } from "../../../components/data-table/ha-data-table";
 import "../../../components/ha-fab";
-import { AlexaEntity, fetchCloudAlexaEntities } from "../../../data/alexa";
-import { CloudStatus, CloudStatusLoggedIn } from "../../../data/cloud";
+import type { AlexaEntity } from "../../../data/alexa";
+import { fetchCloudAlexaEntities } from "../../../data/alexa";
+import type { CloudStatus, CloudStatusLoggedIn } from "../../../data/cloud";
 import { entitiesContext } from "../../../data/context";
-import {
-  ExtEntityRegistryEntry,
-  getExtendedEntityRegistryEntries,
-} from "../../../data/entity_registry";
-import {
-  exposeEntities,
-  ExposeEntitySettings,
-  voiceAssistants,
-} from "../../../data/expose";
-import {
-  fetchCloudGoogleEntities,
-  GoogleEntity,
-} from "../../../data/google_assistant";
+import type { ExtEntityRegistryEntry } from "../../../data/entity_registry";
+import { getExtendedEntityRegistryEntries } from "../../../data/entity_registry";
+import type { ExposeEntitySettings } from "../../../data/expose";
+import { exposeEntities, voiceAssistants } from "../../../data/expose";
+import type { GoogleEntity } from "../../../data/google_assistant";
+import { fetchCloudGoogleEntities } from "../../../data/google_assistant";
 import { showConfirmationDialog } from "../../../dialogs/generic/show-dialog-box";
 import "../../../layouts/hass-loading-screen";
 import "../../../layouts/hass-tabs-subpage-data-table";
 import type { HaTabsSubpageDataTable } from "../../../layouts/hass-tabs-subpage-data-table";
 import { haStyle } from "../../../resources/styles";
-import { HomeAssistant, Route } from "../../../types";
+import type { HomeAssistant, Route } from "../../../types";
+import type { LocalizeFunc } from "../../../common/translations/localize";
 import "./expose/expose-assistant-icon";
 import { voiceAssistantTabs } from "./ha-config-voice-assistants";
 import { showExposeEntityDialog } from "./show-dialog-expose-entity";
 import { showVoiceSettingsDialog } from "./show-dialog-voice-settings";
+import { storage } from "../../../common/decorators/storage";
+import { domainToName } from "../../../data/integration";
+import { computeDomain } from "../../../common/entity/compute_domain";
 
 @customElement("ha-config-voice-assistants-expose")
 export class VoiceAssistantsExpose extends LitElement {
-  @property() public hass!: HomeAssistant;
+  @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: false }) public cloudStatus?: CloudStatus;
 
-  @property({ type: Boolean }) public isWide!: boolean;
+  @property({ attribute: "is-wide", type: Boolean }) public isWide = false;
 
-  @property({ type: Boolean }) public narrow!: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
   @property({ attribute: false }) public route!: Route;
 
@@ -85,9 +76,13 @@ export class VoiceAssistantsExpose extends LitElement {
 
   @state() private _extEntities?: Record<string, ExtEntityRegistryEntry>;
 
-  @state() private _filter: string = history.state?.filter || "";
-
-  @state() private _numHiddenEntities = 0;
+  @storage({
+    storage: "sessionStorage",
+    key: "voice-expose-table-search",
+    state: true,
+    subscribe: false,
+  })
+  private _filter = "";
 
   @state() private _searchParms = new URLSearchParams(window.location.search);
 
@@ -98,25 +93,43 @@ export class VoiceAssistantsExpose extends LitElement {
     string[] | undefined
   >;
 
+  @storage({
+    key: "voice-expose-table-sort",
+    state: false,
+    subscribe: false,
+  })
+  private _activeSorting?: SortingChangedEvent;
+
+  @storage({
+    key: "voice-expose-table-grouping",
+    state: false,
+    subscribe: false,
+  })
+  private _activeGrouping?: string;
+
+  @storage({
+    key: "voice-expose-table-collapsed",
+    state: false,
+    subscribe: false,
+  })
+  private _activeCollapsed?: string;
+
+  @storage({
+    key: "voice-expose-table-column-order",
+    state: false,
+    subscribe: false,
+  })
+  private _activeColumnOrder?: string[];
+
+  @storage({
+    key: "voice-expose-table-hidden-columns",
+    state: false,
+    subscribe: false,
+  })
+  private _activeHiddenColumns?: string[];
+
   @query("hass-tabs-subpage-data-table", true)
   private _dataTable!: HaTabsSubpageDataTable;
-
-  private _activeFilters = memoize(
-    (filters: URLSearchParams): string[] | undefined => {
-      const filterTexts: string[] = [];
-      filters.forEach((value, key) => {
-        switch (key) {
-          case "assistants": {
-            const assistants = value.split(",");
-            assistants.forEach((assistant) => {
-              filterTexts.push(voiceAssistants[assistant]?.name || assistant);
-            });
-          }
-        }
-      });
-      return filterTexts.length ? filterTexts : undefined;
-    }
-  );
 
   private _columns = memoize(
     (
@@ -128,49 +141,69 @@ export class VoiceAssistantsExpose extends LitElement {
             string[] | undefined
           >
         | undefined,
-      _language: string
+      _language: string,
+      localize: LocalizeFunc
     ): DataTableColumnContainer => ({
       icon: {
         title: "",
+        label: localize("ui.panel.config.voice_assistants.expose.headers.icon"),
         type: "icon",
+        moveable: false,
         hidden: narrow,
         template: (entry) => html`
           <ha-state-icon
             title=${ifDefined(entry.entity?.state)}
-            .state=${entry.entity}
+            .stateObj=${entry.entity}
+            .hass=${this.hass}
           ></ha-state-icon>
         `,
       },
       name: {
         main: true,
-        title: this.hass.localize(
-          "ui.panel.config.voice_assistants.expose.headers.name"
-        ),
+        title: localize("ui.panel.config.voice_assistants.expose.headers.name"),
         sortable: true,
         filterable: true,
         direction: "asc",
-        grows: true,
-        template: (entry) => html`
-          ${entry.name}<br />
-          <div class="secondary">${entry.entity_id}</div>
-        `,
+        flex: 2,
+        template: narrow
+          ? undefined
+          : (entry) => html`
+              ${entry.name}<br />
+              <div class="secondary">${entry.entity_id}</div>
+            `,
+      },
+      // For search & narrow
+      entity_id: {
+        title: localize(
+          "ui.panel.config.voice_assistants.expose.headers.entity_id"
+        ),
+        hidden: !narrow,
+        filterable: true,
+      },
+      domain: {
+        title: localize(
+          "ui.panel.config.voice_assistants.expose.headers.domain"
+        ),
+        sortable: false,
+        hidden: true,
+        filterable: true,
+        groupable: true,
       },
       area: {
-        title: this.hass.localize(
-          "ui.panel.config.voice_assistants.expose.headers.area"
-        ),
+        title: localize("ui.panel.config.voice_assistants.expose.headers.area"),
         sortable: true,
-        hidden: narrow,
+        groupable: true,
         filterable: true,
-        width: "15%",
       },
       assistants: {
-        title: this.hass.localize(
+        title: localize(
           "ui.panel.config.voice_assistants.expose.headers.assistants"
         ),
+        showNarrow: true,
         sortable: true,
         filterable: true,
-        width: "160px",
+        minWidth: "160px",
+        maxWidth: "160px",
         type: "flex",
         template: (entry) =>
           html`${availableAssistants.map((key) => {
@@ -192,25 +225,26 @@ export class VoiceAssistantsExpose extends LitElement {
           })}`,
       },
       aliases: {
-        title: this.hass.localize(
+        title: localize(
           "ui.panel.config.voice_assistants.expose.headers.aliases"
         ),
         sortable: true,
         filterable: true,
-        hidden: narrow,
-        width: "15%",
         template: (entry) =>
           entry.aliases.length === 0
             ? "-"
             : entry.aliases.length === 1
-            ? entry.aliases[0]
-            : this.hass.localize(
-                "ui.panel.config.voice_assistants.expose.aliases",
-                { count: entry.aliases.length }
-              ),
+              ? entry.aliases[0]
+              : this.hass.localize(
+                  "ui.panel.config.voice_assistants.expose.aliases",
+                  { count: entry.aliases.length }
+                ),
       },
       remove: {
         title: "",
+        label: localize(
+          "ui.panel.config.voice_assistants.expose.headers.remove"
+        ),
         type: "icon-button",
         hidden: narrow,
         template: () =>
@@ -218,12 +252,6 @@ export class VoiceAssistantsExpose extends LitElement {
             @click=${this._removeEntity}
             .path=${mdiCloseCircleOutline}
           ></ha-icon-button>`,
-      },
-      // For search
-      entity_id: {
-        title: "",
-        hidden: true,
-        filterable: true,
       },
     })
   );
@@ -273,6 +301,7 @@ export class VoiceAssistantsExpose extends LitElement {
 
   private _filteredEntities = memoize(
     (
+      localize: LocalizeFunc,
       entities: Record<string, ExtEntityRegistryEntry>,
       exposedEntities: Record<string, ExposeEntitySettings>,
       devices: HomeAssistant["devices"],
@@ -321,9 +350,6 @@ export class VoiceAssistantsExpose extends LitElement {
         )
       );
 
-      // If nothing gets filtered, this is our correct count of entities
-      const startLength = filteredEntities.length;
-
       let filteredAssistants: string[];
 
       filters.forEach((value, key) => {
@@ -356,6 +382,7 @@ export class VoiceAssistantsExpose extends LitElement {
             this.hass.localize(
               "ui.panel.config.entities.picker.unnamed_entity"
             ),
+          domain: domainToName(localize, computeDomain(entityState.entity_id)),
           area: area ? area.name : "—",
           assistants: Object.keys(
             exposedEntities?.[entityState.entity_id]
@@ -367,8 +394,6 @@ export class VoiceAssistantsExpose extends LitElement {
           aliases: entry?.aliases || [],
         };
       }
-
-      this._numHiddenEntities = startLength - Object.values(result).length;
 
       if (alexaManual || googleManual) {
         const manFilterFuncs = this._getEntityFilterFuncs(
@@ -430,23 +455,29 @@ export class VoiceAssistantsExpose extends LitElement {
     }
   );
 
-  public constructor() {
-    super();
-    window.addEventListener("location-changed", () => {
-      if (
-        window.location.search.substring(1) !== this._searchParms.toString()
-      ) {
-        this._searchParms = new URLSearchParams(window.location.search);
-      }
-    });
-    window.addEventListener("popstate", () => {
-      if (
-        window.location.search.substring(1) !== this._searchParms.toString()
-      ) {
-        this._searchParms = new URLSearchParams(window.location.search);
-      }
-    });
+  public connectedCallback() {
+    super.connectedCallback();
+    window.addEventListener("location-changed", this._locationChanged);
+    window.addEventListener("popstate", this._popState);
   }
+
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    window.removeEventListener("location-changed", this._locationChanged);
+    window.removeEventListener("popstate", this._popState);
+  }
+
+  private _locationChanged = () => {
+    if (window.location.search.substring(1) !== this._searchParms.toString()) {
+      this._searchParms = new URLSearchParams(window.location.search);
+    }
+  };
+
+  private _popState = () => {
+    if (window.location.search.substring(1) !== this._searchParms.toString()) {
+      this._searchParms = new URLSearchParams(window.location.search);
+    }
+  };
 
   private async _fetchEntities() {
     this._extEntities = await getExtendedEntityRegistryEntries(
@@ -497,9 +528,9 @@ export class VoiceAssistantsExpose extends LitElement {
     if (!this.hass || !this.exposedEntities || !this._extEntities) {
       return html`<hass-loading-screen></hass-loading-screen>`;
     }
-    const activeFilters = this._activeFilters(this._searchParms);
 
     const filteredEntities = this._filteredEntities(
+      this.hass.localize,
       this._extEntities,
       this.exposedEntities,
       this.hass.devices,
@@ -521,89 +552,80 @@ export class VoiceAssistantsExpose extends LitElement {
           this.narrow,
           this._availableAssistants(this.cloudStatus),
           this._supportedEntities,
-          this.hass.language
+          this.hass.language,
+          this.hass.localize
         )}
         .data=${filteredEntities}
-        .activeFilters=${activeFilters}
-        .numHidden=${this._numHiddenEntities}
-        .hideFilterMenu=${this._selectedEntities.length > 0}
         .searchLabel=${this.hass.localize(
-          "ui.panel.config.entities.picker.search"
-        )}
-        .hiddenLabel=${this.hass.localize(
-          "ui.panel.config.entities.picker.filter.hidden_entities",
-          "number",
-          this._numHiddenEntities
+          "ui.panel.config.entities.picker.search",
+          {
+            number: filteredEntities.length,
+          }
         )}
         .filter=${this._filter}
         selectable
+        .selected=${this._selectedEntities.length}
         clickable
+        .initialSorting=${this._activeSorting}
+        .initialGroupColumn=${this._activeGrouping}
+        .initialCollapsedGroups=${this._activeCollapsed}
+        .columnOrder=${this._activeColumnOrder}
+        .hiddenColumns=${this._activeHiddenColumns}
+        @columns-changed=${this._handleColumnsChanged}
+        @sorting-changed=${this._handleSortingChanged}
         @selection-changed=${this._handleSelectionChanged}
+        @grouping-changed=${this._handleGroupingChanged}
+        @collapsed-changed=${this._handleCollapseChanged}
         @clear-filter=${this._clearFilter}
         @search-changed=${this._handleSearchChange}
         @row-click=${this._openEditEntry}
         id="entity_id"
-        hasFab
+        has-fab
       >
         ${this._selectedEntities.length
           ? html`
-              <div
-                class=${classMap({
-                  "header-toolbar": this.narrow,
-                  "table-header": !this.narrow,
-                })}
-                slot="header"
-              >
-                <p class="selected-txt">
-                  ${this.hass.localize(
-                    "ui.panel.config.entities.picker.selected",
-                    "number",
-                    this._selectedEntities.length
-                  )}
-                </p>
-                <div class="header-btns">
-                  ${!this.narrow
-                    ? html`
-                        <mwc-button @click=${this._exposeSelected}
-                          >${this.hass.localize(
-                            "ui.panel.config.voice_assistants.expose.expose"
-                          )}</mwc-button
-                        >
-                        <mwc-button @click=${this._unexposeSelected}
-                          >${this.hass.localize(
-                            "ui.panel.config.voice_assistants.expose.unexpose"
-                          )}</mwc-button
-                        >
-                      `
-                    : html`
-                        <ha-icon-button
-                          id="enable-btn"
-                          @click=${this._exposeSelected}
-                          .path=${mdiPlusBoxMultiple}
-                          .label=${this.hass.localize(
-                            "ui.panel.config.voice_assistants.expose.expose"
-                          )}
-                        ></ha-icon-button>
-                        <simple-tooltip animation-delay="0" for="enable-btn">
-                          ${this.hass.localize(
-                            "ui.panel.config.voice_assistants.expose.expose"
-                          )}
-                        </simple-tooltip>
-                        <ha-icon-button
-                          id="disable-btn"
-                          @click=${this._unexposeSelected}
-                          .path=${mdiCloseBoxMultiple}
-                          .label=${this.hass.localize(
-                            "ui.panel.config.voice_assistants.expose.unexpose"
-                          )}
-                        ></ha-icon-button>
-                        <simple-tooltip animation-delay="0" for="disable-btn">
-                          ${this.hass.localize(
-                            "ui.panel.config.voice_assistants.expose.unexpose"
-                          )}
-                        </simple-tooltip>
-                      `}
-                </div>
+              <div class="header-btns" slot="selection-bar">
+                ${!this.narrow
+                  ? html`
+                      <mwc-button @click=${this._exposeSelected}
+                        >${this.hass.localize(
+                          "ui.panel.config.voice_assistants.expose.expose"
+                        )}</mwc-button
+                      >
+                      <mwc-button @click=${this._unexposeSelected}
+                        >${this.hass.localize(
+                          "ui.panel.config.voice_assistants.expose.unexpose"
+                        )}</mwc-button
+                      >
+                    `
+                  : html`
+                      <ha-icon-button
+                        id="enable-btn"
+                        @click=${this._exposeSelected}
+                        .path=${mdiPlusBoxMultiple}
+                        .label=${this.hass.localize(
+                          "ui.panel.config.voice_assistants.expose.expose"
+                        )}
+                      ></ha-icon-button>
+                      <simple-tooltip animation-delay="0" for="enable-btn">
+                        ${this.hass.localize(
+                          "ui.panel.config.voice_assistants.expose.expose"
+                        )}
+                      </simple-tooltip>
+                      <ha-icon-button
+                        id="disable-btn"
+                        @click=${this._unexposeSelected}
+                        .path=${mdiCloseBoxMultiple}
+                        .label=${this.hass.localize(
+                          "ui.panel.config.voice_assistants.expose.unexpose"
+                        )}
+                      ></ha-icon-button>
+                      <simple-tooltip animation-delay="0" for="disable-btn">
+                        ${this.hass.localize(
+                          "ui.panel.config.voice_assistants.expose.unexpose"
+                        )}
+                      </simple-tooltip>
+                    `}
               </div>
             `
           : ""}
@@ -613,31 +635,10 @@ export class VoiceAssistantsExpose extends LitElement {
             "ui.panel.config.voice_assistants.expose.add"
           )}
           extended
-          ?rtl=${computeRTL(this.hass)}
           @click=${this._addEntry}
         >
           <ha-svg-icon slot="icon" .path=${mdiPlus}></ha-svg-icon>
         </ha-fab>
-        ${this.narrow && activeFilters?.length
-          ? html`
-              <ha-button-menu slot="filter-menu" multi>
-                <ha-icon-button
-                  slot="trigger"
-                  .label=${this.hass!.localize(
-                    "ui.panel.config.devices.picker.filter.filter"
-                  )}
-                  .path=${mdiFilterVariant}
-                ></ha-icon-button>
-                <mwc-list-item @click=${this._clearFilter}>
-                  ${this.hass.localize("ui.components.data-table.filtering_by")}
-                  ${activeFilters.join(", ")}
-                  <span class="clear">
-                    ${this.hass.localize("ui.common.clear")}
-                  </span>
-                </mwc-list-item>
-              </ha-button-menu>
-            `
-          : nothing}
       </hass-tabs-subpage-data-table>
     `;
   }
@@ -659,7 +660,6 @@ export class VoiceAssistantsExpose extends LitElement {
 
   private _handleSearchChange(ev: CustomEvent) {
     this._filter = ev.detail.value;
-    history.replaceState({ filter: this._filter }, "");
   }
 
   private _handleSelectionChanged(
@@ -762,9 +762,24 @@ export class VoiceAssistantsExpose extends LitElement {
   }
 
   private _clearFilter() {
-    if (this._activeFilters(this._searchParms)) {
-      navigate(window.location.pathname, { replace: true });
-    }
+    navigate(window.location.pathname, { replace: true });
+  }
+
+  private _handleSortingChanged(ev: CustomEvent) {
+    this._activeSorting = ev.detail;
+  }
+
+  private _handleGroupingChanged(ev: CustomEvent) {
+    this._activeGrouping = ev.detail.value;
+  }
+
+  private _handleCollapseChanged(ev: CustomEvent) {
+    this._activeCollapsed = ev.detail.value;
+  }
+
+  private _handleColumnsChanged(ev: CustomEvent) {
+    this._activeColumnOrder = ev.detail.columnOrder;
+    this._activeHiddenColumns = ev.detail.hiddenColumns;
   }
 
   static get styles(): CSSResultGroup {
@@ -819,6 +834,8 @@ export class VoiceAssistantsExpose extends LitElement {
         }
         ha-button-menu {
           margin-left: 8px;
+          margin-inline-start: 8px;
+          margin-inline-end: initial;
         }
         .clear {
           color: var(--primary-color);

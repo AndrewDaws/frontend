@@ -1,4 +1,4 @@
-import { historyPromise } from "../state/url-sync-mixin";
+import { closeAllDialogs } from "../dialogs/make-dialog-manager";
 import { fireEvent } from "./dom/fire_event";
 import { mainWindow } from "./dom/get_main_window";
 
@@ -11,20 +11,38 @@ declare global {
 
 export interface NavigateOptions {
   replace?: boolean;
+  data?: any;
 }
 
-export const navigate = (path: string, options?: NavigateOptions) => {
-  const replace = options?.replace || false;
+// max time to wait for dialogs to close before navigating
+const DIALOG_WAIT_TIMEOUT = 500;
 
-  if (historyPromise) {
-    historyPromise.then(() => navigate(path, options));
-    return;
+export const navigate = async (
+  path: string,
+  options?: NavigateOptions,
+  timestamp = Date.now()
+) => {
+  const { history } = mainWindow;
+  if (history.state?.dialog && Date.now() - timestamp < DIALOG_WAIT_TIMEOUT) {
+    const closed = await closeAllDialogs();
+    if (!closed) {
+      // eslint-disable-next-line no-console
+      console.warn("Navigation blocked, because dialog refused to close");
+      return false;
+    }
+    return new Promise<boolean>((resolve) => {
+      // need to wait for history state to be updated in case a dialog was closed
+      setTimeout(() => {
+        navigate(path, options, timestamp).then(resolve);
+      });
+    });
   }
+  const replace = options?.replace || false;
 
   if (__DEMO__) {
     if (replace) {
-      mainWindow.history.replaceState(
-        mainWindow.history.state?.root ? { root: true } : null,
+      history.replaceState(
+        history.state?.root ? { root: true } : (options?.data ?? null),
         "",
         `${mainWindow.location.pathname}#${path}`
       );
@@ -32,15 +50,16 @@ export const navigate = (path: string, options?: NavigateOptions) => {
       mainWindow.location.hash = path;
     }
   } else if (replace) {
-    mainWindow.history.replaceState(
-      mainWindow.history.state?.root ? { root: true } : null,
+    history.replaceState(
+      history.state?.root ? { root: true } : (options?.data ?? null),
       "",
       path
     );
   } else {
-    mainWindow.history.pushState(null, "", path);
+    history.pushState(options?.data ?? null, "", path);
   }
   fireEvent(mainWindow, "location-changed", {
     replace,
   });
+  return true;
 };

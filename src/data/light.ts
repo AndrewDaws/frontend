@@ -1,4 +1,4 @@
-import {
+import type {
   HassEntityAttributeBase,
   HassEntityBase,
 } from "home-assistant-js-websocket";
@@ -68,8 +68,8 @@ export const getLightCurrentModeRgbColor = (
   entity.attributes.color_mode === LightColorMode.RGBWW
     ? entity.attributes.rgbww_color
     : entity.attributes.color_mode === LightColorMode.RGBW
-    ? entity.attributes.rgbw_color
-    : entity.attributes.rgb_color;
+      ? entity.attributes.rgbw_color
+      : entity.attributes.rgb_color;
 
 interface LightEntityAttributes extends HassEntityAttributeBase {
   min_color_temp_kelvin?: number;

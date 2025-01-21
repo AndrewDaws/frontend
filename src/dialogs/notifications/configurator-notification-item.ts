@@ -3,15 +3,16 @@ import { html, LitElement, nothing } from "lit";
 import { customElement, property } from "lit/decorators";
 import { fireEvent } from "../../common/dom/fire_event";
 import { domainToName } from "../../data/integration";
-import { PersitentNotificationEntity } from "../../data/persistent_notification";
-import { HomeAssistant } from "../../types";
+import type { PersitentNotificationEntity } from "../../data/persistent_notification";
+import type { HomeAssistant } from "../../types";
 import "./notification-item-template";
 
 @customElement("configurator-notification-item")
 export class HuiConfiguratorNotificationItem extends LitElement {
   @property({ attribute: false }) public hass?: HomeAssistant;
 
-  @property() public notification?: PersitentNotificationEntity;
+  @property({ attribute: false })
+  public notification?: PersitentNotificationEntity;
 
   protected render() {
     if (!this.hass || !this.notification) {
@@ -25,11 +26,9 @@ export class HuiConfiguratorNotificationItem extends LitElement {
         </span>
 
         <div>
-          ${this.hass.localize(
-            "ui.notification_drawer.click_to_configure",
-            "entity",
-            this.notification.attributes.friendly_name
-          )}
+          ${this.hass.localize("ui.notification_drawer.click_to_configure", {
+            entity: this.notification.attributes.friendly_name,
+          })}
         </div>
 
         <mwc-button slot="actions" @click=${this._handleClick}>

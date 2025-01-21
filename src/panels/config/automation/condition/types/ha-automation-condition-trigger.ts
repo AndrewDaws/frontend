@@ -1,18 +1,27 @@
 import "@material/mwc-list/mwc-list-item";
-import memoizeOne from "memoize-one";
-import { UnsubscribeFunc } from "home-assistant-js-websocket";
+import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import { html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators";
-import { fireEvent } from "../../../../../common/dom/fire_event";
+import memoizeOne from "memoize-one";
 import { ensureArray } from "../../../../../common/array/ensure-array";
+import { fireEvent } from "../../../../../common/dom/fire_event";
+import "../../../../../components/ha-form/ha-form";
 import type { SchemaUnion } from "../../../../../components/ha-form/types";
 import "../../../../../components/ha-select";
-import type {
-  AutomationConfig,
-  Trigger,
-  TriggerCondition,
+import {
+  flattenTriggers,
+  type AutomationConfig,
+  type Trigger,
+  type TriggerCondition,
 } from "../../../../../data/automation";
 import type { HomeAssistant } from "../../../../../types";
+
+const getTriggersIds = (triggers: Trigger[]): string[] => {
+  const triggerIds = flattenTriggers(triggers)
+    .map((t) => ("id" in t ? t.id : undefined))
+    .filter(Boolean) as string[];
+  return Array.from(new Set(triggerIds));
+};
 
 @customElement("ha-automation-condition-trigger")
 export class HaTriggerCondition extends LitElement {
@@ -22,25 +31,26 @@ export class HaTriggerCondition extends LitElement {
 
   @property({ type: Boolean }) public disabled = false;
 
-  @state() private _triggers: Trigger[] = [];
+  @state() private _triggerIds: string[] = [];
 
   private _unsub?: UnsubscribeFunc;
 
-  public static get defaultConfig() {
+  public static get defaultConfig(): TriggerCondition {
     return {
+      condition: "trigger",
       id: "",
     };
   }
 
   private _schema = memoizeOne(
-    (triggers: Trigger[]) =>
+    (triggerIds: string[]) =>
       [
         {
           name: "id",
           selector: {
             select: {
               multiple: true,
-              options: triggers.map((trigger) => trigger.id!),
+              options: triggerIds,
             },
           },
           required: true,
@@ -63,13 +73,13 @@ export class HaTriggerCondition extends LitElement {
   }
 
   protected render() {
-    if (!this._triggers.length) {
+    if (!this._triggerIds.length) {
       return this.hass.localize(
         "ui.panel.config.automation.editor.conditions.type.trigger.no_triggers"
       );
     }
 
-    const schema = this._schema(this._triggers);
+    const schema = this._schema(this._triggerIds);
 
     return html`
       <ha-form
@@ -91,11 +101,8 @@ export class HaTriggerCondition extends LitElement {
     );
 
   private _automationUpdated(config?: AutomationConfig) {
-    const seenIds = new Set();
-    this._triggers = config?.trigger
-      ? ensureArray(config.trigger).filter(
-          (t) => t.id && (seenIds.has(t.id) ? false : seenIds.add(t.id))
-        )
+    this._triggerIds = config?.triggers
+      ? getTriggersIds(ensureArray(config.triggers))
       : [];
   }
 
@@ -104,12 +111,12 @@ export class HaTriggerCondition extends LitElement {
     const newValue = ev.detail.value;
 
     if (typeof newValue.id === "string") {
-      if (!this._triggers.some((trigger) => trigger.id === newValue.id)) {
+      if (!this._triggerIds.some((id) => id === newValue.id)) {
         newValue.id = "";
       }
     } else if (Array.isArray(newValue.id)) {
-      newValue.id = newValue.id.filter((id) =>
-        this._triggers.some((trigger) => trigger.id === id)
+      newValue.id = newValue.id.filter((_id) =>
+        this._triggerIds.some((id) => id === _id)
       );
       if (!newValue.id.length) {
         newValue.id = "";

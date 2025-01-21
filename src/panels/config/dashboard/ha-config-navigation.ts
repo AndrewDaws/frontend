@@ -1,6 +1,7 @@
 import "@material/mwc-list/mwc-list";
 import "@material/mwc-list/mwc-list-item";
-import { css, CSSResultGroup, html, LitElement, TemplateResult } from "lit";
+import type { CSSResultGroup, TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
 import { canShowPage } from "../../../common/config/can_show_page";
 import "../../../components/ha-card";
@@ -14,7 +15,7 @@ import type { HomeAssistant } from "../../../types";
 class HaConfigNavigation extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property({ type: Boolean }) public narrow!: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
   @property({ attribute: false }) public pages!: PageNavigation[];
 
@@ -56,7 +57,7 @@ class HaConfigNavigation extends LitElement {
       }));
     return html`
       <ha-navigation-list
-        hasSecondary
+        has-secondary
         .hass=${this.hass}
         .narrow=${this.narrow}
         .pages=${pages}

@@ -1,8 +1,9 @@
-import { PropertyValues, ReactiveElement } from "lit";
+import type { PropertyValues } from "lit";
+import { ReactiveElement } from "lit";
 import { property } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { navigate } from "../common/navigate";
-import { Route } from "../types";
+import type { Route } from "../types";
 
 const extractPage = (path: string, defaultPage: string) => {
   if (path === "") {
@@ -36,17 +37,14 @@ export interface RouterOptions {
   // Hook that is called before rendering a new route. Allowing redirects.
   // If string returned, that page will be rendered instead.
   beforeRender?: (page: string) => string | undefined;
-  routes: {
-    // If it's a string, it is another route whose options should be adopted.
-    [route: string]: RouteOptions | string;
-  };
+  routes: Record<string, RouteOptions | string>;
 }
 
 // Time to wait for code to load before we show loading screen.
 const LOADING_SCREEN_THRESHOLD = 400; // ms
 
 export class HassRouterPage extends ReactiveElement {
-  @property() public route?: Route;
+  @property({ attribute: false }) public route?: Route;
 
   protected routerOptions!: RouterOptions;
 

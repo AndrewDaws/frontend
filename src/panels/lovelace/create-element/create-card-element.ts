@@ -1,9 +1,8 @@
-import { LovelaceCardConfig } from "../../../data/lovelace";
-import "../cards/hui-button-card";
-import "../cards/hui-calendar-card";
-import "../cards/hui-entities-card";
-import "../cards/hui-entity-button-card";
+import type { LovelaceCardConfig } from "../../../data/lovelace/config/card";
 import "../cards/hui-entity-card";
+import "../cards/hui-entities-card";
+import "../cards/hui-button-card";
+import "../cards/hui-entity-button-card";
 import "../cards/hui-glance-card";
 import "../cards/hui-grid-card";
 import "../cards/hui-light-card";
@@ -11,6 +10,7 @@ import "../cards/hui-sensor-card";
 import "../cards/hui-thermostat-card";
 import "../cards/hui-weather-forecast-card";
 import "../cards/hui-tile-card";
+import "../cards/hui-heading-card";
 import {
   createLovelaceElement,
   getLovelaceElementClass,
@@ -24,11 +24,13 @@ const ALWAYS_LOADED_TYPES = new Set([
   "entity-button",
   "glance",
   "grid",
+  "section",
   "light",
   "sensor",
   "thermostat",
   "weather-forecast",
   "tile",
+  "heading",
 ]);
 
 const LAZY_LOAD_TYPES = {
@@ -44,6 +46,8 @@ const LAZY_LOAD_TYPES = {
     import("../cards/energy/hui-energy-date-selection-card"),
   "energy-devices-graph": () =>
     import("../cards/energy/hui-energy-devices-graph-card"),
+  "energy-devices-detail-graph": () =>
+    import("../cards/energy/hui-energy-devices-detail-graph-card"),
   "energy-distribution": () =>
     import("../cards/energy/hui-energy-distribution-card"),
   "energy-gas-graph": () => import("../cards/energy/hui-energy-gas-graph-card"),
@@ -61,6 +65,7 @@ const LAZY_LOAD_TYPES = {
     import("../cards/energy/hui-energy-sources-table-card"),
   "energy-usage-graph": () =>
     import("../cards/energy/hui-energy-usage-graph-card"),
+  "energy-sankey": () => import("../cards/energy/hui-energy-sankey-card"),
   "entity-filter": () => import("../cards/hui-entity-filter-card"),
   error: () => import("../cards/hui-error-card"),
   gauge: () => import("../cards/hui-gauge-card"),
@@ -77,7 +82,8 @@ const LAZY_LOAD_TYPES = {
   "picture-glance": () => import("../cards/hui-picture-glance-card"),
   picture: () => import("../cards/hui-picture-card"),
   "plant-status": () => import("../cards/hui-plant-status-card"),
-  "safe-mode": () => import("../cards/hui-safe-mode-card"),
+  "recovery-mode": () => import("../cards/hui-recovery-mode-card"),
+  "todo-list": () => import("../cards/hui-todo-list-card"),
   "shopping-list": () => import("../cards/hui-shopping-list-card"),
   starting: () => import("../cards/hui-starting-card"),
   "statistics-graph": () => import("../cards/hui-statistics-graph-card"),

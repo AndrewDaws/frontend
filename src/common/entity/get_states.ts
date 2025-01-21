@@ -1,4 +1,4 @@
-import { HassEntity } from "home-assistant-js-websocket";
+import type { HassEntity } from "home-assistant-js-websocket";
 import { computeStateDomain } from "./compute_state_domain";
 import { UNAVAILABLE_STATES } from "../../data/entity";
 
@@ -15,6 +15,7 @@ export const FIXED_DOMAIN_STATES = {
     "pending",
     "triggered",
   ],
+  assist_satellite: ["idle", "listening", "responding", "processing"],
   automation: ["on", "off"],
   binary_sensor: ["on", "off"],
   button: [],
@@ -26,9 +27,17 @@ export const FIXED_DOMAIN_STATES = {
   humidifier: ["on", "off"],
   input_boolean: ["on", "off"],
   input_button: [],
-  lawn_mower: ["error", "paused", "mowing", "docked"],
+  lawn_mower: ["error", "paused", "mowing", "returning", "docked"],
   light: ["on", "off"],
-  lock: ["jammed", "locked", "locking", "unlocked", "unlocking"],
+  lock: [
+    "jammed",
+    "locked",
+    "locking",
+    "unlocked",
+    "unlocking",
+    "opening",
+    "open",
+  ],
   media_player: [
     "off",
     "on",
@@ -50,6 +59,7 @@ export const FIXED_DOMAIN_STATES = {
   timer: ["active", "idle", "paused"],
   update: ["on", "off"],
   vacuum: ["cleaning", "docked", "error", "idle", "paused", "returning"],
+  valve: ["closed", "closing", "open", "opening"],
   weather: [
     "clear-night",
     "cloudy",
@@ -116,6 +126,7 @@ const FIXED_DOMAIN_ATTRIBUTE_STATES = {
       "off",
       "idle",
       "preheating",
+      "defrosting",
       "heating",
       "cooling",
       "drying",
@@ -155,7 +166,7 @@ const FIXED_DOMAIN_ATTRIBUTE_STATES = {
       "channel",
       "channels",
       "composer",
-      "contibuting_artist",
+      "contributing_artist",
       "episode",
       "game",
       "genre",
@@ -210,6 +221,7 @@ const FIXED_DOMAIN_ATTRIBUTE_STATES = {
       "volatile_organic_compounds",
       "volatile_organic_compounds_parts",
       "voltage",
+      "volume_flow_rate",
     ],
     state_class: ["measurement", "total", "total_increasing"],
   },

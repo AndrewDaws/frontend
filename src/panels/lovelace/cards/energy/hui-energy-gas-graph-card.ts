@@ -1,53 +1,37 @@
-import {
+import type {
   ChartData,
   ChartDataset,
   ChartOptions,
   ScatterDataPoint,
 } from "chart.js";
-import {
-  addHours,
-  differenceInDays,
-  differenceInHours,
-  endOfToday,
-  isToday,
-  startOfToday,
-} from "date-fns";
-import { HassConfig, UnsubscribeFunc } from "home-assistant-js-websocket";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import { endOfToday, isToday, startOfToday } from "date-fns";
+import type { HassConfig, UnsubscribeFunc } from "home-assistant-js-websocket";
+import type { PropertyValues } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import memoizeOne from "memoize-one";
-import {
-  hex2rgb,
-  lab2rgb,
-  rgb2hex,
-  rgb2lab,
-} from "../../../../common/color/convert-color";
-import { labBrighten, labDarken } from "../../../../common/color/lab";
-import { formatDateShort } from "../../../../common/datetime/format_date";
-import { formatTime } from "../../../../common/datetime/format_time";
-import {
-  formatNumber,
-  numberFormatToLocale,
-} from "../../../../common/number/format_number";
+import { getEnergyColor } from "./common/color";
+import { formatNumber } from "../../../../common/number/format_number";
 import "../../../../components/chart/ha-chart-base";
 import "../../../../components/ha-card";
-import {
+import type {
   EnergyData,
   GasSourceTypeEnergyPreference,
+} from "../../../../data/energy";
+import {
   getEnergyDataCollection,
   getEnergyGasUnit,
 } from "../../../../data/energy";
-import {
-  getStatisticLabel,
-  Statistics,
-  StatisticsMetaData,
-} from "../../../../data/recorder";
-import { FrontendLocaleData } from "../../../../data/translation";
+import type { Statistics, StatisticsMetaData } from "../../../../data/recorder";
+import { getStatisticLabel } from "../../../../data/recorder";
+import type { FrontendLocaleData } from "../../../../data/translation";
 import { SubscribeMixin } from "../../../../mixins/subscribe-mixin";
-import { HomeAssistant } from "../../../../types";
-import { LovelaceCard } from "../../types";
-import { EnergyGasGraphCardConfig } from "../types";
+import type { HomeAssistant } from "../../../../types";
+import type { LovelaceCard } from "../../types";
+import type { EnergyGasGraphCardConfig } from "../types";
+import { hasConfigChanged } from "../../common/has-changed";
+import { getCommonOptions } from "./common/energy-chart-options";
 
 @customElement("hui-energy-gas-graph-card")
 export class HuiEnergyGasGraphCard
@@ -88,6 +72,14 @@ export class HuiEnergyGasGraphCard
 
   public setConfig(config: EnergyGasGraphCardConfig): void {
     this._config = config;
+  }
+
+  protected shouldUpdate(changedProps: PropertyValues): boolean {
+    return (
+      hasConfigChanged(this, changedProps) ||
+      changedProps.size > 1 ||
+      !changedProps.has("hass")
+    );
   }
 
   protected render() {
@@ -143,103 +135,23 @@ export class HuiEnergyGasGraphCard
       compareStart?: Date,
       compareEnd?: Date
     ): ChartOptions => {
-      const dayDifference = differenceInDays(end, start);
-      const compare = compareStart !== undefined && compareEnd !== undefined;
-      if (compare) {
-        const difference = differenceInHours(end, start);
-        const differenceCompare = differenceInHours(compareEnd!, compareStart!);
-        // If the compare period doesn't match the main period, adjust them to match
-        if (differenceCompare > difference) {
-          end = addHours(end, differenceCompare - difference);
-        } else if (difference > differenceCompare) {
-          compareEnd = addHours(compareEnd!, difference - differenceCompare);
-        }
-      }
-
+      const commonOptions = getCommonOptions(
+        start,
+        end,
+        locale,
+        config,
+        unit,
+        compareStart,
+        compareEnd
+      );
       const options: ChartOptions = {
-        parsing: false,
-        animation: false,
-        interaction: {
-          mode: "x",
-        },
-        scales: {
-          x: {
-            type: "time",
-            suggestedMin: start.getTime(),
-            suggestedMax: end.getTime(),
-            adapters: {
-              date: {
-                locale,
-                config,
-              },
-            },
-            ticks: {
-              maxRotation: 0,
-              sampleSize: 5,
-              autoSkipPadding: 20,
-              font: (context) =>
-                context.tick && context.tick.major
-                  ? ({ weight: "bold" } as any)
-                  : {},
-            },
-            time: {
-              tooltipFormat:
-                dayDifference > 35
-                  ? "monthyear"
-                  : dayDifference > 7
-                  ? "date"
-                  : dayDifference > 2
-                  ? "weekday"
-                  : dayDifference > 0
-                  ? "datetime"
-                  : "hour",
-              minUnit:
-                dayDifference > 35
-                  ? "month"
-                  : dayDifference > 2
-                  ? "day"
-                  : "hour",
-            },
-            offset: true,
-          },
-          y: {
-            stacked: true,
-            type: "linear",
-            title: {
-              display: true,
-              text: unit,
-            },
-            ticks: {
-              beginAtZero: true,
-            },
-          },
-        },
+        ...commonOptions,
         plugins: {
+          ...commonOptions.plugins,
           tooltip: {
-            position: "nearest",
-            filter: (val) => val.formattedValue !== "0",
-            itemSort: function (a, b) {
-              return b.datasetIndex - a.datasetIndex;
-            },
+            ...commonOptions.plugins!.tooltip,
             callbacks: {
-              title: (datasets) => {
-                if (dayDifference > 0) {
-                  return datasets[0].label;
-                }
-                const date = new Date(datasets[0].parsed.x);
-                return `${
-                  compare ? `${formatDateShort(date, locale, config)}: ` : ""
-                }${formatTime(date, locale, config)} – ${formatTime(
-                  addHours(date, 1),
-                  locale,
-                  config
-                )}`;
-              },
-              label: (context) =>
-                `${context.dataset.label}: ${formatNumber(
-                  context.parsed.y,
-                  locale
-                )} ${unit}`,
+              ...commonOptions.plugins!.tooltip!.callbacks,
               footer: (contexts) => {
                 if (contexts.length < 2) {
                   return [];
@@ -260,33 +172,8 @@ export class HuiEnergyGasGraphCard
               },
             },
           },
-          filler: {
-            propagate: false,
-          },
-          legend: {
-            display: false,
-            labels: {
-              usePointStyle: true,
-            },
-          },
         },
-        elements: {
-          bar: { borderWidth: 1.5, borderRadius: 4 },
-          point: {
-            hitRadius: 50,
-          },
-        },
-        // @ts-expect-error
-        locale: numberFormatToLocale(locale),
       };
-      if (compare) {
-        options.scales!.xAxisCompare = {
-          ...(options.scales!.x as Record<string, any>),
-          suggestedMin: compareStart!.getTime(),
-          suggestedMax: compareEnd!.getTime(),
-          display: false,
-        };
-      }
       return options;
     }
   );
@@ -304,16 +191,12 @@ export class HuiEnergyGasGraphCard
     const datasets: ChartDataset<"bar", ScatterDataPoint[]>[] = [];
 
     const computedStyles = getComputedStyle(this);
-    const gasColor = computedStyles
-      .getPropertyValue("--energy-gas-color")
-      .trim();
 
     datasets.push(
       ...this._processDataSet(
         energyData.stats,
         energyData.statsMetadata,
         gasSources,
-        gasColor,
         computedStyles
       )
     );
@@ -335,7 +218,6 @@ export class HuiEnergyGasGraphCard
           energyData.statsCompare,
           energyData.statsMetadata,
           gasSources,
-          gasColor,
           computedStyles,
           true
         )
@@ -357,28 +239,12 @@ export class HuiEnergyGasGraphCard
     statistics: Statistics,
     statisticsMetaData: Record<string, StatisticsMetaData>,
     gasSources: GasSourceTypeEnergyPreference[],
-    gasColor: string,
     computedStyles: CSSStyleDeclaration,
     compare = false
   ) {
     const data: ChartDataset<"bar", ScatterDataPoint[]>[] = [];
 
     gasSources.forEach((source, idx) => {
-      let borderColor = computedStyles
-        .getPropertyValue("--energy-gas-color-" + idx)
-        .trim();
-      if (borderColor.length === 0) {
-        const modifiedColor =
-          idx > 0
-            ? this.hass.themes.darkMode
-              ? labBrighten(rgb2lab(hex2rgb(gasColor)), idx)
-              : labDarken(rgb2lab(hex2rgb(gasColor)), idx)
-            : undefined;
-        borderColor = modifiedColor
-          ? rgb2hex(lab2rgb(modifiedColor))
-          : gasColor;
-      }
-
       let prevStart: number | null = null;
 
       const gasConsumptionData: ScatterDataPoint[] = [];
@@ -417,8 +283,22 @@ export class HuiEnergyGasGraphCard
           source.stat_energy_from,
           statisticsMetaData[source.stat_energy_from]
         ),
-        borderColor: compare ? borderColor + "7F" : borderColor,
-        backgroundColor: compare ? borderColor + "32" : borderColor + "7F",
+        borderColor: getEnergyColor(
+          computedStyles,
+          this.hass.themes.darkMode,
+          false,
+          compare,
+          "--energy-gas-color",
+          idx
+        ),
+        backgroundColor: getEnergyColor(
+          computedStyles,
+          this.hass.themes.darkMode,
+          true,
+          compare,
+          "--energy-gas-color",
+          idx
+        ),
         data: gasConsumptionData,
         order: 1,
         stack: "gas",
@@ -428,35 +308,35 @@ export class HuiEnergyGasGraphCard
     return data;
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      ha-card {
-        height: 100%;
-      }
-      .card-header {
-        padding-bottom: 0;
-      }
-      .content {
-        padding: 16px;
-      }
-      .has-header {
-        padding-top: 0;
-      }
-      .no-data {
-        position: absolute;
-        height: 100%;
-        top: 0;
-        left: 0;
-        right: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        padding: 20%;
-        margin-left: 32px;
-        box-sizing: border-box;
-      }
-    `;
-  }
+  static styles = css`
+    ha-card {
+      height: 100%;
+    }
+    .card-header {
+      padding-bottom: 0;
+    }
+    .content {
+      padding: 16px;
+    }
+    .has-header {
+      padding-top: 0;
+    }
+    .no-data {
+      position: absolute;
+      height: 100%;
+      top: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20%;
+      margin-left: 32px;
+      margin-inline-start: 32px;
+      margin-inline-end: initial;
+      box-sizing: border-box;
+    }
+  `;
 }
 
 declare global {

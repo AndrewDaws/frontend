@@ -1,5 +1,6 @@
 import { mdiPencil } from "@mdi/js";
-import { css, CSSResultGroup, html, LitElement, PropertyValues } from "lit";
+import type { CSSResultGroup, PropertyValues } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
 import { computeStateDomain } from "../../common/entity/compute_state_domain";
 import { navigate } from "../../common/navigate";
@@ -8,13 +9,13 @@ import "../../components/ha-menu-button";
 import "../../components/ha-top-app-bar-fixed";
 import "../../components/map/ha-map";
 import { haStyle } from "../../resources/styles";
-import { HomeAssistant } from "../../types";
+import type { HomeAssistant } from "../../types";
 
 @customElement("ha-panel-map")
 class HaPanelMap extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property({ type: Boolean }) public narrow!: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
   private _entities: string[] = [];
 
@@ -28,7 +29,7 @@ class HaPanelMap extends LitElement {
         ></ha-menu-button>
         <div slot="title">${this.hass.localize("panel.map")}</div>
         ${!__DEMO__ && this.hass.user?.is_admin
-          ? html` <ha-icon-button
+          ? html`<ha-icon-button
               slot="actionItems"
               .label=${this.hass!.localize("ui.panel.map.edit_zones")}
               .path=${mdiPencil}
@@ -38,15 +39,15 @@ class HaPanelMap extends LitElement {
         <ha-map
           .hass=${this.hass}
           .entities=${this._entities}
-          autoFit
-          interactiveZones
+          auto-fit
+          interactive-zones
         ></ha-map>
       </ha-top-app-bar-fixed>
     `;
   }
 
   private _openZonesEditor() {
-    navigate("/config/zone");
+    navigate("/config/zone?historyBack=1");
   }
 
   public willUpdate(changedProps: PropertyValues) {

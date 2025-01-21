@@ -1,6 +1,7 @@
 import "@material/mwc-button/mwc-button";
 import { mdiFire } from "@mdi/js";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import type { CSSResultGroup } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { fireEvent } from "../../../../common/dom/fire_event";
 import "../../../../components/entity/ha-entity-picker";
@@ -10,9 +11,9 @@ import "../../../../components/ha-formfield";
 import "../../../../components/ha-radio";
 import type { HaRadio } from "../../../../components/ha-radio";
 import "../../../../components/ha-textfield";
+import type { GasSourceTypeEnergyPreference } from "../../../../data/energy";
 import {
   emptyGasEnergyPreference,
-  GasSourceTypeEnergyPreference,
   energyStatisticHelpUrl,
 } from "../../../../data/energy";
 import {
@@ -21,10 +22,10 @@ import {
   isExternalStatistic,
 } from "../../../../data/recorder";
 import { getSensorDeviceClassConvertibleUnits } from "../../../../data/sensor";
-import { HassDialog } from "../../../../dialogs/make-dialog-manager";
+import type { HassDialog } from "../../../../dialogs/make-dialog-manager";
 import { haStyle, haStyleDialog } from "../../../../resources/styles";
-import { HomeAssistant } from "../../../../types";
-import { EnergySettingsGasDialogParams } from "./show-dialogs-energy";
+import type { HomeAssistant } from "../../../../types";
+import type { EnergySettingsGasDialogParams } from "./show-dialogs-energy";
 
 const gasDeviceClasses = ["gas", "energy"];
 const gasUnitClasses = ["volume", "energy"];
@@ -67,10 +68,10 @@ export class DialogEnergyGasSettings
     this._costs = this._source.entity_energy_price
       ? "entity"
       : this._source.number_energy_price
-      ? "number"
-      : this._source.stat_cost
-      ? "statistic"
-      : "no-costs";
+        ? "number"
+        : this._source.stat_cost
+          ? "statistic"
+          : "no-costs";
     this._energy_units = (
       await getSensorDeviceClassConvertibleUnits(this.hass, "energy")
     ).units;
@@ -82,13 +83,14 @@ export class DialogEnergyGasSettings
       .filter((id) => id !== this._source?.stat_energy_from);
   }
 
-  public closeDialog(): void {
+  public closeDialog() {
     this._params = undefined;
     this._source = undefined;
     this._pickedDisplayUnit = undefined;
     this._error = undefined;
     this._excludeList = undefined;
     fireEvent(this, "dialog-closed", { dialog: this.localName });
+    return true;
   }
 
   protected render() {
@@ -100,8 +102,8 @@ export class DialogEnergyGasSettings
       this._params.allowedGasUnitClass === undefined
         ? [...(this._gas_units || []), ...(this._energy_units || [])].join(", ")
         : this._params.allowedGasUnitClass === "energy"
-        ? this._energy_units?.join(", ") || ""
-        : this._gas_units?.join(", ") || "";
+          ? this._energy_units?.join(", ") || ""
+          : this._gas_units?.join(", ") || "";
 
     const unitPrice = this._pickedDisplayUnit
       ? `${this.hass.config.currency}/${this._pickedDisplayUnit}`
@@ -339,6 +341,8 @@ export class DialogEnergyGasSettings
         .price-options {
           display: block;
           padding-left: 52px;
+          padding-inline-start: 52px;
+          padding-inline-end: initial;
           margin-top: -8px;
         }
       `,

@@ -67,6 +67,9 @@
   "fr": {
     "nativeName": "Français"
   },
+  "ga": {
+    "nativeName": "Gaeilge"
+  },
   "gl": {
     "nativeName": "Galego"
   },
@@ -115,6 +118,9 @@
   },
   "lv": {
     "nativeName": "Latviešu"
+  },
+  "mk": {
+    "nativeName": "Македонски"
   },
   "ml": {
     "nativeName": "മലയാളം"

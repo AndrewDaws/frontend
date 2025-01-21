@@ -6,13 +6,13 @@ import { customElement, property, state } from "lit/decorators";
 import { fireEvent } from "../common/dom/fire_event";
 import { nextRender } from "../common/util/render-status";
 import { haStyleDialog } from "../resources/styles";
-import { HomeAssistant } from "../types";
-import { datePickerDialogParams } from "./ha-date-input";
+import type { HomeAssistant } from "../types";
+import type { DatePickerDialogParams } from "./ha-date-input";
 import "./ha-dialog";
 
 @customElement("ha-dialog-date-picker")
 export class HaDialogDatePicker extends LitElement {
-  @property() public hass!: HomeAssistant;
+  @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property() public value?: string;
 
@@ -20,11 +20,11 @@ export class HaDialogDatePicker extends LitElement {
 
   @property() public label?: string;
 
-  @state() private _params?: datePickerDialogParams;
+  @state() private _params?: DatePickerDialogParams;
 
   @state() private _value?: string;
 
-  public async showDialog(params: datePickerDialogParams): Promise<void> {
+  public async showDialog(params: DatePickerDialogParams): Promise<void> {
     // app-datepicker has a bug, that it removes its handlers when disconnected, but doesn't add them back when reconnected.
     // So we need to wait for the next render to make sure the element is removed and re-created so the handlers are added.
     await nextRender();
@@ -50,6 +50,15 @@ export class HaDialogDatePicker extends LitElement {
         @datepicker-value-updated=${this._valueChanged}
         .firstDayOfWeek=${this._params.firstWeekday}
       ></app-datepicker>
+      ${this._params.canClear
+        ? html`<mwc-button
+            slot="secondaryAction"
+            @click=${this._clear}
+            class="warning"
+          >
+            ${this.hass.localize("ui.dialogs.date-picker.clear")}
+          </mwc-button>`
+        : nothing}
       <mwc-button slot="secondaryAction" @click=${this._setToday}>
         ${this.hass.localize("ui.dialogs.date-picker.today")}
       </mwc-button>
@@ -64,6 +73,11 @@ export class HaDialogDatePicker extends LitElement {
 
   private _valueChanged(ev: CustomEvent) {
     this._value = ev.detail.value;
+  }
+
+  private _clear() {
+    this._params?.onChange(undefined);
+    this.closeDialog();
   }
 
   private _setToday() {

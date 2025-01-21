@@ -1,24 +1,19 @@
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  PropertyValues,
-  nothing,
-} from "lit";
+import type { CSSResultGroup, PropertyValues } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import "../../../../../../components/ha-expansion-panel";
-import { DeviceRegistryEntry } from "../../../../../../data/device_registry";
-import { fetchZHADevice, ZHADevice } from "../../../../../../data/zha";
+import type { DeviceRegistryEntry } from "../../../../../../data/device_registry";
+import type { ZHADevice } from "../../../../../../data/zha";
+import { fetchZHADevice } from "../../../../../../data/zha";
 import { haStyle } from "../../../../../../resources/styles";
-import { HomeAssistant } from "../../../../../../types";
+import type { HomeAssistant } from "../../../../../../types";
 import { formatAsPaddedHex } from "../../../../integrations/integration-panels/zha/functions";
 
 @customElement("ha-device-info-zha")
-export class HaDeviceActionsZha extends LitElement {
+export class HaDeviceInfoZha extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public device!: DeviceRegistryEntry;
+  @property({ attribute: false }) public device!: DeviceRegistryEntry;
 
   @state() private _zhaDevice?: ZHADevice;
 
@@ -96,5 +91,11 @@ export class HaDeviceActionsZha extends LitElement {
         }
       `,
     ];
+  }
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    "ha-device-info-zha": HaDeviceInfoZha;
   }
 }

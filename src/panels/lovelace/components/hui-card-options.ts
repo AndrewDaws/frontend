@@ -1,50 +1,50 @@
 import "@material/mwc-button";
-import { ActionDetail } from "@material/mwc-list/mwc-list-foundation";
+import type { ActionDetail } from "@material/mwc-list/mwc-list-foundation";
 import {
   mdiContentCopy,
   mdiContentCut,
-  mdiContentDuplicate,
   mdiDelete,
   mdiDotsVertical,
   mdiFileMoveOutline,
   mdiMinus,
   mdiPlus,
+  mdiPlusCircleMultipleOutline,
 } from "@mdi/js";
 import deepClone from "deep-clone-simple";
-import {
-  CSSResultGroup,
-  LitElement,
-  PropertyValues,
-  TemplateResult,
-  css,
-  html,
-  nothing,
-} from "lit";
+import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, queryAssignedNodes } from "lit/decorators";
 import { storage } from "../../../common/decorators/storage";
 import { fireEvent } from "../../../common/dom/fire_event";
 import "../../../components/ha-button-menu";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-list-item";
-import { LovelaceCardConfig, saveConfig } from "../../../data/lovelace";
+import type { LovelaceCardConfig } from "../../../data/lovelace/config/card";
+import { saveConfig } from "../../../data/lovelace/config/types";
+import { isStrategyView } from "../../../data/lovelace/config/view";
 import {
   showAlertDialog,
   showPromptDialog,
 } from "../../../dialogs/generic/show-dialog-box";
 import { haStyle } from "../../../resources/styles";
-import { HomeAssistant } from "../../../types";
-import { showSaveSuccessToast } from "../../../util/toast-saved-success";
+import type { HomeAssistant } from "../../../types";
 import { computeCardSize } from "../common/compute-card-size";
 import { showEditCardDialog } from "../editor/card-editor/show-edit-card-dialog";
 import {
   addCard,
   deleteCard,
-  moveCard,
-  moveCardToPosition,
-  swapCard,
+  moveCardToContainer,
+  moveCardToIndex,
 } from "../editor/config-util";
+import {
+  type LovelaceCardPath,
+  type LovelaceContainerPath,
+  findLovelaceItems,
+  getLovelaceContainerPath,
+  parseLovelaceCardPath,
+} from "../editor/lovelace-path";
 import { showSelectViewDialog } from "../editor/select-view/show-select-view-dialog";
-import { Lovelace, LovelaceCard } from "../types";
+import type { Lovelace, LovelaceCard } from "../types";
 
 @customElement("hui-card-options")
 export class HuiCardOptions extends LitElement {
@@ -52,14 +52,15 @@ export class HuiCardOptions extends LitElement {
 
   @property({ attribute: false }) public lovelace?: Lovelace;
 
-  @property() public path?: [number, number];
+  @property({ type: Array }) public path?: LovelaceCardPath;
 
   @queryAssignedNodes() private _assignedNodes?: NodeListOf<LovelaceCard>;
 
-  @property({ type: Boolean }) public hidePosition = false;
+  @property({ attribute: "hide-position", type: Boolean })
+  public hidePosition = false;
 
   @storage({
-    key: "lovelaceClipboard",
+    key: "dashboardCardClipboard",
     state: false,
     subscribe: false,
     storage: "sessionStorage",
@@ -74,13 +75,21 @@ export class HuiCardOptions extends LitElement {
     if (!changedProps.has("path") || !this.path) {
       return;
     }
+    const { viewIndex } = parseLovelaceCardPath(this.path);
     this.classList.toggle(
       "panel",
-      this.lovelace!.config.views[this.path![0]].panel
+      this.lovelace!.config.views[viewIndex].panel
     );
   }
 
+  private get _cards() {
+    const containerPath = getLovelaceContainerPath(this.path!);
+    return findLovelaceItems("cards", this.lovelace!.config, containerPath)!;
+  }
+
   protected render(): TemplateResult {
+    const { cardIndex } = parseLovelaceCardPath(this.path!);
+
     return html`
       <div class="card"><slot></slot></div>
       <ha-card>
@@ -101,7 +110,7 @@ export class HuiCardOptions extends LitElement {
                     .path=${mdiMinus}
                     class="move-arrow"
                     @click=${this._decreaseCardPosiion}
-                    ?disabled=${this.path![1] === 0}
+                    ?disabled=${cardIndex === 0}
                   ></ha-icon-button>
                   <ha-icon-button
                     @click=${this._changeCardPosition}
@@ -109,7 +118,7 @@ export class HuiCardOptions extends LitElement {
                       "ui.panel.lovelace.editor.edit_card.change_position"
                     )}
                   >
-                    <div class="position-badge">${this.path![1] + 1}</div>
+                    <div class="position-badge">${cardIndex + 1}</div>
                   </ha-icon-button>
                   <ha-icon-button
                     .label=${this.hass!.localize(
@@ -118,9 +127,7 @@ export class HuiCardOptions extends LitElement {
                     .path=${mdiPlus}
                     class="move-arrow"
                     @click=${this._increaseCardPosition}
-                    .disabled=${this.lovelace!.config.views[this.path![0]]
-                      .cards!.length ===
-                    this.path![1] + 1}
+                    .disabled=${this._cards!.length === cardIndex + 1}
                   ></ha-icon-button>
                 `
               : nothing}
@@ -144,7 +151,7 @@ export class HuiCardOptions extends LitElement {
               <ha-list-item graphic="icon">
                 <ha-svg-icon
                   slot="graphic"
-                  .path=${mdiContentDuplicate}
+                  .path=${mdiPlusCircleMultipleOutline}
                 ></ha-svg-icon>
                 ${this.hass!.localize(
                   "ui.panel.lovelace.editor.edit_card.duplicate"
@@ -260,19 +267,20 @@ export class HuiCardOptions extends LitElement {
         this._cutCard();
         break;
       case 4:
-        this._deleteCard(true);
+        this._deleteCard({ silent: false });
         break;
     }
   }
 
   private _duplicateCard(): void {
-    const path = this.path!;
-    const cardConfig = this.lovelace!.config.views[path[0]].cards![path[1]];
+    const { cardIndex } = parseLovelaceCardPath(this.path!);
+    const containerPath = getLovelaceContainerPath(this.path!);
+    const cardConfig = this._cards![cardIndex];
     showEditCardDialog(this, {
       lovelaceConfig: this.lovelace!.config,
-      cardConfig,
       saveConfig: this.lovelace!.saveConfig,
-      path: [path[0]],
+      path: containerPath,
+      cardConfig,
     });
   }
 
@@ -282,35 +290,33 @@ export class HuiCardOptions extends LitElement {
 
   private _cutCard(): void {
     this._copyCard();
-    this._deleteCard(false);
+    this._deleteCard({ silent: true });
   }
 
   private _copyCard(): void {
-    const cardConfig =
-      this.lovelace!.config.views[this.path![0]].cards![this.path![1]];
+    const { cardIndex } = parseLovelaceCardPath(this.path!);
+    const cardConfig = this._cards[cardIndex];
     this._clipboard = deepClone(cardConfig);
   }
 
   private _decreaseCardPosiion(): void {
     const lovelace = this.lovelace!;
     const path = this.path!;
-    lovelace.saveConfig(
-      swapCard(lovelace.config, path, [path[0], path[1] - 1])
-    );
+    const { cardIndex } = parseLovelaceCardPath(path);
+    lovelace.saveConfig(moveCardToIndex(lovelace.config, path, cardIndex - 1));
   }
 
   private _increaseCardPosition(): void {
     const lovelace = this.lovelace!;
     const path = this.path!;
-    lovelace.saveConfig(
-      swapCard(lovelace.config, path, [path[0], path[1] + 1])
-    );
+    const { cardIndex } = parseLovelaceCardPath(path);
+    lovelace.saveConfig(moveCardToIndex(lovelace.config, path, cardIndex + 1));
   }
 
   private async _changeCardPosition(): Promise<void> {
     const lovelace = this.lovelace!;
     const path = this.path!;
-
+    const { cardIndex } = parseLovelaceCardPath(path);
     const positionString = await showPromptDialog(this, {
       title: this.hass!.localize(
         "ui.panel.lovelace.editor.change_position.title"
@@ -320,7 +326,7 @@ export class HuiCardOptions extends LitElement {
       ),
       inputType: "number",
       inputMin: "1",
-      placeholder: String(path[1] + 1),
+      placeholder: String(cardIndex + 1),
     });
 
     if (!positionString) return;
@@ -329,7 +335,8 @@ export class HuiCardOptions extends LitElement {
 
     if (isNaN(position)) return;
 
-    lovelace.saveConfig(moveCardToPosition(lovelace.config, path, position));
+    const newIndex = position - 1;
+    lovelace.saveConfig(moveCardToIndex(lovelace.config, path, newIndex));
   }
 
   private _moveCard(): void {
@@ -339,38 +346,80 @@ export class HuiCardOptions extends LitElement {
       allowDashboardChange: true,
       header: this.hass!.localize("ui.panel.lovelace.editor.move_card.header"),
       viewSelectedCallback: async (urlPath, selectedDashConfig, viewIndex) => {
+        if (!this.lovelace) return;
+        const toView = selectedDashConfig.views[viewIndex];
+        const newConfig = selectedDashConfig;
+
+        const undoAction = async () => {
+          this.lovelace!.saveConfig(selectedDashConfig);
+        };
+
+        if (isStrategyView(toView)) {
+          showAlertDialog(this, {
+            title: this.hass!.localize(
+              "ui.panel.lovelace.editor.move_card.error_title"
+            ),
+            text: this.hass!.localize(
+              "ui.panel.lovelace.editor.move_card.error_text_strategy"
+            ),
+            warning: true,
+          });
+          return;
+        }
+
+        const toPath: LovelaceContainerPath = [viewIndex];
+
         if (urlPath === this.lovelace!.urlPath) {
           this.lovelace!.saveConfig(
-            moveCard(this.lovelace!.config, this.path!, [viewIndex])
+            moveCardToContainer(newConfig, this.path!, toPath)
           );
-          showSaveSuccessToast(this, this.hass!);
+          this.lovelace.showToast({
+            message: this.hass!.localize(
+              "ui.panel.lovelace.editor.move_card.success"
+            ),
+            duration: 4000,
+            action: {
+              action: undoAction,
+              text: this.hass!.localize("ui.common.undo"),
+            },
+          });
           return;
         }
         try {
+          const { cardIndex } = parseLovelaceCardPath(this.path!);
+          const card = this._cards[cardIndex];
           await saveConfig(
             this.hass!,
             urlPath,
-            addCard(
-              selectedDashConfig,
-              [viewIndex],
-              this.lovelace!.config.views[this.path![0]].cards![this.path![1]]
-            )
+            addCard(newConfig, toPath, card)
           );
           this.lovelace!.saveConfig(
             deleteCard(this.lovelace!.config, this.path!)
           );
-          showSaveSuccessToast(this, this.hass!);
-        } catch (err: any) {
-          showAlertDialog(this, {
-            text: `Moving failed: ${err.message}`,
+
+          this.lovelace.showToast({
+            message: this.hass!.localize(
+              "ui.panel.lovelace.editor.move_card.success"
+            ),
+            duration: 4000,
+            action: {
+              action: undoAction,
+              text: this.hass!.localize("ui.common.undo"),
+            },
+          });
+        } catch (_err: any) {
+          this.lovelace.showToast({
+            message: this.hass!.localize(
+              "ui.panel.lovelace.editor.move_card.error"
+            ),
           });
         }
       },
     });
   }
 
-  private _deleteCard(confirm: boolean): void {
-    fireEvent(this, "ll-delete-card", { path: this.path!, confirm });
+  private _deleteCard({ silent }: { silent: boolean }): void {
+    fireEvent(this, "ll-delete-card", { path: this.path!, silent });
   }
 }
 

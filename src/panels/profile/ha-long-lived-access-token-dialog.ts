@@ -1,13 +1,7 @@
 import "@material/mwc-button";
 import { mdiContentCopy } from "@mdi/js";
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  TemplateResult,
-  nothing,
-} from "lit";
+import type { CSSResultGroup, TemplateResult } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { fireEvent } from "../../common/dom/fire_event";
 import { createCloseHeading } from "../../components/ha-dialog";
@@ -15,7 +9,7 @@ import "../../components/ha-textfield";
 import "../../components/ha-icon-button";
 import { haStyleDialog } from "../../resources/styles";
 import type { HomeAssistant } from "../../types";
-import { LongLivedAccessTokenDialogParams } from "./show-long-lived-access-token-dialog";
+import type { LongLivedAccessTokenDialogParams } from "./show-long-lived-access-token-dialog";
 import type { HaTextField } from "../../components/ha-textfield";
 import { copyToClipboard } from "../../common/util/copy-clipboard";
 import { showToast } from "../../util/toast";
@@ -74,7 +68,9 @@ export class HaLongLivedAccessTokenDialog extends LitElement {
               ? this._qrCode
               : html`
                   <mwc-button @click=${this._generateQR}>
-                    Generate QR code
+                    ${this.hass.localize(
+                      "ui.panel.profile.long_lived_access_tokens.generate_qr_code"
+                    )}
                   </mwc-button>
                 `}
           </div>
@@ -115,8 +111,7 @@ export class HaLongLivedAccessTokenDialog extends LitElement {
     this._qrCode = html`<img
         alt=${this.hass.localize(
           "ui.panel.profile.long_lived_access_tokens.qr_code_image",
-          "name",
-          this._params!.name
+          { name: this._params!.name }
         )}
         src=${canvas.toDataURL()}
       ></img>`;

@@ -1,12 +1,6 @@
 import "@material/mwc-list/mwc-list-item";
-import {
-  CSSResultGroup,
-  LitElement,
-  PropertyValues,
-  css,
-  html,
-  nothing,
-} from "lit";
+import type { PropertyValues } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { stopPropagation } from "../../../common/dom/stop_propagation";
 import { computeStateName } from "../../../common/entity/compute_state_name";
@@ -14,13 +8,14 @@ import "../../../components/ha-select";
 import { UNAVAILABLE } from "../../../data/entity";
 import { forwardHaptic } from "../../../data/haptics";
 import type { InputSelectEntity } from "../../../data/input_select";
-import { SelectEntity, setSelectOption } from "../../../data/select";
-import { HomeAssistant } from "../../../types";
-import { EntitiesCardEntityConfig } from "../cards/types";
+import type { SelectEntity } from "../../../data/select";
+import { setSelectOption } from "../../../data/select";
+import type { HomeAssistant } from "../../../types";
+import type { EntitiesCardEntityConfig } from "../cards/types";
 import { hasConfigOrEntityChanged } from "../common/has-changed";
 import "../components/hui-generic-entity-row";
 import { createEntityNotFoundWarning } from "../components/hui-warning";
-import { LovelaceRow } from "./types";
+import type { LovelaceRow } from "./types";
 
 @customElement("hui-select-entity-row")
 class HuiSelectEntityRow extends LitElement implements LovelaceRow {
@@ -61,14 +56,14 @@ class HuiSelectEntityRow extends LitElement implements LovelaceRow {
       <hui-generic-entity-row
         .hass=${this.hass}
         .config=${this._config}
-        hideName
+        hide-name
       >
         <ha-select
           .label=${this._config.name || computeStateName(stateObj)}
           .value=${stateObj.state}
           .disabled=${stateObj.state === UNAVAILABLE}
           naturalMenuWidth
-          @selected=${this._selectedChanged}
+          @action=${this._handleAction}
           @click=${stopPropagation}
           @closed=${stopPropagation}
         >
@@ -86,24 +81,24 @@ class HuiSelectEntityRow extends LitElement implements LovelaceRow {
     `;
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      hui-generic-entity-row {
-        display: flex;
-        align-items: center;
-      }
-      ha-select {
-        width: 100%;
-        --ha-select-min-width: 0;
-      }
-    `;
-  }
+  static styles = css`
+    hui-generic-entity-row {
+      display: flex;
+      align-items: center;
+    }
+    ha-select {
+      width: 100%;
+      --ha-select-min-width: 0;
+    }
+  `;
 
-  private _selectedChanged(ev): void {
+  private _handleAction(ev): void {
     const stateObj = this.hass!.states[
       this._config!.entity
     ] as InputSelectEntity;
+
     const option = ev.target.value;
+
     if (
       option === stateObj.state ||
       !stateObj.attributes.options.includes(option)

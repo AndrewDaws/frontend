@@ -1,6 +1,7 @@
-import { css, CSSResultGroup, html, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
-import { HaFormConstantSchema, HaFormElement } from "./types";
+import type { HaFormConstantSchema, HaFormElement } from "./types";
 
 @customElement("ha-form-constant")
 export class HaFormConstant extends LitElement implements HaFormElement {
@@ -14,16 +15,14 @@ export class HaFormConstant extends LitElement implements HaFormElement {
         : ""}`;
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host {
-        display: block;
-      }
-      .label {
-        font-weight: 500;
-      }
-    `;
-  }
+  static styles = css`
+    :host {
+      display: block;
+    }
+    .label {
+      font-weight: 500;
+    }
+  `;
 }
 
 declare global {

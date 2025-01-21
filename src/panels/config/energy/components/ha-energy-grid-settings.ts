@@ -6,38 +6,40 @@ import {
   mdiPencil,
   mdiTransmissionTower,
 } from "@mdi/js";
-import { CSSResultGroup, html, LitElement, TemplateResult } from "lit";
+import type { CSSResultGroup, TemplateResult } from "lit";
+import { html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { fireEvent } from "../../../../common/dom/fire_event";
 import "../../../../components/ha-card";
 import "../../../../components/ha-icon-button";
+import type { ConfigEntry } from "../../../../data/config_entries";
 import {
-  ConfigEntry,
   deleteConfigEntry,
   getConfigEntries,
 } from "../../../../data/config_entries";
-import {
-  emptyGridSourceEnergyPreference,
+import type {
   EnergyPreferences,
   EnergyPreferencesValidation,
-  energySourcesByType,
   EnergyValidationIssue,
+  EnergySource,
   FlowFromGridSourceEnergyPreference,
   FlowToGridSourceEnergyPreference,
   GridSourceTypeEnergyPreference,
-  saveEnergyPreferences,
 } from "../../../../data/energy";
 import {
-  StatisticsMetaData,
-  getStatisticLabel,
-} from "../../../../data/recorder";
+  emptyGridSourceEnergyPreference,
+  energySourcesByType,
+  saveEnergyPreferences,
+} from "../../../../data/energy";
+import type { StatisticsMetaData } from "../../../../data/recorder";
+import { getStatisticLabel } from "../../../../data/recorder";
 import { showConfigFlowDialog } from "../../../../dialogs/config-flow/show-dialog-config-flow";
 import {
   showAlertDialog,
   showConfirmationDialog,
 } from "../../../../dialogs/generic/show-dialog-box";
 import { haStyle } from "../../../../resources/styles";
-import { HomeAssistant } from "../../../../types";
+import type { HomeAssistant } from "../../../../types";
 import { brandsUrl } from "../../../../util/brands-url";
 import { documentationUrl } from "../../../../util/documentation-url";
 import {
@@ -221,6 +223,7 @@ export class EnergyGridSettings extends LitElement {
             ? html`<div class="row" .entry=${this._co2ConfigEntry}>
                 <img
                   alt=""
+                  crossorigin="anonymous"
                   referrerpolicy="no-referrer"
                   src=${brandsUrl({
                     domain: "co2signal",
@@ -246,6 +249,7 @@ export class EnergyGridSettings extends LitElement {
                 <div class="row border-bottom">
                   <img
                     alt=""
+                    crossorigin="anonymous"
                     referrerpolicy="no-referrer"
                     src=${brandsUrl({
                       domain: "co2signal",
@@ -447,11 +451,8 @@ export class EnergyGridSettings extends LitElement {
       ),
     };
 
-    try {
-      await this._savePreferences(preferences);
-    } catch (err: any) {
-      showAlertDialog(this, { title: `Failed to save config: ${err.message}` });
-    }
+    const cleanedPreferences = this._removeEmptySources(preferences);
+    await this._savePreferences(cleanedPreferences);
   }
 
   private async _deleteToSource(ev) {
@@ -477,16 +478,35 @@ export class EnergyGridSettings extends LitElement {
       ),
     };
 
-    try {
-      await this._savePreferences(preferences);
-    } catch (err: any) {
-      showAlertDialog(this, { title: `Failed to save config: ${err.message}` });
-    }
+    const cleanedPreferences = this._removeEmptySources(preferences);
+    await this._savePreferences(cleanedPreferences);
+  }
+
+  private _removeEmptySources(preferences: EnergyPreferences) {
+    // Check if grid sources became an empty type and remove if so
+    preferences.energy_sources = preferences.energy_sources.reduce<
+      EnergySource[]
+    >((acc, source) => {
+      if (
+        source.type !== "grid" ||
+        source.flow_from.length > 0 ||
+        source.flow_to.length > 0
+      ) {
+        acc.push(source);
+      }
+      return acc;
+    }, []);
+
+    return preferences;
   }
 
   private async _savePreferences(preferences: EnergyPreferences) {
-    const result = await saveEnergyPreferences(this.hass, preferences);
-    fireEvent(this, "value-changed", { value: result });
+    try {
+      const result = await saveEnergyPreferences(this.hass, preferences);
+      fireEvent(this, "value-changed", { value: result });
+    } catch (err: any) {
+      showAlertDialog(this, { title: `Failed to save config: ${err.message}` });
+    }
   }
 
   static get styles(): CSSResultGroup {

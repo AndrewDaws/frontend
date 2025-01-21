@@ -1,35 +1,35 @@
-import { mdiDownload } from "@mdi/js";
+import { mdiDownload, mdiTrashCan } from "@mdi/js";
 import { dump } from "js-yaml";
-import { CSSResultGroup, LitElement, css, html, nothing } from "lit";
+import type { CSSResultGroup } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
+import { storage } from "../../../common/decorators/storage";
+import { formatLanguageCode } from "../../../common/language/format_language";
+import "../../../components/ha-alert";
 import "../../../components/ha-button";
+import "../../../components/ha-card";
 import "../../../components/ha-code-editor";
 import "../../../components/ha-language-picker";
 import "../../../components/ha-textarea";
 import type { HaTextArea } from "../../../components/ha-textarea";
-import {
-  AssitDebugResult,
-  debugAgent,
-  listAgents,
-} from "../../../data/conversation";
+import type { AssitDebugResult } from "../../../data/conversation";
+import { debugAgent, listAgents } from "../../../data/conversation";
 import { SubscribeMixin } from "../../../mixins/subscribe-mixin";
 import { haStyle } from "../../../resources/styles";
-import { HomeAssistant } from "../../../types";
-import { formatLanguageCode } from "../../../common/language/format_language";
-import { storage } from "../../../common/decorators/storage";
+import type { HomeAssistant } from "../../../types";
 import { fileDownload } from "../../../util/file_download";
 
-type SentenceParsingResult = {
+interface SentenceParsingResult {
   sentence: string;
   language: string;
   result: AssitDebugResult | null;
-};
+}
 
 @customElement("developer-tools-assist")
 class HaPanelDevAssist extends SubscribeMixin(LitElement) {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property({ type: Boolean }) public narrow!: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
   @state() supportedLanguages?: string[];
 
@@ -90,7 +90,9 @@ class HaPanelDevAssist extends SubscribeMixin(LitElement) {
 
   private async _fetchLanguages() {
     const { agents } = await listAgents(this.hass);
-    const assistAgent = agents.find((agent) => agent.id === "homeassistant");
+    const assistAgent = agents.find(
+      (agent) => agent.id === "conversation.home_assistant"
+    );
     this.supportedLanguages =
       assistAgent?.supported_languages === "*"
         ? undefined
@@ -160,12 +162,16 @@ class HaPanelDevAssist extends SubscribeMixin(LitElement) {
         ${this._results.length
           ? html`
               <div class="result-toolbar">
+                <ha-button outlined @click=${this._clear} destructive>
+                  <ha-svg-icon slot="icon" .path=${mdiTrashCan}></ha-svg-icon>
+                  ${this.hass.localize("ui.common.clear")}
+                </ha-button>
                 <ha-button outlined @click=${this._download}>
                   <ha-svg-icon slot="icon" .path=${mdiDownload}></ha-svg-icon>
                   ${this.hass.localize(
                     "ui.panel.developer-tools.tabs.assist.download_results"
                   )}
-                </button>
+                </ha-button>
               </div>
             `
           : ""}
@@ -217,6 +223,10 @@ class HaPanelDevAssist extends SubscribeMixin(LitElement) {
       )}`,
       `intent_results.json`
     );
+  }
+
+  private _clear() {
+    this._results = [];
   }
 
   static get styles(): CSSResultGroup {

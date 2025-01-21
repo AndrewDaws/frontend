@@ -1,7 +1,7 @@
-import { css, CSSResultGroup, html, LitElement, TemplateResult } from "lit";
+import type { CSSResultGroup, TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property, query } from "lit/decorators";
 import memoizeOne from "memoize-one";
-import { computeRTLDirection } from "../../../../../common/util/compute_rtl";
 import "../../../../../components/data-table/ha-data-table";
 import type {
   DataTableColumnContainer,
@@ -25,13 +25,14 @@ export interface DeviceEndpointRowData extends DataTableRowData {
 
 @customElement("zha-device-endpoint-data-table")
 export class ZHADeviceEndpointDataTable extends LitElement {
-  @property({ type: Object }) public hass!: HomeAssistant;
+  @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ type: Boolean }) public narrow = false;
 
   @property({ type: Boolean }) public selectable = false;
 
-  @property({ type: Array }) public deviceEndpoints: ZHADeviceEndpoint[] = [];
+  @property({ attribute: false, type: Array })
+  public deviceEndpoints: ZHADeviceEndpoint[] = [];
 
   @query("ha-data-table", true) private _dataTable!: HaDataTable;
 
@@ -66,7 +67,7 @@ export class ZHADeviceEndpointDataTable extends LitElement {
               sortable: true,
               filterable: true,
               direction: "asc",
-              grows: true,
+              flex: 2,
               template: (device) => html`
                 <a href=${`/config/devices/device/${device.dev_id}`}>
                   ${device.name}
@@ -85,7 +86,7 @@ export class ZHADeviceEndpointDataTable extends LitElement {
               sortable: true,
               filterable: true,
               direction: "asc",
-              grows: true,
+              flex: 2,
               template: (device) => html`
                 <a href=${`/config/devices/device/${device.dev_id}`}>
                   ${device.name}
@@ -101,7 +102,7 @@ export class ZHADeviceEndpointDataTable extends LitElement {
               title: "Associated Entities",
               sortable: false,
               filterable: false,
-              width: "50%",
+              flex: 2,
               template: (device) => html`
                 ${device.entities.length
                   ? device.entities.length > 3
@@ -142,7 +143,6 @@ export class ZHADeviceEndpointDataTable extends LitElement {
         .data=${this._deviceEndpoints(this.deviceEndpoints)}
         .selectable=${this.selectable}
         auto-height
-        .dir=${computeRTLDirection(this.hass)}
         .searchLabel=${this.hass.localize("ui.components.data-table.search")}
         .noDataText=${this.hass.localize("ui.components.data-table.no-data")}
       ></ha-data-table>

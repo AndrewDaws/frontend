@@ -1,14 +1,14 @@
 import { fireEvent } from "../../../../common/dom/fire_event";
-import {
+import type {
   LovelaceDashboard,
   LovelaceDashboardCreateParams,
   LovelaceDashboardMutableParams,
-} from "../../../../data/lovelace";
+} from "../../../../data/lovelace/dashboard";
 
 export interface LovelaceDashboardDetailsDialogParams {
   dashboard?: LovelaceDashboard;
   urlPath?: string;
-  createDashboard: (values: LovelaceDashboardCreateParams) => Promise<unknown>;
+  createDashboard?: (values: LovelaceDashboardCreateParams) => Promise<unknown>;
   updateDashboard: (
     updates: Partial<LovelaceDashboardMutableParams>
   ) => Promise<unknown>;

@@ -1,5 +1,5 @@
 import { computeDomain } from "../../../../common/entity/compute_domain";
-import { HomeAssistant, ServiceCallResponse } from "../../../../types";
+import type { HomeAssistant, ServiceCallResponse } from "../../../../types";
 
 export const turnOnOffEntity = (
   hass: HomeAssistant,
@@ -23,6 +23,9 @@ export const turnOnOffEntity = (
       break;
     case "scene":
       service = "turn_on";
+      break;
+    case "valve":
+      service = turnOn ? "open_valve" : "close_valve";
       break;
     default:
       service = turnOn ? "turn_on" : "turn_off";

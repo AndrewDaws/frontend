@@ -1,38 +1,17 @@
 import {
-  mdiAccountArrowRight,
-  mdiArrowAll,
-  mdiArrowLeftRight,
-  mdiArrowUpDown,
-  mdiBed,
-  mdiCircleMedium,
-  mdiClockOutline,
   mdiFan,
-  mdiFanAuto,
-  mdiFanOff,
   mdiFire,
-  mdiHeatWave,
-  mdiHome,
-  mdiLeaf,
-  mdiMotionSensor,
   mdiPower,
-  mdiRocketLaunch,
   mdiSnowflake,
-  mdiSofa,
-  mdiSpeedometer,
-  mdiSpeedometerMedium,
-  mdiSpeedometerSlow,
   mdiSunSnowflakeVariant,
-  mdiTarget,
+  mdiThermostat,
   mdiThermostatAuto,
   mdiWaterPercent,
-  mdiWeatherWindy,
 } from "@mdi/js";
-import {
+import type {
   HassEntityAttributeBase,
   HassEntityBase,
 } from "home-assistant-js-websocket";
-import { haOscillatingOff } from "./icons/haOscillatingOff";
-import { haOscillating } from "./icons/haOscillating";
 
 export const HVAC_MODES = [
   "auto",
@@ -49,13 +28,14 @@ export type HvacMode = (typeof HVAC_MODES)[number];
 export const CLIMATE_PRESET_NONE = "none";
 
 export type HvacAction =
-  | "off"
-  | "preheating"
-  | "heating"
   | "cooling"
+  | "defrosting"
   | "drying"
+  | "fan"
+  | "heating"
   | "idle"
-  | "fan";
+  | "off"
+  | "preheating";
 
 export type ClimateEntity = HassEntityBase & {
   attributes: HassEntityAttributeBase & {
@@ -81,6 +61,8 @@ export type ClimateEntity = HassEntityBase & {
     preset_modes?: string[];
     swing_mode?: string;
     swing_modes?: string[];
+    swing_horizontal_mode?: string;
+    swing_horizontal_modes?: string[];
     aux_heat?: "on" | "off";
   };
 };
@@ -93,6 +75,9 @@ export const enum ClimateEntityFeature {
   PRESET_MODE = 16,
   SWING_MODE = 32,
   AUX_HEAT = 64,
+  TURN_OFF = 128,
+  TURN_ON = 256,
+  SWING_HORIZONTAL_MODE = 512,
 }
 
 const hvacModeOrdering = HVAC_MODES.reduce(
@@ -108,22 +93,13 @@ export const compareClimateHvacModes = (mode1: HvacMode, mode2: HvacMode) =>
 
 export const CLIMATE_HVAC_ACTION_TO_MODE: Record<HvacAction, HvacMode> = {
   cooling: "cool",
+  defrosting: "heat",
   drying: "dry",
   fan: "fan_only",
-  preheating: "heat",
   heating: "heat",
   idle: "off",
   off: "off",
-};
-
-export const CLIMATE_HVAC_ACTION_ICONS: Record<HvacAction, string> = {
-  cooling: mdiSnowflake,
-  drying: mdiWaterPercent,
-  fan: mdiFan,
-  heating: mdiFire,
-  idle: mdiClockOutline,
-  off: mdiPower,
-  preheating: mdiHeatWave,
+  preheating: "heat",
 };
 
 export const CLIMATE_HVAC_MODE_ICONS: Record<HvacMode, string> = {
@@ -136,81 +112,5 @@ export const CLIMATE_HVAC_MODE_ICONS: Record<HvacMode, string> = {
   heat_cool: mdiSunSnowflakeVariant,
 };
 
-export const computeHvacModeIcon = (mode: HvacMode) =>
-  CLIMATE_HVAC_MODE_ICONS[mode];
-
-type ClimateBuiltInPresetMode =
-  | "eco"
-  | "away"
-  | "boost"
-  | "comfort"
-  | "home"
-  | "sleep"
-  | "activity";
-
-export const CLIMATE_PRESET_MODE_ICONS: Record<
-  ClimateBuiltInPresetMode,
-  string
-> = {
-  away: mdiAccountArrowRight,
-  boost: mdiRocketLaunch,
-  comfort: mdiSofa,
-  eco: mdiLeaf,
-  home: mdiHome,
-  sleep: mdiBed,
-  activity: mdiMotionSensor,
-};
-
-export const computePresetModeIcon = (mode: string) =>
-  mode in CLIMATE_PRESET_MODE_ICONS
-    ? CLIMATE_PRESET_MODE_ICONS[mode]
-    : mdiCircleMedium;
-
-type ClimateBuiltInFanMode =
-  | "on"
-  | "off"
-  | "auto"
-  | "low"
-  | "medium"
-  | "high"
-  | "middle"
-  | "focus"
-  | "diffuse";
-
-export const CLIMATE_FAN_MODE_ICONS: Record<ClimateBuiltInFanMode, string> = {
-  on: mdiFan,
-  off: mdiFanOff,
-  auto: mdiFanAuto,
-  low: mdiSpeedometerSlow,
-  medium: mdiSpeedometerMedium,
-  high: mdiSpeedometer,
-  middle: mdiSpeedometerMedium,
-  focus: mdiTarget,
-  diffuse: mdiWeatherWindy,
-};
-
-export const computeFanModeIcon = (mode: string) =>
-  mode in CLIMATE_FAN_MODE_ICONS
-    ? CLIMATE_FAN_MODE_ICONS[mode]
-    : mdiCircleMedium;
-
-type ClimateBuiltInSwingMode =
-  | "off"
-  | "on"
-  | "vertical"
-  | "horizontal"
-  | "both";
-
-export const CLIMATE_SWING_MODE_ICONS: Record<ClimateBuiltInSwingMode, string> =
-  {
-    on: haOscillating,
-    off: haOscillatingOff,
-    vertical: mdiArrowUpDown,
-    horizontal: mdiArrowLeftRight,
-    both: mdiArrowAll,
-  };
-
-export const computeSwingModeIcon = (mode: string) =>
-  mode in CLIMATE_SWING_MODE_ICONS
-    ? CLIMATE_SWING_MODE_ICONS[mode]
-    : mdiCircleMedium;
+export const climateHvacModeIcon = (mode: string) =>
+  CLIMATE_HVAC_MODE_ICONS[mode] || mdiThermostat;

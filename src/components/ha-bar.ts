@@ -1,4 +1,5 @@
-import { css, CSSResultGroup, LitElement, svg, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { css, LitElement, svg } from "lit";
 import { customElement, property } from "lit/decorators";
 import {
   getValueInPercentage,
@@ -33,25 +34,23 @@ export class HaBar extends LitElement {
     `;
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      rect {
-        height: 100%;
-      }
-      rect:first-child {
-        width: 100%;
-        fill: var(--ha-bar-background-color, var(--secondary-background-color));
-      }
-      rect:last-child {
-        fill: var(--ha-bar-primary-color, var(--primary-color));
-      }
-      svg {
-        border-radius: var(--ha-bar-border-radius, 4px);
-        height: 12px;
-        width: 100%;
-      }
-    `;
-  }
+  static styles = css`
+    rect {
+      height: 100%;
+    }
+    rect:first-child {
+      width: 100%;
+      fill: var(--ha-bar-background-color, var(--secondary-background-color));
+    }
+    rect:last-child {
+      fill: var(--ha-bar-primary-color, var(--primary-color));
+    }
+    svg {
+      border-radius: var(--ha-bar-border-radius, 4px);
+      height: 12px;
+      width: 100%;
+    }
+  `;
 }
 
 declare global {

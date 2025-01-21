@@ -1,14 +1,14 @@
 import { css, html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
-import { AssistPipelineSelector } from "../../data/selector";
-import { HomeAssistant } from "../../types";
+import type { AssistPipelineSelector } from "../../data/selector";
+import type { HomeAssistant } from "../../types";
 import "../ha-assist-pipeline-picker";
 
 @customElement("ha-selector-assist_pipeline")
 export class HaAssistPipelineSelector extends LitElement {
-  @property() public hass!: HomeAssistant;
+  @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public selector!: AssistPipelineSelector;
+  @property({ attribute: false }) public selector!: AssistPipelineSelector;
 
   @property() public value?: any;
 

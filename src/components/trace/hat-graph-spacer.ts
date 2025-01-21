@@ -8,7 +8,7 @@ import { SPACING, NODE_SIZE } from "./hat-graph-const";
  */
 @customElement("hat-graph-spacer")
 export class HatGraphSpacer extends LitElement {
-  @property({ reflect: true, type: Boolean }) disabled?: boolean;
+  @property({ reflect: true, type: Boolean }) public disabled = false;
 
   render() {
     return html`
@@ -25,32 +25,28 @@ export class HatGraphSpacer extends LitElement {
     `;
   }
 
-  static get styles() {
-    return css`
-      :host {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-      }
-      svg {
-        width: var(--hat-graph-spacing);
-        height: calc(
-          var(--hat-graph-spacing) + var(--hat-graph-node-size) + 1px
-        );
-      }
-      :host([track]) {
-        --stroke-clr: var(--track-clr);
-      }
-      :host-context([disabled]) {
-        --stroke-clr: var(--disabled-clr);
-      }
-      path {
-        stroke: var(--stroke-clr);
-        stroke-width: 2;
-        fill: none;
-      }
-    `;
-  }
+  static styles = css`
+    :host {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    svg {
+      width: var(--hat-graph-spacing);
+      height: calc(var(--hat-graph-spacing) + var(--hat-graph-node-size) + 1px);
+    }
+    :host([track]) {
+      --stroke-clr: var(--track-clr);
+    }
+    :host-context([disabled]) {
+      --stroke-clr: var(--disabled-clr);
+    }
+    path {
+      stroke: var(--stroke-clr);
+      stroke-width: 2;
+      fill: none;
+    }
+  `;
 }
 
 declare global {

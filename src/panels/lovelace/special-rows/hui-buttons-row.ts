@@ -1,11 +1,12 @@
-import { html, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { DOMAINS_TOGGLE } from "../../../common/const";
 import { computeDomain } from "../../../common/entity/compute_domain";
-import { HomeAssistant } from "../../../types";
+import type { HomeAssistant } from "../../../types";
 import { processConfigEntities } from "../common/process-config-entities";
 import "../components/hui-buttons-base";
-import {
+import type {
   ButtonsRowConfig,
   EntityConfig,
   LovelaceRow,
@@ -37,7 +38,7 @@ export class HuiButtonsRow extends LitElement implements LovelaceRow {
     );
   }
 
-  protected render(): TemplateResult | void {
+  protected render(): TemplateResult | undefined {
     return html`
       <hui-buttons-base
         .hass=${this.hass}

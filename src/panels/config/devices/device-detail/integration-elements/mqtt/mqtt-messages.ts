@@ -1,24 +1,27 @@
 import { dump } from "js-yaml";
-import { css, CSSResultGroup, html, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { formatTimeWithSeconds } from "../../../../../../common/datetime/format_time";
-import { MQTTMessage } from "../../../../../../data/mqtt";
-import { HomeAssistant } from "../../../../../../types";
+import type { MQTTMessage } from "../../../../../../data/mqtt";
+import type { HomeAssistant } from "../../../../../../types";
 
 @customElement("mqtt-messages")
 class MQTTMessages extends LitElement {
   public hass!: HomeAssistant;
 
-  @property() public messages!: MQTTMessage[];
+  @property({ attribute: false }) public messages!: MQTTMessage[];
 
   @property() public direction!: string;
 
-  @property() public showAsYaml = false;
+  @property({ attribute: "show-as-yaml", type: Boolean })
+  public showAsYaml = false;
 
-  @property() public showDeserialized = false;
+  @property({ attribute: "show-deserialized", type: Boolean })
+  public showDeserialized = false;
 
-  @property() public subscribedTopic!: string;
+  @property({ attribute: false }) public subscribedTopic!: string;
 
   @property() public summary!: string;
 
@@ -110,7 +113,7 @@ class MQTTMessages extends LitElement {
     if (typeof payload === "string") {
       try {
         o = JSON.parse(payload);
-      } catch (err: any) {
+      } catch (_err: any) {
         o = null;
       }
     }
@@ -128,13 +131,14 @@ class MQTTMessages extends LitElement {
     this._open = !this._open;
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
+  static styles = css`
       .expander {
         cursor: pointer;
         position: relative;
         padding: 8px;
         padding-left: 29px;
+        padding-inline-start: 29px
+        padding-inline-end: initial;
         border: 1px solid var(--divider-color);
       }
       .expander:before {
@@ -159,6 +163,8 @@ class MQTTMessages extends LitElement {
         border: 1px solid var(--divider-color);
         border-top: 0;
         padding-left: 28px;
+        padding-inline-start: 28px;
+        padding-inline-end: initial;
         margin: 0;
       }
       pre {
@@ -167,10 +173,11 @@ class MQTTMessages extends LitElement {
         margin: 0;
         padding-left: 4px;
         padding-right: 4px;
+        padding-inline-start: 4px;
+        padding-inline-end: 4px;
         font-family: var(--code-font-family, monospace);
       }
     `;
-  }
 }
 
 declare global {

@@ -1,30 +1,31 @@
-import { HassEntity, UnsubscribeFunc } from "home-assistant-js-websocket";
+import type { HassEntity, UnsubscribeFunc } from "home-assistant-js-websocket";
 import { LitElement, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { debounce } from "../../../common/util/debounce";
-import { FlowType } from "../../../data/data_entry_flow";
-import {
+import type { FlowType } from "../../../data/data_entry_flow";
+import type {
   TemplateListeners,
   TemplatePreview,
-  subscribePreviewTemplate,
 } from "../../../data/ws-templates";
-import { HomeAssistant } from "../../../types";
+import { subscribePreviewTemplate } from "../../../data/ws-templates";
+import type { HomeAssistant } from "../../../types";
 import "./entity-preview-row";
 import { fireEvent } from "../../../common/dom/fire_event";
+import "../../../components/ha-alert";
 
 @customElement("flow-preview-template")
 class FlowPreviewTemplate extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public flowType!: FlowType;
+  @property({ attribute: false }) public flowType!: FlowType;
 
   public handler!: string;
 
-  @property() public stepId!: string;
+  @property({ attribute: false }) public stepId!: string;
 
-  @property() public flowId!: string;
+  @property({ attribute: false }) public flowId!: string;
 
-  @property() public stepData!: Record<string, any>;
+  @property({ attribute: false }) public stepData!: Record<string, any>;
 
   @state() private _preview?: HassEntity;
 
@@ -66,56 +67,56 @@ class FlowPreviewTemplate extends LitElement {
       ${!this._listeners
         ? nothing
         : this._listeners.all
-        ? html`
-            <p class="all_listeners">
-              ${this.hass.localize(
-                "ui.dialogs.helper_settings.template.all_listeners"
-              )}
-            </p>
-          `
-        : this._listeners.domains.length || this._listeners.entities.length
-        ? html`
-            <p>
-              ${this.hass.localize(
-                "ui.dialogs.helper_settings.template.listeners"
-              )}
-            </p>
-            <ul>
-              ${this._listeners.domains
-                .sort()
-                .map(
-                  (domain) => html`
-                    <li>
-                      <b
-                        >${this.hass.localize(
-                          "ui.dialogs.helper_settings.template.domain"
-                        )}</b
-                      >: ${domain}
-                    </li>
-                  `
+          ? html`
+              <p class="all_listeners">
+                ${this.hass.localize(
+                  "ui.dialogs.helper_settings.template.all_listeners"
                 )}
-              ${this._listeners.entities
-                .sort()
-                .map(
-                  (entity_id) => html`
-                    <li>
-                      <b
-                        >${this.hass.localize(
-                          "ui.dialogs.helper_settings.template.entity"
-                        )}</b
-                      >: ${entity_id}
-                    </li>
-                  `
-                )}
-            </ul>
-          `
-        : !this._listeners.time
-        ? html`<p class="all_listeners">
-            ${this.hass.localize(
-              "ui.dialogs.helper_settings.template.no_listeners"
-            )}
-          </p>`
-        : nothing} `;
+              </p>
+            `
+          : this._listeners.domains.length || this._listeners.entities.length
+            ? html`
+                <p>
+                  ${this.hass.localize(
+                    "ui.dialogs.helper_settings.template.listeners"
+                  )}
+                </p>
+                <ul>
+                  ${this._listeners.domains
+                    .sort()
+                    .map(
+                      (domain) => html`
+                        <li>
+                          <b
+                            >${this.hass.localize(
+                              "ui.dialogs.helper_settings.template.domain"
+                            )}</b
+                          >: ${domain}
+                        </li>
+                      `
+                    )}
+                  ${this._listeners.entities
+                    .sort()
+                    .map(
+                      (entity_id) => html`
+                        <li>
+                          <b
+                            >${this.hass.localize(
+                              "ui.dialogs.helper_settings.template.entity"
+                            )}</b
+                          >: ${entity_id}
+                        </li>
+                      `
+                    )}
+                </ul>
+              `
+            : !this._listeners.time
+              ? html`<p class="all_listeners">
+                  ${this.hass.localize(
+                    "ui.dialogs.helper_settings.template.no_listeners"
+                  )}
+                </p>`
+              : nothing} `;
   }
 
   private _setPreview = (preview: TemplatePreview) => {

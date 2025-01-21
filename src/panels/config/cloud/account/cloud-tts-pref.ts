@@ -1,6 +1,6 @@
 import "@material/mwc-button";
 import "@material/mwc-list/mwc-list-item";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { fireEvent } from "../../../../common/dom/fire_event";
@@ -9,12 +9,13 @@ import "../../../../components/ha-select";
 import "../../../../components/ha-svg-icon";
 import "../../../../components/ha-switch";
 import "../../../../components/ha-language-picker";
-import { CloudStatusLoggedIn, updateCloudPref } from "../../../../data/cloud";
+import type { CloudStatusLoggedIn } from "../../../../data/cloud";
+import { updateCloudPref } from "../../../../data/cloud";
+import type { CloudTTSInfo } from "../../../../data/cloud/tts";
 import {
-  CloudTTSInfo,
   getCloudTTSInfo,
   getCloudTtsLanguages,
-  getCloudTtsSupportedGenders,
+  getCloudTtsSupportedVoices,
 } from "../../../../data/cloud/tts";
 import { showAlertDialog } from "../../../../dialogs/generic/show-dialog-box";
 import type { HomeAssistant } from "../../../../types";
@@ -24,7 +25,7 @@ import { showTryTtsDialog } from "./show-dialog-cloud-tts-try";
 export class CloudTTSPref extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public cloudStatus?: CloudStatusLoggedIn;
+  @property({ attribute: false }) public cloudStatus?: CloudStatusLoggedIn;
 
   @state() private savingPreferences = false;
 
@@ -37,11 +38,7 @@ export class CloudTTSPref extends LitElement {
 
     const languages = this.getLanguages(this.ttsInfo);
     const defaultVoice = this.cloudStatus.prefs.tts_default_voice;
-    const genders = this.getSupportedGenders(
-      defaultVoice[0],
-      this.ttsInfo,
-      this.hass.localize
-    );
+    const voices = this.getSupportedVoices(defaultVoice[0], this.ttsInfo);
 
     return html`
       <ha-card
@@ -50,9 +47,10 @@ export class CloudTTSPref extends LitElement {
       >
         <div class="card-content">
           ${this.hass.localize(
-            "ui.panel.config.cloud.account.tts.info",
-            "service",
-            '"tts.cloud_say"'
+            "ui.panel.config.cloud.account.tts.description",
+            {
+              service: '"tts.cloud_say"',
+            }
           )}
           <br /><br />
           <div class="row">
@@ -70,15 +68,15 @@ export class CloudTTSPref extends LitElement {
 
             <ha-select
               .label=${this.hass.localize(
-                "ui.panel.config.cloud.account.tts.default_gender"
+                "ui.panel.config.cloud.account.tts.default_voice"
               )}
               .disabled=${this.savingPreferences}
               .value=${defaultVoice[1]}
-              @selected=${this._handleGenderChange}
+              @selected=${this._handleVoiceChange}
             >
-              ${genders.map(
-                ([key, label]) =>
-                  html`<mwc-list-item .value=${key}>${label}</mwc-list-item>`
+              ${voices.map(
+                (voice) =>
+                  html`<mwc-list-item .value=${voice}>${voice}</mwc-list-item>`
               )}
             </ha-select>
           </div>
@@ -90,6 +88,16 @@ export class CloudTTSPref extends LitElement {
         </div>
       </ha-card>
     `;
+  }
+
+  protected updated(changedProps) {
+    if (
+      changedProps.has("cloudStatus") &&
+      this.cloudStatus?.prefs.tts_default_voice?.[0] !==
+        changedProps.get("cloudStatus")?.prefs.tts_default_voice?.[0]
+    ) {
+      this.renderRoot.querySelector("ha-select")?.layoutOptions();
+    }
   }
 
   protected willUpdate(changedProps) {
@@ -106,7 +114,7 @@ export class CloudTTSPref extends LitElement {
 
   private getLanguages = memoizeOne(getCloudTtsLanguages);
 
-  private getSupportedGenders = memoizeOne(getCloudTtsSupportedGenders);
+  private getSupportedVoices = memoizeOne(getCloudTtsSupportedVoices);
 
   private _openTryDialog() {
     showTryTtsDialog(this, {
@@ -114,26 +122,22 @@ export class CloudTTSPref extends LitElement {
     });
   }
 
-  async _handleLanguageChange(ev) {
+  private async _handleLanguageChange(ev) {
     if (ev.detail.value === this.cloudStatus!.prefs.tts_default_voice[0]) {
       return;
     }
     this.savingPreferences = true;
     const language = ev.detail.value;
 
-    const curGender = this.cloudStatus!.prefs.tts_default_voice[1];
-    const genders = this.getSupportedGenders(
-      language,
-      this.ttsInfo,
-      this.hass.localize
-    );
-    const newGender = genders.find((item) => item[0] === curGender)
-      ? curGender
-      : genders[0][0];
+    const curVoice = this.cloudStatus!.prefs.tts_default_voice[1];
+    const voices = this.getSupportedVoices(language, this.ttsInfo);
+    const newVoice = voices.find((item) => item === curVoice)
+      ? curVoice
+      : voices[0];
 
     try {
       await updateCloudPref(this.hass, {
-        tts_default_voice: [language, newGender],
+        tts_default_voice: [language, newVoice],
       });
       fireEvent(this, "ha-refresh-cloud-status");
     } catch (err: any) {
@@ -147,17 +151,17 @@ export class CloudTTSPref extends LitElement {
     }
   }
 
-  async _handleGenderChange(ev) {
+  private async _handleVoiceChange(ev) {
     if (ev.target.value === this.cloudStatus!.prefs.tts_default_voice[1]) {
       return;
     }
     this.savingPreferences = true;
     const language = this.cloudStatus!.prefs.tts_default_voice[0];
-    const gender = ev.target.value;
+    const voice = ev.target.value;
 
     try {
       await updateCloudPref(this.hass, {
-        tts_default_voice: [language, gender],
+        tts_default_voice: [language, voice],
       });
       fireEvent(this, "ha-refresh-cloud-status");
     } catch (err: any) {
@@ -165,44 +169,45 @@ export class CloudTTSPref extends LitElement {
       // eslint-disable-next-line no-console
       console.error(err);
       showAlertDialog(this, {
-        text: `Unable to save default gender. ${err}`,
+        text: `Unable to save default voice. ${err}`,
         warning: true,
       });
     }
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      a {
-        color: var(--primary-color);
-      }
-      .example {
-        position: absolute;
-        right: 16px;
-        top: 16px;
-      }
-      :host([dir="rtl"]) .example {
-        right: auto;
-        left: 24px;
-      }
-      .row {
-        display: flex;
-      }
-      .row > * {
-        flex: 1;
-      }
-      .row > *:first-child {
-        margin-right: 8px;
-      }
-      .row > *:last-child {
-        margin-left: 8px;
-      }
-      .card-actions {
-        display: flex;
-        flex-direction: row-reverse;
-      }
-    `;
-  }
+  static styles = css`
+    a {
+      color: var(--primary-color);
+    }
+    .example {
+      position: absolute;
+      right: 16px;
+      inset-inline-end: 16px;
+      inset-inline-start: initial;
+      top: 16px;
+    }
+    .row {
+      display: flex;
+    }
+    .row > * {
+      flex: 1;
+      width: 0;
+    }
+    .row > *:first-child {
+      margin-right: 8px;
+      margin-inline-end: 8px;
+      margin-inline-start: initial;
+    }
+    .row > *:last-child {
+      margin-left: 8px;
+      margin-inline-start: 8px;
+      margin-inline-end: initial;
+    }
+    .card-actions {
+      display: flex;
+      flex-direction: row-reverse;
+    }
+  `;
 }
 
 declare global {

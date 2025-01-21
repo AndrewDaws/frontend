@@ -1,20 +1,20 @@
 import "@lrnwebcomponents/simple-tooltip/simple-tooltip";
 import { mdiAlertCircle } from "@mdi/js";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property } from "lit/decorators";
 import { styleMap } from "lit/directives/style-map";
 import { voiceAssistants } from "../../../../data/expose";
-import { HomeAssistant } from "../../../../types";
+import type { HomeAssistant } from "../../../../types";
 import { brandsUrl } from "../../../../util/brands-url";
 import "../../../../components/ha-svg-icon";
 
 @customElement("voice-assistants-expose-assistant-icon")
 export class VoiceAssistantExposeAssistantIcon extends LitElement {
-  @property() public hass!: HomeAssistant;
+  @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property({ type: Boolean }) public unsupported!: boolean;
+  @property({ type: Boolean }) public unsupported = false;
 
-  @property({ type: Boolean }) public manual?: boolean;
+  @property({ type: Boolean }) public manual = false;
 
   @property() public assistant?:
     | "conversation"
@@ -37,6 +37,7 @@ export class VoiceAssistantExposeAssistantIcon extends LitElement {
             type: "icon",
             darkOptimized: this.hass.themes?.darkMode,
           })}
+          crossorigin="anonymous"
           referrerpolicy="no-referrer"
           slot="prefix"
         />
@@ -74,25 +75,27 @@ export class VoiceAssistantExposeAssistantIcon extends LitElement {
     `;
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      .container {
-        position: relative;
-      }
-      .logo {
-        position: relative;
-        height: 24px;
-        margin-right: 16px;
-      }
-      .unsupported {
-        color: var(--error-color);
-        position: absolute;
-        --mdc-icon-size: 16px;
-        right: 10px;
-        top: -7px;
-      }
-    `;
-  }
+  static styles = css`
+    .container {
+      position: relative;
+    }
+    .logo {
+      position: relative;
+      height: 24px;
+      margin-right: 16px;
+      margin-inline-end: 16px;
+      margin-inline-start: initial;
+    }
+    .unsupported {
+      color: var(--error-color);
+      position: absolute;
+      --mdc-icon-size: 16px;
+      right: 10px;
+      top: -7px;
+      inset-inline-end: 10px;
+      inset-inline-start: initial;
+    }
+  `;
 }
 
 declare global {

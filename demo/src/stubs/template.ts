@@ -1,4 +1,4 @@
-import { MockHomeAssistant } from "../../../src/fake_data/provide_hass";
+import type { MockHomeAssistant } from "../../../src/fake_data/provide_hass";
 
 export const mockTemplate = (hass: MockHomeAssistant) => {
   hass.mockAPI("template", () =>
@@ -11,6 +11,7 @@ export const mockTemplate = (hass: MockHomeAssistant) => {
       result: msg.template,
       listeners: { all: false, domains: [], entities: [], time: false },
     });
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
     return () => {};
   });
 };

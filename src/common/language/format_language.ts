@@ -1,5 +1,5 @@
 import memoizeOne from "memoize-one";
-import { FrontendLocaleData } from "../../data/translation";
+import type { FrontendLocaleData } from "../../data/translation";
 
 export const formatLanguageCode = (
   languageCode: string,
@@ -12,11 +12,10 @@ export const formatLanguageCode = (
   }
 };
 
-const formatLanguageCodeMem = memoizeOne((locale: FrontendLocaleData) =>
-  Intl && "DisplayNames" in Intl
-    ? new Intl.DisplayNames(locale.language, {
-        type: "language",
-        fallback: "code",
-      })
-    : undefined
+const formatLanguageCodeMem = memoizeOne(
+  (locale: FrontendLocaleData) =>
+    new Intl.DisplayNames(locale.language, {
+      type: "language",
+      fallback: "code",
+    })
 );

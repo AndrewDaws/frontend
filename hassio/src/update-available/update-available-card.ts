@@ -1,11 +1,11 @@
 import "@material/mwc-list/mwc-list-item";
 import {
   css,
-  CSSResultGroup,
+  type CSSResultGroup,
   html,
   LitElement,
-  PropertyValues,
   nothing,
+  type PropertyValues,
 } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
@@ -16,16 +16,13 @@ import "../../../src/components/ha-button-menu";
 import "../../../src/components/ha-card";
 import "../../../src/components/ha-checkbox";
 import "../../../src/components/ha-faded";
-import "../../../src/components/ha-formfield";
 import "../../../src/components/ha-icon-button";
 import "../../../src/components/ha-markdown";
-import "../../../src/components/ha-settings-row";
 import "../../../src/components/ha-svg-icon";
-import "../../../src/components/ha-switch";
+import type { HassioAddonDetails } from "../../../src/data/hassio/addon";
 import {
   fetchHassioAddonChangelog,
   fetchHassioAddonInfo,
-  HassioAddonDetails,
   updateHassioAddon,
 } from "../../../src/data/hassio/addon";
 import {
@@ -39,10 +36,11 @@ import {
   updateSupervisor,
 } from "../../../src/data/hassio/supervisor";
 import { updateCore } from "../../../src/data/supervisor/core";
-import { StoreAddon } from "../../../src/data/supervisor/store";
-import { Supervisor } from "../../../src/data/supervisor/supervisor";
+import type { StoreAddon } from "../../../src/data/supervisor/store";
+import type { Supervisor } from "../../../src/data/supervisor/supervisor";
 import { showAlertDialog } from "../../../src/dialogs/generic/show-dialog-box";
-import { HomeAssistant, Route } from "../../../src/types";
+import { haStyle } from "../../../src/resources/styles";
+import type { HomeAssistant, Route } from "../../../src/types";
 import { addonArchIsSupported, extractChangelog } from "../util/addon";
 
 declare global {
@@ -57,10 +55,10 @@ const SUPERVISOR_UPDATE_NAMES = {
   supervisor: "Home Assistant Supervisor",
 };
 
-type updateType = "os" | "supervisor" | "core" | "addon";
+type UpdateType = "os" | "supervisor" | "core" | "addon";
 
 const changelogUrl = (
-  entry: updateType,
+  entry: UpdateType,
   version: string
 ): string | undefined => {
   if (entry === "addon") {
@@ -70,8 +68,8 @@ const changelogUrl = (
     return version.includes("dev")
       ? "https://github.com/home-assistant/core/commits/dev"
       : version.includes("b")
-      ? "https://next.home-assistant.io/latest-release-notes/"
-      : "https://www.home-assistant.io/latest-release-notes/";
+        ? "https://next.home-assistant.io/latest-release-notes/"
+        : "https://www.home-assistant.io/latest-release-notes/";
   }
   if (entry === "os") {
     return version.includes("dev")
@@ -94,11 +92,11 @@ class UpdateAvailableCard extends LitElement {
 
   @property({ attribute: false }) public route!: Route;
 
-  @property({ type: Boolean }) public narrow!: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
   @property({ attribute: false }) public addonSlug?: string;
 
-  @state() private _updateType?: updateType;
+  @state() private _updateType?: UpdateType;
 
   @state() private _changelogContent?: string;
 
@@ -141,65 +139,63 @@ class UpdateAvailableCard extends LitElement {
                 })}
               </p>`
             : !this._updating
-            ? html`
-                ${this._changelogContent
-                  ? html`
-                      <ha-faded>
-                        <ha-markdown .content=${this._changelogContent}>
-                        </ha-markdown>
-                      </ha-faded>
-                    `
-                  : ""}
-                <div class="versions">
-                  <p>
-                    ${this.supervisor.localize("update_available.description", {
+              ? html`
+                  ${this._changelogContent
+                    ? html`
+                        <ha-faded>
+                          <ha-markdown .content=${this._changelogContent}>
+                          </ha-markdown>
+                        </ha-faded>
+                      `
+                    : nothing}
+                  <div class="versions">
+                    <p>
+                      ${this.supervisor.localize(
+                        "update_available.description",
+                        {
+                          name: this._name,
+                          version: this._version,
+                          newest_version: this._version_latest,
+                        }
+                      )}
+                    </p>
+                  </div>
+                `
+              : html`<ha-circular-progress
+                    aria-label="Updating"
+                    size="large"
+                    indeterminate
+                  >
+                  </ha-circular-progress>
+                  <p class="progress-text">
+                    ${this.supervisor.localize("update_available.updating", {
                       name: this._name,
-                      version: this._version,
-                      newest_version: this._version_latest,
+                      version: this._version_latest,
                     })}
-                  </p>
-                </div>
-                ${["core", "addon"].includes(this._updateType)
-                  ? html`
-                      <ha-formfield
-                        .label=${this.supervisor.localize(
-                          "update_available.create_backup"
-                        )}
-                      >
-                        <ha-checkbox checked></ha-checkbox>
-                      </ha-formfield>
-                    `
-                  : ""}
-              `
-            : html`<ha-circular-progress alt="Updating" size="large" active>
-                </ha-circular-progress>
-                <p class="progress-text">
-                  ${this.supervisor.localize("update_available.updating", {
-                    name: this._name,
-                    version: this._version_latest,
-                  })}
-                </p>`}
+                  </p>`}
         </div>
         ${this._version !== this._version_latest && !this._updating
           ? html`
               <div class="card-actions">
                 ${changelog
-                  ? html`<a .href=${changelog} target="_blank" rel="noreferrer">
-                      <mwc-button
-                        .label=${this.supervisor.localize(
-                          "update_available.open_release_notes"
-                        )}
-                      >
-                      </mwc-button>
-                    </a>`
-                  : ""}
+                  ? html`
+                      <a href=${changelog} target="_blank" rel="noreferrer">
+                        <ha-button
+                          .label=${this.supervisor.localize(
+                            "update_available.open_release_notes"
+                          )}
+                        >
+                        </ha-button>
+                      </a>
+                    `
+                  : nothing}
                 <span></span>
-                <ha-progress-button @click=${this._update} raised>
+                <ha-progress-button @click=${this._update}>
                   ${this.supervisor.localize("common.update")}
                 </ha-progress-button>
               </div>
             `
-          : ""}
+          : nothing}
       </ha-card>
     `;
   }
@@ -210,7 +206,7 @@ class UpdateAvailableCard extends LitElement {
     const updateType = ["core", "os", "supervisor"].includes(pathPart)
       ? pathPart
       : "addon";
-    this._updateType = updateType as updateType;
+    this._updateType = updateType as UpdateType;
 
     switch (updateType) {
       case "addon":
@@ -229,17 +225,6 @@ class UpdateAvailableCard extends LitElement {
         this._loadOsData();
         break;
     }
-  }
-
-  get _shouldCreateBackup(): boolean {
-    if (this._updateType && !["core", "addon"].includes(this._updateType)) {
-      return false;
-    }
-    const checkbox = this.shadowRoot?.querySelector("ha-checkbox");
-    if (checkbox) {
-      return checkbox.checked;
-    }
-    return true;
   }
 
   get _version(): string {
@@ -356,23 +341,14 @@ class UpdateAvailableCard extends LitElement {
   }
 
   private async _update() {
-    if (this._shouldCreateBackup && this.supervisor.info.state === "freeze") {
-      this._error = this.supervisor.localize("backup.backup_already_running");
-      return;
-    }
-
     this._error = undefined;
     this._updating = true;
 
     try {
       if (this._updateType === "addon") {
-        await updateHassioAddon(
-          this.hass,
-          this.addonSlug!,
-          this._shouldCreateBackup
-        );
+        await updateHassioAddon(this.hass, this.addonSlug!);
       } else if (this._updateType === "core") {
-        await updateCore(this.hass, this._shouldCreateBackup);
+        await updateCore(this.hass);
       } else if (this._updateType === "os") {
         await updateOS(this.hass);
       } else if (this._updateType === "supervisor") {
@@ -390,41 +366,45 @@ class UpdateAvailableCard extends LitElement {
   }
 
   static get styles(): CSSResultGroup {
-    return css`
-      :host {
-        display: block;
-      }
-      ha-card {
-        margin: auto;
-      }
-      a {
-        text-decoration: none;
-        color: var(--primary-text-color);
-      }
-      ha-settings-row {
-        padding: 0;
-      }
-      .card-actions {
-        display: flex;
-        justify-content: space-between;
-        border-top: none;
-        padding: 0 8px 8px;
-      }
+    return [
+      haStyle,
+      css`
+        :host {
+          display: block;
+        }
+        ha-card {
+          margin: auto;
+        }
+        a {
+          text-decoration: none;
+          color: var(--primary-text-color);
+        }
+        .card-actions {
+          display: flex;
+          justify-content: space-between;
+        }
 
-      ha-circular-progress {
-        display: block;
-        margin: 32px;
-        text-align: center;
-      }
+        ha-circular-progress {
+          display: block;
+          margin: 32px;
+          text-align: center;
+        }
 
-      .progress-text {
-        text-align: center;
-      }
+        .progress-text {
+          text-align: center;
+        }
 
-      ha-markdown {
-        padding-bottom: 8px;
-      }
-    `;
+        ha-markdown {
+          padding-bottom: 8px;
+        }
+
+        hr {
+          border-color: var(--divider-color);
+          border-bottom: none;
+          margin: 16px 0 0 0;
+        }
+      `,
+    ];
   }
 }
 

@@ -1,7 +1,7 @@
-import { UnsubscribeFunc } from "home-assistant-js-websocket";
-import { PropertyValues, ReactiveElement } from "lit";
+import type { UnsubscribeFunc } from "home-assistant-js-websocket";
+import type { PropertyValues, ReactiveElement } from "lit";
 import { property } from "lit/decorators";
-import { Constructor, HomeAssistant } from "../types";
+import type { Constructor, HomeAssistant } from "../types";
 
 export interface HassSubscribeElement {
   hassSubscribe(): UnsubscribeFunc[];
@@ -16,11 +16,11 @@ export const SubscribeMixin = <T extends Constructor<ReactiveElement>>(
     // we wait with subscribing till these properties are set on the host element
     protected hassSubscribeRequiredHostProps?: string[];
 
-    private __unsubs?: Array<UnsubscribeFunc | Promise<UnsubscribeFunc>>;
+    private __unsubs?: (UnsubscribeFunc | Promise<UnsubscribeFunc>)[];
 
     public connectedCallback() {
       super.connectedCallback();
-      this.__checkSubscribed();
+      this._checkSubscribed();
     }
 
     public disconnectedCallback() {
@@ -41,7 +41,7 @@ export const SubscribeMixin = <T extends Constructor<ReactiveElement>>(
     protected updated(changedProps: PropertyValues) {
       super.updated(changedProps);
       if (changedProps.has("hass")) {
-        this.__checkSubscribed();
+        this._checkSubscribed();
         return;
       }
       if (!this.hassSubscribeRequiredHostProps) {
@@ -49,19 +49,17 @@ export const SubscribeMixin = <T extends Constructor<ReactiveElement>>(
       }
       for (const key of changedProps.keys()) {
         if (this.hassSubscribeRequiredHostProps.includes(key as string)) {
-          this.__checkSubscribed();
+          this._checkSubscribed();
           return;
         }
       }
     }
 
-    protected hassSubscribe(): Array<
-      UnsubscribeFunc | Promise<UnsubscribeFunc>
-    > {
+    protected hassSubscribe(): (UnsubscribeFunc | Promise<UnsubscribeFunc>)[] {
       return [];
     }
 
-    private __checkSubscribed(): void {
+    private _checkSubscribed(): void {
       if (
         this.__unsubs !== undefined ||
         !(this as unknown as Element).isConnected ||

@@ -1,12 +1,14 @@
-import { HassConfig, HassEntity } from "home-assistant-js-websocket";
+import type { HassConfig, HassEntity } from "home-assistant-js-websocket";
 import {
+  DOMAIN_ATTRIBUTES_FORMATERS,
   DOMAIN_ATTRIBUTES_UNITS,
   TEMPERATURE_ATTRIBUTES,
 } from "../../data/entity_attributes";
-import { EntityRegistryDisplayEntry } from "../../data/entity_registry";
-import { FrontendLocaleData } from "../../data/translation";
-import { WeatherEntity, getWeatherUnit } from "../../data/weather";
-import { HomeAssistant } from "../../types";
+import type { EntityRegistryDisplayEntry } from "../../data/entity_registry";
+import type { FrontendLocaleData } from "../../data/translation";
+import type { WeatherEntity } from "../../data/weather";
+import { getWeatherUnit } from "../../data/weather";
+import type { HomeAssistant } from "../../types";
 import checkValidDate from "../datetime/check_valid_date";
 import { formatDate } from "../datetime/format_date";
 import { formatDateTimeWithSeconds } from "../datetime/format_date_time";
@@ -14,8 +16,8 @@ import { formatNumber } from "../number/format_number";
 import { capitalizeFirstLetter } from "../string/capitalize-first-letter";
 import { isDate } from "../string/is_date";
 import { isTimestamp } from "../string/is_timestamp";
-import { blankBeforePercent } from "../translations/blank_before_percent";
-import { LocalizeFunc } from "../translations/localize";
+import { blankBeforeUnit } from "../translations/blank_before_unit";
+import type { LocalizeFunc } from "../translations/localize";
 import { computeDomain } from "./compute_domain";
 import { computeStateDomain } from "./compute_state_domain";
 
@@ -38,43 +40,32 @@ export const computeAttributeValueDisplay = (
 
   // Number value, return formatted number
   if (typeof attributeValue === "number") {
-    const formattedValue = formatNumber(attributeValue, locale);
-
     const domain = computeStateDomain(stateObj);
+
+    const formatter = DOMAIN_ATTRIBUTES_FORMATERS[domain]?.[attribute];
+
+    const formattedValue = formatter
+      ? formatter(attributeValue, locale)
+      : formatNumber(attributeValue, locale);
 
     let unit = DOMAIN_ATTRIBUTES_UNITS[domain]?.[attribute] as
       | string
       | undefined;
 
-    if (domain === "light" && attribute === "brightness") {
-      const percentage = Math.round((attributeValue / 255) * 100);
-      return `${percentage}${blankBeforePercent(locale)}%`;
-    }
-
     if (domain === "weather") {
       unit = getWeatherUnit(config, stateObj as WeatherEntity, attribute);
-    }
-
-    if (unit === "%") {
-      return `${formattedValue}${blankBeforePercent(locale)}${unit}`;
-    }
-
-    if (unit === "°") {
-      return `${formattedValue}${unit}`;
+    } else if (TEMPERATURE_ATTRIBUTES.has(attribute)) {
+      unit = config.unit_system.temperature;
     }
 
     if (unit) {
-      return `${formattedValue} ${unit}`;
-    }
-
-    if (TEMPERATURE_ATTRIBUTES.has(attribute)) {
-      return `${formattedValue} ${config.unit_system.temperature}`;
+      return `${formattedValue}${blankBeforeUnit(unit, locale)}${unit}`;
     }
 
     return formattedValue;
   }
 
-  // Special handling in case this is a string with an known format
+  // Special handling in case this is a string with a known format
   if (typeof attributeValue === "string") {
     // Date handling
     if (isDate(attributeValue, true)) {

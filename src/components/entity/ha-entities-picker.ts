@@ -1,10 +1,9 @@
-import type { HassEntity } from "home-assistant-js-websocket";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { fireEvent } from "../../common/dom/fire_event";
 import { isValidEntityId } from "../../common/entity/valid_entity_id";
-import type { ValueChangedEvent, HomeAssistant } from "../../types";
+import type { HomeAssistant, ValueChangedEvent } from "../../types";
 import "./ha-entity-picker";
 import type { HaEntityPickerEntityFilterFunc } from "./ha-entity-picker";
 
@@ -14,9 +13,9 @@ class HaEntitiesPickerLight extends LitElement {
 
   @property({ type: Array }) public value?: string[];
 
-  @property({ type: Boolean }) public disabled?: boolean;
+  @property({ type: Boolean }) public disabled = false;
 
-  @property({ type: Boolean }) public required?: boolean;
+  @property({ type: Boolean }) public required = false;
 
   @property() public helper?: string;
 
@@ -73,7 +72,10 @@ class HaEntitiesPickerLight extends LitElement {
 
   @property({ attribute: "pick-entity-label" }) public pickEntityLabel?: string;
 
-  @property() public entityFilter?: HaEntityPickerEntityFilterFunc;
+  @property({ attribute: false })
+  public entityFilter?: HaEntityPickerEntityFilterFunc;
+
+  @property({ attribute: false, type: Array }) public createDomains?: string[];
 
   protected render() {
     if (!this.hass) {
@@ -95,13 +97,11 @@ class HaEntitiesPickerLight extends LitElement {
               .excludeEntities=${this.excludeEntities}
               .includeDeviceClasses=${this.includeDeviceClasses}
               .includeUnitOfMeasurement=${this.includeUnitOfMeasurement}
-              .entityFilter=${this._getEntityFilter(
-                this.value,
-                this.entityFilter
-              )}
+              .entityFilter=${this.entityFilter}
               .value=${entityId}
               .label=${this.pickedEntityLabel}
               .disabled=${this.disabled}
+              .createDomains=${this.createDomains}
               @value-changed=${this._entityChanged}
             ></ha-entity-picker>
           </div>
@@ -114,13 +114,17 @@ class HaEntitiesPickerLight extends LitElement {
           .includeDomains=${this.includeDomains}
           .excludeDomains=${this.excludeDomains}
           .includeEntities=${this.includeEntities}
-          .excludeEntities=${this.excludeEntities}
+          .excludeEntities=${this._excludeEntities(
+            this.value,
+            this.excludeEntities
+          )}
           .includeDeviceClasses=${this.includeDeviceClasses}
           .includeUnitOfMeasurement=${this.includeUnitOfMeasurement}
-          .entityFilter=${this._getEntityFilter(this.value, this.entityFilter)}
+          .entityFilter=${this.entityFilter}
           .label=${this.pickEntityLabel}
           .helper=${this.helper}
           .disabled=${this.disabled}
+          .createDomains=${this.createDomains}
           .required=${this.required && !currentEntities.length}
           @value-changed=${this._addEntity}
         ></ha-entity-picker>
@@ -128,14 +132,16 @@ class HaEntitiesPickerLight extends LitElement {
     `;
   }
 
-  private _getEntityFilter = memoizeOne(
+  private _excludeEntities = memoizeOne(
     (
       value: string[] | undefined,
-      entityFilter: HaEntityPickerEntityFilterFunc | undefined
-    ): HaEntityPickerEntityFilterFunc =>
-      (stateObj: HassEntity) =>
-        (!value || !value.includes(stateObj.entity_id)) &&
-        (!entityFilter || entityFilter(stateObj))
+      excludeEntities: string[] | undefined
+    ): string[] | undefined => {
+      if (value === undefined) {
+        return excludeEntities;
+      }
+      return [...(excludeEntities || []), ...value];
+    }
   );
 
   private get _currentEntities() {

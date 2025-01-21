@@ -1,5 +1,6 @@
 import "@material/mwc-button/mwc-button";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import type { CSSResultGroup } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { fireEvent } from "../../../../common/dom/fire_event";
 import { createCloseHeading } from "../../../../components/ha-dialog";
@@ -16,7 +17,7 @@ export class HuiCreateDialogHeaderFooter
   extends LitElement
   implements HassDialog<CreateHeaderFooterDialogParams>
 {
-  @property({ attribute: false }) protected hass!: HomeAssistant;
+  @property({ attribute: false }) public hass!: HomeAssistant;
 
   @state() private _params?: CreateHeaderFooterDialogParams;
 
@@ -45,10 +46,11 @@ export class HuiCreateDialogHeaderFooter
           this.hass,
           this.hass!.localize(
             `ui.panel.lovelace.editor.header-footer.choose_header_footer`,
-            "type",
-            this.hass!.localize(
-              `ui.panel.lovelace.editor.header-footer.${this._params.type}`
-            )
+            {
+              type: this.hass!.localize(
+                `ui.panel.lovelace.editor.header-footer.${this._params.type}`
+              ),
+            }
           )
         )}
         @keydown=${this._ignoreKeydown}

@@ -1,41 +1,30 @@
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  PropertyValues,
-  nothing,
-} from "lit";
+import type { PropertyValues } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { fireEvent } from "../common/dom/fire_event";
 import { debounce } from "../common/util/debounce";
-import { CustomIcon, customIcons } from "../data/custom_icons";
+import type { CustomIcon } from "../data/custom_icons";
+import { customIcons } from "../data/custom_icons";
+import type { Chunks, Icons } from "../data/iconsets";
 import {
-  checkCacheVersion,
-  Chunks,
+  MDI_PREFIXES,
   findIconChunk,
   getIcon,
-  Icons,
-  MDI_PREFIXES,
   writeCache,
 } from "../data/iconsets";
 import "./ha-svg-icon";
 
-interface DeprecatedIcon {
-  [key: string]: {
+type DeprecatedIcon = Record<
+  string,
+  {
     removeIn: string;
     newName?: string;
-  };
-}
+  }
+>;
 
 const mdiDeprecatedIcons: DeprecatedIcon = {};
 
 const chunks: Chunks = {};
-
-// Supervisor doesn't use icons, and should not update/downgrade the icon DB.
-if (!__SUPERVISOR__) {
-  checkCacheVersion();
-}
 
 const debouncedWriteCache = debounce(() => writeCache(chunks), 2000);
 
@@ -47,6 +36,8 @@ export class HaIcon extends LitElement {
 
   @state() private _path?: string;
 
+  @state() private _secondaryPath?: string;
+
   @state() private _viewBox?: string;
 
   @state() private _legacy = false;
@@ -55,6 +46,7 @@ export class HaIcon extends LitElement {
     super.willUpdate(changedProps);
     if (changedProps.has("icon")) {
       this._path = undefined;
+      this._secondaryPath = undefined;
       this._viewBox = undefined;
       this._loadIcon();
     }
@@ -65,11 +57,12 @@ export class HaIcon extends LitElement {
       return nothing;
     }
     if (this._legacy) {
-      return html`<!-- @ts-ignore we don't provice the iron-icon element -->
+      return html`<!-- @ts-ignore we don't provide the iron-icon element -->
         <iron-icon .icon=${this.icon}></iron-icon>`;
     }
     return html`<ha-svg-icon
       .path=${this._path}
+      .secondaryPath=${this._secondaryPath}
       .viewBox=${this._viewBox}
     ></ha-svg-icon>`;
   }
@@ -175,6 +168,7 @@ export class HaIcon extends LitElement {
       return;
     }
     this._path = icon.path;
+    this._secondaryPath = icon.secondaryPath;
     this._viewBox = icon.viewBox;
   }
 
@@ -190,13 +184,11 @@ export class HaIcon extends LitElement {
     cachedIcons[iconName] = iconPack[iconName];
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host {
-        fill: currentcolor;
-      }
-    `;
-  }
+  static styles = css`
+    :host {
+      fill: currentcolor;
+    }
+  `;
 }
 declare global {
   interface HTMLElementTagNameMap {

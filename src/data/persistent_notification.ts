@@ -1,4 +1,4 @@
-import {
+import type {
   Connection,
   HassEntity,
   UnsubscribeFunc,
@@ -19,9 +19,7 @@ export interface PersistentNotification {
   status: "read" | "unread";
 }
 
-export interface PersistentNotifications {
-  [notificationId: string]: PersistentNotification;
-}
+export type PersistentNotifications = Record<string, PersistentNotification>;
 
 export interface PersistentNotificationMessage {
   type: "added" | "removed" | "current" | "updated";

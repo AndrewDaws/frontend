@@ -1,16 +1,18 @@
 import "@material/mwc-button";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import type { CSSResultGroup } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { fireEvent } from "../../../common/dom/fire_event";
 import { addDistanceToCoord } from "../../../common/location/add_distance_to_coord";
 import { createCloseHeading } from "../../../components/ha-dialog";
 import "../../../components/ha-form/ha-form";
-import { SchemaUnion } from "../../../components/ha-form/types";
-import { getZoneEditorInitData, ZoneMutableParams } from "../../../data/zone";
+import type { SchemaUnion } from "../../../components/ha-form/types";
+import type { ZoneMutableParams } from "../../../data/zone";
+import { getZoneEditorInitData } from "../../../data/zone";
 import { haStyleDialog } from "../../../resources/styles";
-import { HomeAssistant } from "../../../types";
-import { ZoneDetailDialogParams } from "./show-dialog-zone-detail";
+import type { HomeAssistant } from "../../../types";
+import type { ZoneDetailDialogParams } from "./show-dialog-zone-detail";
 
 class DialogZoneDetail extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
@@ -145,30 +147,8 @@ class DialogZoneDetail extends LitElement {
           required: true,
           selector: { location: { radius: true, icon } },
         },
-        {
-          name: "",
-          type: "grid",
-          schema: [
-            {
-              name: "latitude",
-              required: true,
-              selector: { text: {} },
-            },
-            {
-              name: "longitude",
-              required: true,
-
-              selector: { text: {} },
-            },
-          ],
-        },
         { name: "passive_note", type: "constant" },
         { name: "passive", selector: { boolean: {} } },
-        {
-          name: "radius",
-          required: false,
-          selector: { number: { min: 0, max: 999999, mode: "box" } },
-        },
       ] as const
   );
 
@@ -183,16 +163,10 @@ class DialogZoneDetail extends LitElement {
 
   private _valueChanged(ev: CustomEvent) {
     this._error = undefined;
-    const value = ev.detail.value;
-    if (
-      value.location.latitude !== this._data!.latitude ||
-      value.location.longitude !== this._data!.longitude ||
-      value.location.radius !== this._data!.radius
-    ) {
-      value.latitude = value.location.latitude;
-      value.longitude = value.location.longitude;
-      value.radius = Math.round(value.location.radius);
-    }
+    const value = { ...ev.detail.value };
+    value.latitude = value.location.latitude;
+    value.longitude = value.location.longitude;
+    value.radius = value.location.radius;
     delete value.location;
     if (!value.icon) {
       delete value.icon;

@@ -1,22 +1,23 @@
 import "@material/mwc-button/mwc-button";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import type { CSSResultGroup } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { fireEvent } from "../../../../common/dom/fire_event";
 import { slugify } from "../../../../common/string/slugify";
 import { createCloseHeading } from "../../../../components/ha-dialog";
 import "../../../../components/ha-form/ha-form";
-import { SchemaUnion } from "../../../../components/ha-form/types";
-import { CoreFrontendUserData } from "../../../../data/frontend";
-import {
+import type { SchemaUnion } from "../../../../components/ha-form/types";
+import type { CoreFrontendUserData } from "../../../../data/frontend";
+import type {
   LovelaceDashboard,
   LovelaceDashboardCreateParams,
   LovelaceDashboardMutableParams,
-} from "../../../../data/lovelace";
+} from "../../../../data/lovelace/dashboard";
 import { DEFAULT_PANEL, setDefaultPanel } from "../../../../data/panel";
 import { haStyleDialog } from "../../../../resources/styles";
-import { HomeAssistant } from "../../../../types";
-import { LovelaceDashboardDetailsDialogParams } from "./show-dialog-lovelace-dashboard-detail";
+import type { HomeAssistant } from "../../../../types";
+import type { LovelaceDashboardDetailsDialogParams } from "./show-dialog-lovelace-dashboard-detail";
 
 @customElement("dialog-lovelace-dashboard-detail")
 export class DialogLovelaceDashboardDetail extends LitElement {
@@ -86,19 +87,19 @@ export class DialogLovelaceDashboardDetail extends LitElement {
                 "ui.panel.config.lovelace.dashboards.cant_edit_yaml"
               )
             : this._params.urlPath === "lovelace"
-            ? this.hass.localize(
-                "ui.panel.config.lovelace.dashboards.cant_edit_default"
-              )
-            : html`
-                <ha-form
-                  .schema=${this._schema(this._params, this.hass.userData)}
-                  .data=${this._data}
-                  .hass=${this.hass}
-                  .error=${this._error}
-                  .computeLabel=${this._computeLabel}
-                  @value-changed=${this._valueChanged}
-                ></ha-form>
-              `}
+              ? this.hass.localize(
+                  "ui.panel.config.lovelace.dashboards.cant_edit_default"
+                )
+              : html`
+                  <ha-form
+                    .schema=${this._schema(this._params, this.hass.userData)}
+                    .data=${this._data}
+                    .hass=${this.hass}
+                    .error=${this._error}
+                    .computeLabel=${this._computeLabel}
+                    @value-changed=${this._valueChanged}
+                  ></ha-form>
+                `}
         </div>
         ${this._params.urlPath
           ? html`
@@ -169,7 +170,7 @@ export class DialogLovelaceDashboardDetail extends LitElement {
         },
         {
           name: "icon",
-          required: true,
+          required: false,
           selector: {
             icon: {},
           },
@@ -208,8 +209,8 @@ export class DialogLovelaceDashboardDetail extends LitElement {
         entry.name === "show_in_sidebar"
           ? "show_sidebar"
           : entry.name === "url_path"
-          ? "url"
-          : entry.name
+            ? "url"
+            : entry.name
       }`
     );
 
@@ -277,7 +278,7 @@ export class DialogLovelaceDashboardDetail extends LitElement {
           title: this._data!.title,
         };
         await this._params!.updateDashboard(values);
-      } else {
+      } else if (this._params!.createDashboard) {
         await this._params!.createDashboard(
           this._data as LovelaceDashboardCreateParams
         );

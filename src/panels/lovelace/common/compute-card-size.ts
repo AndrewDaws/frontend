@@ -1,8 +1,9 @@
 import { promiseTimeout } from "../../../common/util/promise-timeout";
-import { LovelaceCard, LovelaceHeaderFooter } from "../types";
+import type { HuiCard } from "../cards/hui-card";
+import type { LovelaceCard, LovelaceHeaderFooter } from "../types";
 
 export const computeCardSize = (
-  card: LovelaceCard | LovelaceHeaderFooter
+  card: LovelaceCard | LovelaceHeaderFooter | HuiCard
 ): number | Promise<number> => {
   if (typeof card.getCardSize === "function") {
     try {

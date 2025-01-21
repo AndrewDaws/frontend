@@ -1,20 +1,18 @@
 import "@material/mwc-button/mwc-button";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import type { CSSResultGroup } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { fireEvent } from "../../common/dom/fire_event";
-import { computeRTLDirection } from "../../common/util/compute_rtl";
-import "../../components/ha-dialog";
+import { createCloseHeading } from "../../components/ha-dialog";
 import "../../components/ha-formfield";
 import "../../components/ha-switch";
 import type { HaSwitch } from "../../components/ha-switch";
-import {
-  ConfigEntryMutableParams,
-  updateConfigEntry,
-} from "../../data/config_entries";
+import type { ConfigEntryMutableParams } from "../../data/config_entries";
+import { updateConfigEntry } from "../../data/config_entries";
 import { haStyleDialog } from "../../resources/styles";
 import type { HomeAssistant } from "../../types";
 import { showAlertDialog } from "../generic/show-dialog-box";
-import { ConfigEntrySystemOptionsDialogParams } from "./show-dialog-config-entry-system-options";
+import type { ConfigEntrySystemOptionsDialogParams } from "./show-dialog-config-entry-system-options";
 
 @customElement("dialog-config-entry-system-options")
 class DialogConfigEntrySystemOptions extends LitElement {
@@ -54,11 +52,14 @@ class DialogConfigEntrySystemOptions extends LitElement {
       <ha-dialog
         open
         @closed=${this.closeDialog}
-        .heading=${this.hass.localize(
-          "ui.dialogs.config_entry_system_options.title",
-          "integration",
-          this.hass.localize(`component.${this._params.entry.domain}.title`) ||
-            this._params.entry.domain
+        .heading=${createCloseHeading(
+          this.hass,
+          this.hass.localize("ui.dialogs.config_entry_system_options.title", {
+            integration:
+              this.hass.localize(
+                `component.${this._params.entry.domain}.title`
+              ) || this._params.entry.domain,
+          })
         )}
       >
         ${this._error ? html` <div class="error">${this._error}</div> ` : ""}
@@ -71,13 +72,14 @@ class DialogConfigEntrySystemOptions extends LitElement {
             <p class="secondary">
               ${this.hass.localize(
                 "ui.dialogs.config_entry_system_options.enable_new_entities_description",
-                "integration",
-                this.hass.localize(
-                  `component.${this._params.entry.domain}.title`
-                ) || this._params.entry.domain
+                {
+                  integration:
+                    this.hass.localize(
+                      `component.${this._params.entry.domain}.title`
+                    ) || this._params.entry.domain,
+                }
               )}
             </p>`}
-          .dir=${computeRTLDirection(this.hass)}
         >
           <ha-switch
             .checked=${!this._disableNewEntities}
@@ -96,13 +98,14 @@ class DialogConfigEntrySystemOptions extends LitElement {
             <p class="secondary">
               ${this.hass.localize(
                 "ui.dialogs.config_entry_system_options.enable_polling_description",
-                "integration",
-                this.hass.localize(
-                  `component.${this._params.entry.domain}.title`
-                ) || this._params.entry.domain
+                {
+                  integration:
+                    this.hass.localize(
+                      `component.${this._params.entry.domain}.title`
+                    ) || this._params.entry.domain,
+                }
               )}
             </p>`}
-          .dir=${computeRTLDirection(this.hass)}
         >
           <ha-switch
             .checked=${!this._disablePolling}

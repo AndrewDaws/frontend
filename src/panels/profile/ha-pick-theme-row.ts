@@ -1,13 +1,7 @@
 import "@material/mwc-button/mwc-button";
 import "@material/mwc-list/mwc-list-item";
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  PropertyValues,
-  TemplateResult,
-} from "lit";
+import type { PropertyValues, TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { fireEvent } from "../../common/dom/fire_event";
 import "../../components/ha-formfield";
@@ -19,8 +13,8 @@ import "../../components/ha-textfield";
 import {
   DEFAULT_ACCENT_COLOR,
   DEFAULT_PRIMARY_COLOR,
-} from "../../resources/ha-style";
-import { HomeAssistant } from "../../types";
+} from "../../resources/styles-data";
+import type { HomeAssistant } from "../../types";
 import { documentationUrl } from "../../util/documentation-url";
 
 const USE_DEFAULT_THEME = "__USE_DEFAULT_THEME__";
@@ -30,18 +24,20 @@ const HOME_ASSISTANT_THEME = "default";
 export class HaPickThemeRow extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property({ type: Boolean }) public narrow!: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
   @state() _themeNames: string[] = [];
 
   protected render(): TemplateResult {
     const hasThemes =
       this.hass.themes.themes && Object.keys(this.hass.themes.themes).length;
+
+    const curThemeIsUseDefault = this.hass.selectedTheme?.theme === "";
     const curTheme = this.hass.selectedTheme?.theme
       ? this.hass.selectedTheme?.theme
       : this.hass.themes.darkMode
-      ? this.hass.themes.default_dark_theme || this.hass.themes.default_theme
-      : this.hass.themes.default_theme;
+        ? this.hass.themes.default_dark_theme || this.hass.themes.default_theme
+        : this.hass.themes.default_theme;
 
     const themeSettings = this.hass.selectedTheme;
 
@@ -86,6 +82,9 @@ export class HaPickThemeRow extends LitElement {
         </ha-select>
       </ha-settings-row>
       ${curTheme === HOME_ASSISTANT_THEME ||
+      (curThemeIsUseDefault &&
+        this.hass.themes.default_dark_theme &&
+        this.hass.themes.default_theme) ||
       this._supportsModeSelection(curTheme)
         ? html` <div class="inputs">
             <ha-formfield
@@ -225,34 +224,32 @@ export class HaPickThemeRow extends LitElement {
     });
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      a {
-        color: var(--primary-color);
-      }
-      .inputs {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: space-between;
-        margin: 0 12px;
-      }
-      ha-formfield {
-        margin: 0 4px;
-      }
-      .color-pickers {
-        display: flex;
-        justify-content: flex-end;
-        align-items: center;
-        flex-grow: 1;
-      }
-      ha-textfield {
-        --text-field-padding: 8px;
-        min-width: 75px;
-        flex-grow: 1;
-        margin: 0 4px;
-      }
-    `;
-  }
+  static styles = css`
+    a {
+      color: var(--primary-color);
+    }
+    .inputs {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      margin: 0 12px;
+    }
+    ha-formfield {
+      margin: 0 4px;
+    }
+    .color-pickers {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      flex-grow: 1;
+    }
+    ha-textfield {
+      --text-field-padding: 8px;
+      min-width: 75px;
+      flex-grow: 1;
+      margin: 0 4px;
+    }
+  `;
 }
 
 declare global {

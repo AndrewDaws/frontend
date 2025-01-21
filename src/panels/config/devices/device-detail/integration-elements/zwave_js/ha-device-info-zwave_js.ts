@@ -1,26 +1,18 @@
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  PropertyValues,
-  nothing,
-} from "lit";
+import type { CSSResultGroup, PropertyValues } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import "../../../../../../components/ha-expansion-panel";
-import {
-  ConfigEntry,
-  getConfigEntries,
-} from "../../../../../../data/config_entries";
-import { DeviceRegistryEntry } from "../../../../../../data/device_registry";
+import type { ConfigEntry } from "../../../../../../data/config_entries";
+import { getConfigEntries } from "../../../../../../data/config_entries";
+import type { DeviceRegistryEntry } from "../../../../../../data/device_registry";
+import type { ZWaveJSNodeStatus } from "../../../../../../data/zwave_js";
 import {
   fetchZwaveNodeStatus,
   SecurityClass,
-  ZWaveJSNodeStatus,
 } from "../../../../../../data/zwave_js";
 import { SubscribeMixin } from "../../../../../../mixins/subscribe-mixin";
 import { haStyle } from "../../../../../../resources/styles";
-import { HomeAssistant } from "../../../../../../types";
+import type { HomeAssistant } from "../../../../../../types";
 
 @customElement("ha-device-info-zwave_js")
 export class HaDeviceInfoZWaveJS extends SubscribeMixin(LitElement) {
@@ -113,12 +105,12 @@ export class HaDeviceInfoZWaveJS extends SubscribeMixin(LitElement) {
                         }.title`
                       )
                     : this._node.is_secure === false
-                    ? this.hass.localize(
-                        "ui.panel.config.zwave_js.security_classes.none.title"
-                      )
-                    : this.hass.localize(
-                        "ui.panel.config.zwave_js.device_info.unknown"
-                      )}
+                      ? this.hass.localize(
+                          "ui.panel.config.zwave_js.security_classes.none.title"
+                        )
+                      : this.hass.localize(
+                          "ui.panel.config.zwave_js.device_info.unknown"
+                        )}
                 </div>
                 <div>
                   ${this.hass.localize(
@@ -127,8 +119,7 @@ export class HaDeviceInfoZWaveJS extends SubscribeMixin(LitElement) {
                   ${this._node.zwave_plus_version
                     ? this.hass.localize(
                         "ui.panel.config.zwave_js.device_info.zwave_plus_version",
-                        "version",
-                        this._node.zwave_plus_version
+                        { version: this._node.zwave_plus_version }
                       )
                     : this.hass.localize("ui.common.no")}
                 </div>

@@ -1,14 +1,17 @@
-import {
+import type {
   LovelaceConfig,
-  LovelaceStrategyConfig,
-  LovelaceViewConfig,
-} from "../../../data/lovelace";
-import { AsyncReturnType, HomeAssistant } from "../../../types";
-import { isLegacyStrategy } from "./legacy-strategy";
-import {
+  LovelaceRawConfig,
+} from "../../../data/lovelace/config/types";
+import { isStrategyDashboard } from "../../../data/lovelace/config/types";
+import type { LovelaceStrategyConfig } from "../../../data/lovelace/config/strategy";
+import type { LovelaceViewConfig } from "../../../data/lovelace/config/view";
+import { isStrategyView } from "../../../data/lovelace/config/view";
+import type { AsyncReturnType, HomeAssistant } from "../../../types";
+import { cleanLegacyStrategyConfig, isLegacyStrategy } from "./legacy-strategy";
+import type {
   LovelaceDashboardStrategy,
+  LovelaceSectionStrategy,
   LovelaceStrategy,
-  LovelaceStrategyParams,
   LovelaceViewStrategy,
 } from "./types";
 
@@ -17,26 +20,34 @@ const CUSTOM_PREFIX = "custom:";
 
 const STRATEGIES: Record<LovelaceStrategyConfigType, Record<string, any>> = {
   dashboard: {
-    "original-states": () => import("./original-states-dashboard-strategy"),
+    "original-states": () =>
+      import("./original-states/original-states-dashboard-strategy"),
+    map: () => import("./map/map-dashboard-strategy"),
+    iframe: () => import("./iframe/iframe-dashboard-strategy"),
   },
   view: {
-    "original-states": () => import("./original-states-view-strategy"),
+    "original-states": () =>
+      import("./original-states/original-states-view-strategy"),
     energy: () => import("../../energy/strategies/energy-view-strategy"),
+    map: () => import("./map/map-view-strategy"),
+    iframe: () => import("./iframe/iframe-view-strategy"),
   },
+  section: {},
 };
 
-export type LovelaceStrategyConfigType = "dashboard" | "view";
+export type LovelaceStrategyConfigType = "dashboard" | "view" | "section";
 
-type Strategies = {
+interface Strategies {
   dashboard: LovelaceDashboardStrategy;
   view: LovelaceViewStrategy;
-};
+  section: LovelaceSectionStrategy;
+}
 
 type StrategyConfig<T extends LovelaceStrategyConfigType> = AsyncReturnType<
   Strategies[T]["generate"]
 >;
 
-const getLovelaceStrategy = async <T extends LovelaceStrategyConfigType>(
+export const getLovelaceStrategy = async <T extends LovelaceStrategyConfigType>(
   configType: T,
   strategyType: string
 ): Promise<LovelaceStrategy> => {
@@ -77,8 +88,7 @@ const generateStrategy = async <T extends LovelaceStrategyConfigType>(
   configType: T,
   renderError: (err: string | Error) => StrategyConfig<T>,
   strategyConfig: LovelaceStrategyConfig,
-  hass: HomeAssistant,
-  params: LovelaceStrategyParams
+  hass: HomeAssistant
 ): Promise<StrategyConfig<T>> => {
   const strategyType = strategyConfig.type;
   if (!strategyType) {
@@ -95,7 +105,6 @@ const generateStrategy = async <T extends LovelaceStrategyConfigType>(
         return (await strategy.generateDashboard({
           config: { strategy: strategyConfig, views: [] },
           hass,
-          narrow: params.narrow,
         })) as StrategyConfig<T>;
       }
       if (configType === "view" && "generateView" in strategy) {
@@ -103,19 +112,13 @@ const generateStrategy = async <T extends LovelaceStrategyConfigType>(
           config: { views: [] },
           view: { strategy: strategyConfig },
           hass,
-          narrow: params.narrow,
         })) as StrategyConfig<T>;
       }
     }
 
-    const config = {
-      ...strategyConfig,
-      ...strategyConfig.options,
-    };
+    const config = cleanLegacyStrategyConfig(strategyConfig);
 
-    delete config.options;
-
-    return await strategy.generate(config, hass, params);
+    return await strategy.generate(config, hass);
   } catch (err: any) {
     if (err.message !== "timeout") {
       // eslint-disable-next-line
@@ -128,8 +131,7 @@ const generateStrategy = async <T extends LovelaceStrategyConfigType>(
 
 export const generateLovelaceDashboardStrategy = async (
   strategyConfig: LovelaceStrategyConfig,
-  hass: HomeAssistant,
-  params: LovelaceStrategyParams
+  hass: HomeAssistant
 ): Promise<LovelaceConfig> =>
   generateStrategy(
     "dashboard",
@@ -147,14 +149,12 @@ export const generateLovelaceDashboardStrategy = async (
       ],
     }),
     strategyConfig,
-    hass,
-    params
+    hass
   );
 
 export const generateLovelaceViewStrategy = async (
   strategyConfig: LovelaceStrategyConfig,
-  hass: HomeAssistant,
-  params: LovelaceStrategyParams
+  hass: HomeAssistant
 ): Promise<LovelaceViewConfig> =>
   generateStrategy(
     "view",
@@ -167,28 +167,57 @@ export const generateLovelaceViewStrategy = async (
       ],
     }),
     strategyConfig,
-    hass,
-    params
+    hass
+  );
+
+export const generateLovelaceSectionStrategy = async (
+  strategyConfig: LovelaceStrategyConfig,
+  hass: HomeAssistant
+): Promise<LovelaceViewConfig> =>
+  generateStrategy(
+    "section",
+    (err) => ({
+      cards: [
+        {
+          type: "markdown",
+          content: `Error loading the section strategy:\n> ${err}`,
+        },
+      ],
+    }),
+    strategyConfig,
+    hass
   );
 
 /**
  * Find all references to strategies and replaces them with the generated output
  */
 export const expandLovelaceConfigStrategies = async (
-  config: LovelaceConfig,
-  hass: HomeAssistant,
-  params: LovelaceStrategyParams
+  config: LovelaceRawConfig,
+  hass: HomeAssistant
 ): Promise<LovelaceConfig> => {
-  const newConfig = config.strategy
-    ? await generateLovelaceDashboardStrategy(config.strategy, hass, params)
+  const newConfig = isStrategyDashboard(config)
+    ? await generateLovelaceDashboardStrategy(config.strategy, hass)
     : { ...config };
 
   newConfig.views = await Promise.all(
-    newConfig.views.map((view) =>
-      view.strategy
-        ? generateLovelaceViewStrategy(view.strategy, hass, params)
-        : view
-    )
+    newConfig.views.map(async (view) => {
+      const newView = isStrategyView(view)
+        ? await generateLovelaceViewStrategy(view.strategy, hass)
+        : { ...view };
+
+      if (newView.sections) {
+        newView.sections = await Promise.all(
+          newView.sections.map(async (section) => {
+            const newSection = isStrategyView(section)
+              ? await generateLovelaceSectionStrategy(section.strategy, hass)
+              : { ...section };
+            return newSection;
+          })
+        );
+      }
+
+      return newView;
+    })
   );
 
   return newConfig;

@@ -1,5 +1,6 @@
 import "@material/mwc-button/mwc-button";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import type { CSSResultGroup } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { fireEvent } from "../../../../src/common/dom/fire_event";
@@ -9,8 +10,8 @@ import type { SchemaUnion } from "../../../../src/components/ha-form/types";
 import { extractApiErrorMessage } from "../../../../src/data/hassio/common";
 import { changeMountOptions } from "../../../../src/data/supervisor/mounts";
 import { haStyle, haStyleDialog } from "../../../../src/resources/styles";
-import { HomeAssistant } from "../../../../src/types";
-import { HassioBackupLocationDialogParams } from "./show-dialog-hassio-backu-location";
+import type { HomeAssistant } from "../../../../src/types";
+import type { HassioBackupLocationDialogParams } from "./show-dialog-hassio-backu-location";
 
 const SCHEMA = memoizeOne(
   () =>
@@ -27,8 +28,7 @@ const SCHEMA = memoizeOne(
 class HassioBackupLocationDialog extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property({ attribute: false })
-  public _dialogParams?: HassioBackupLocationDialogParams;
+  @state() private _dialogParams?: HassioBackupLocationDialogParams;
 
   @state() private _data?: { default_backup_mount: string | null };
 

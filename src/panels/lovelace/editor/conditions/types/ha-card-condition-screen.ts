@@ -3,12 +3,14 @@ import { customElement, property } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { getAllCombinations } from "../../../../../common/array/combinations";
 import { fireEvent } from "../../../../../common/dom/fire_event";
-import { LocalizeFunc } from "../../../../../common/translations/localize";
+import type { LocalizeFunc } from "../../../../../common/translations/localize";
 import "../../../../../components/ha-form/ha-form";
-import type { SchemaUnion } from "../../../../../components/ha-form/types";
-import { HaFormSchema } from "../../../../../components/ha-form/types";
+import type {
+  SchemaUnion,
+  HaFormSchema,
+} from "../../../../../components/ha-form/types";
 import type { HomeAssistant } from "../../../../../types";
-import { ScreenCondition } from "../../../common/validate-condition";
+import type { ScreenCondition } from "../../../common/validate-condition";
 
 const BREAKPOINT_VALUES = [0, 768, 1024, 1280, Infinity];
 const BREAKPOINTS = ["mobile", "tablet", "desktop", "wide"] as const;
@@ -87,9 +89,9 @@ const mediaQueryMap = new Map(
 );
 const mediaQueryReverseMap = new Map(queries.map(([b, m]) => [m, b]));
 
-type ScreenConditionData = {
+interface ScreenConditionData {
   breakpoints: Breakpoint[];
-};
+}
 
 @customElement("ha-card-condition-screen")
 export class HaCardConditionScreen extends LitElement {
@@ -103,10 +105,17 @@ export class HaCardConditionScreen extends LitElement {
     return { condition: "screen", media_query: "" };
   }
 
-  protected static validateUIConfig(condition: ScreenCondition) {
-    return (
-      !condition.media_query || mediaQueryReverseMap.get(condition.media_query)
-    );
+  protected static validateUIConfig(
+    condition: ScreenCondition,
+    hass: HomeAssistant
+  ) {
+    const valid =
+      !condition.media_query || mediaQueryReverseMap.has(condition.media_query);
+    if (!valid) {
+      throw new Error(
+        hass.localize("ui.errors.config.media_query_not_supported")
+      );
+    }
   }
 
   private _schema = memoizeOne(
@@ -122,11 +131,11 @@ export class HaCardConditionScreen extends LitElement {
                 return {
                   value: b,
                   label: `${localize(
-                    `ui.panel.lovelace.editor.card.conditional.condition.screen.breakpoints_list.${b}`
+                    `ui.panel.lovelace.editor.condition-editor.condition.screen.breakpoints_list.${b}`
                   )}${
                     value
                       ? ` (${localize(
-                          `ui.panel.lovelace.editor.card.conditional.condition.screen.min`,
+                          `ui.panel.lovelace.editor.condition-editor.condition.screen.min`,
                           { size: value }
                         )})`
                       : ""
@@ -181,7 +190,7 @@ export class HaCardConditionScreen extends LitElement {
     switch (schema.name) {
       case "breakpoints":
         return this.hass.localize(
-          `ui.panel.lovelace.editor.card.conditional.condition.screen.${schema.name}`
+          `ui.panel.lovelace.editor.condition-editor.condition.screen.${schema.name}`
         );
       default:
         return "";

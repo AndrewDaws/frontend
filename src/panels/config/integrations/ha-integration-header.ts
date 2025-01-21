@@ -1,10 +1,12 @@
 import { mdiAlertCircleOutline, mdiAlertOutline } from "@mdi/js";
-import { LitElement, TemplateResult, css, html, nothing } from "lit";
+import type { TemplateResult } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { customElement, property } from "lit/decorators";
 import "../../../components/ha-icon-next";
 import "../../../components/ha-svg-icon";
-import { IntegrationManifest, domainToName } from "../../../data/integration";
-import { HomeAssistant } from "../../../types";
+import type { IntegrationManifest } from "../../../data/integration";
+import { domainToName } from "../../../data/integration";
+import type { HomeAssistant } from "../../../types";
 import { brandsUrl } from "../../../util/brands-url";
 
 @customElement("ha-integration-header")
@@ -15,7 +17,7 @@ export class HaIntegrationHeader extends LitElement {
 
   @property() public warning?: string;
 
-  @property() public localizedDomainName?: string;
+  @property({ attribute: false }) public localizedDomainName?: string;
 
   @property() public domain!: string;
 
@@ -35,6 +37,7 @@ export class HaIntegrationHeader extends LitElement {
             type: "icon",
             darkOptimized: this.hass.themes?.darkMode,
           })}
+          crossorigin="anonymous"
           referrerpolicy="no-referrer"
           @error=${this._onImageError}
           @load=${this._onImageLoad}
@@ -55,13 +58,13 @@ export class HaIntegrationHeader extends LitElement {
                 </div>
               `
             : this.warning
-            ? html`
-                <div class="secondary warning">
-                  <ha-svg-icon .path=${mdiAlertOutline}></ha-svg-icon>
-                  <span>${this.warning}</span>
-                </div>
-              `
-            : nothing}
+              ? html`
+                  <div class="secondary warning">
+                    <ha-svg-icon .path=${mdiAlertOutline}></ha-svg-icon>
+                    <span>${this.warning}</span>
+                  </div>
+                `
+              : nothing}
         </div>
         <ha-icon-next
           class="header-button"
@@ -143,6 +146,8 @@ export class HaIntegrationHeader extends LitElement {
     }
     .secondary > ha-svg-icon {
       margin-right: 4px;
+      margin-inline-end: 4px;
+      margin-inline-start: initial;
       flex-shrink: 0;
     }
     .error ha-svg-icon {

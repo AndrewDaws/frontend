@@ -1,10 +1,11 @@
-import { css, LitElement, PropertyValues, svg, TemplateResult } from "lit";
+import type { PropertyValues, TemplateResult } from "lit";
+import { css, LitElement, svg } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { styleMap } from "lit/directives/style-map";
 import { formatNumber } from "../common/number/format_number";
 import { blankBeforePercent } from "../common/translations/blank_before_percent";
 import { afterNextRender } from "../common/util/render-status";
-import { FrontendLocaleData } from "../data/translation";
+import type { FrontendLocaleData } from "../data/translation";
 import { getValueInPercentage, normalize } from "../util/calculate";
 
 const getAngle = (value: number, min: number, max: number) => {
@@ -19,7 +20,7 @@ export interface LevelDefinition {
 }
 
 @customElement("ha-gauge")
-export class Gauge extends LitElement {
+export class HaGauge extends LitElement {
   @property({ type: Number }) public min = 0;
 
   @property({ type: Number }) public max = 100;
@@ -29,13 +30,13 @@ export class Gauge extends LitElement {
   @property({ attribute: false })
   public formatOptions?: Intl.NumberFormatOptions;
 
-  @property({ type: String }) public valueText?: string;
+  @property({ attribute: false, type: String }) public valueText?: string;
 
-  @property() public locale!: FrontendLocaleData;
+  @property({ attribute: false }) public locale!: FrontendLocaleData;
 
-  @property({ type: Boolean }) public needle?: boolean;
+  @property({ type: Boolean }) public needle = false;
 
-  @property() public levels?: LevelDefinition[];
+  @property({ type: Array }) public levels?: LevelDefinition[];
 
   @property() public label = "";
 
@@ -51,8 +52,8 @@ export class Gauge extends LitElement {
     afterNextRender(() => {
       this._updated = true;
       this._angle = getAngle(this.value, this.min, this.max);
-      this._segment_label = this.getSegmentLabel();
-      this._rescale_svg();
+      this._segment_label = this._getSegmentLabel();
+      this._rescaleSvg();
     });
   }
 
@@ -61,14 +62,15 @@ export class Gauge extends LitElement {
     if (
       !this._updated ||
       (!changedProperties.has("value") &&
+        !changedProperties.has("valueText") &&
         !changedProperties.has("label") &&
         !changedProperties.has("_segment_label"))
     ) {
       return;
     }
     this._angle = getAngle(this.value, this.min, this.max);
-    this._segment_label = this.getSegmentLabel();
-    this._rescale_svg();
+    this._segment_label = this._getSegmentLabel();
+    this._rescaleSvg();
   }
 
   protected render() {
@@ -141,14 +143,14 @@ export class Gauge extends LitElement {
             this._segment_label
               ? ""
               : this.label === "%"
-              ? blankBeforePercent(this.locale) + "%"
-              : ` ${this.label}`
+                ? blankBeforePercent(this.locale) + "%"
+                : ` ${this.label}`
           }
         </text>
       </svg>`;
   }
 
-  private _rescale_svg() {
+  private _rescaleSvg() {
     // Set the viewbox of the SVG containing the value to perfectly
     // fit the text
     // That way it will auto-scale correctly
@@ -160,7 +162,7 @@ export class Gauge extends LitElement {
     );
   }
 
-  private getSegmentLabel() {
+  private _getSegmentLabel() {
     if (this.levels) {
       this.levels.sort((a, b) => a.level - b.level);
       for (let i = this.levels.length - 1; i >= 0; i--) {
@@ -172,47 +174,51 @@ export class Gauge extends LitElement {
     return "";
   }
 
-  static get styles() {
-    return css`
-      :host {
-        position: relative;
-      }
-      .dial {
-        fill: none;
-        stroke: var(--primary-background-color);
-        stroke-width: 15;
-      }
-      .value {
-        fill: none;
-        stroke-width: 15;
-        stroke: var(--gauge-color);
-        transition: all 1s ease 0s;
-      }
-      .needle {
-        fill: var(--primary-text-color);
-        transition: all 1s ease 0s;
-      }
-      .level {
-        fill: none;
-        stroke-width: 15;
-      }
-      .gauge {
-        display: block;
-      }
-      .text {
-        position: absolute;
-        max-height: 40%;
-        max-width: 55%;
-        left: 50%;
-        bottom: -6%;
-        transform: translate(-50%, 0%);
-      }
-      .value-text {
-        font-size: 50px;
-        fill: var(--primary-text-color);
-        text-anchor: middle;
-        direction: ltr;
-      }
-    `;
+  static styles = css`
+    :host {
+      position: relative;
+    }
+    .dial {
+      fill: none;
+      stroke: var(--primary-background-color);
+      stroke-width: 15;
+    }
+    .value {
+      fill: none;
+      stroke-width: 15;
+      stroke: var(--gauge-color);
+      transition: all 1s ease 0s;
+    }
+    .needle {
+      fill: var(--primary-text-color);
+      transition: all 1s ease 0s;
+    }
+    .level {
+      fill: none;
+      stroke-width: 15;
+    }
+    .gauge {
+      display: block;
+    }
+    .text {
+      position: absolute;
+      max-height: 40%;
+      max-width: 55%;
+      left: 50%;
+      bottom: -6%;
+      transform: translate(-50%, 0%);
+    }
+    .value-text {
+      font-size: 50px;
+      fill: var(--primary-text-color);
+      text-anchor: middle;
+      direction: ltr;
+    }
+  `;
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    "ha-gauge": HaGauge;
   }
 }

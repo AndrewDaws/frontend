@@ -1,4 +1,5 @@
-import { html, LitElement, PropertyValues, TemplateResult } from "lit";
+import type { PropertyValues, TemplateResult } from "lit";
+import { html, LitElement } from "lit";
 import { customElement, query } from "lit/decorators";
 import { provideHass } from "../../../../src/fake_data/provide_hass";
 import "../../components/demo-cards";
@@ -55,7 +56,7 @@ const CONFIGS = [
 ];
 
 @customElement("demo-lovelace-media-player-row")
-class DemoHuiMediaPlayerRow extends LitElement {
+export class DemoLovelaceMediaPlayerRow extends LitElement {
   @query("#demos") private _demoRoot!: HTMLElement;
 
   protected render(): TemplateResult {
@@ -73,6 +74,6 @@ class DemoHuiMediaPlayerRow extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    "demo-lovelace-media-player-rows": DemoHuiMediaPlayerRow;
+    "demo-lovelace-media-player-row": DemoLovelaceMediaPlayerRow;
   }
 }

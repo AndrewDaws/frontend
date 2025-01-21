@@ -1,4 +1,4 @@
-import { HomeAssistant } from "../types";
+import type { HomeAssistant } from "../types";
 
 interface Image {
   filesize: number;
@@ -8,12 +8,40 @@ interface Image {
   id: string;
 }
 
+export const URL_PREFIX = "/api/image/serve/";
+export const MEDIA_PREFIX = "media-source://image_upload";
+
 export interface ImageMutableParams {
   name: string;
 }
 
-export const generateImageThumbnailUrl = (mediaId: string, size: number) =>
-  `/api/image/serve/${mediaId}/${size}x${size}`;
+export const getIdFromUrl = (url: string): string | undefined => {
+  let id;
+  if (url.startsWith(URL_PREFIX)) {
+    id = url.substring(URL_PREFIX.length);
+    const idx = id.indexOf("/");
+    if (idx >= 0) {
+      id = id.substring(0, idx);
+    }
+  } else if (url.startsWith(MEDIA_PREFIX)) {
+    id = url.substring(MEDIA_PREFIX.length + 1);
+  }
+  return id;
+};
+
+export const generateImageThumbnailUrl = (
+  mediaId: string,
+  size?: number,
+  original = false
+) => {
+  if (!original && !size) {
+    throw new Error("Size must be provided if original is false");
+  }
+
+  return original
+    ? `/api/image/serve/${mediaId}/original`
+    : `/api/image/serve/${mediaId}/${size}x${size}`;
+};
 
 export const fetchImages = (hass: HomeAssistant) =>
   hass.callWS<Image[]>({ type: "image/list" });
@@ -50,5 +78,19 @@ export const updateImage = (
 export const deleteImage = (hass: HomeAssistant, id: string) =>
   hass.callWS({
     type: "image/delete",
-    media_id: id,
+    image_id: id,
   });
+
+export const getImageData = async (url: string) => {
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch image: ${
+        response.statusText ? response.statusText : response.status
+      }`
+    );
+  }
+
+  return response.blob();
+};

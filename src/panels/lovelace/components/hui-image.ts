@@ -1,11 +1,5 @@
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  PropertyValues,
-  nothing,
-} from "lit";
+import type { PropertyValues } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
@@ -15,10 +9,12 @@ import parseAspectRatio from "../../../common/util/parse-aspect-ratio";
 import "../../../components/ha-camera-stream";
 import type { HaCameraStream } from "../../../components/ha-camera-stream";
 import "../../../components/ha-circular-progress";
-import { CameraEntity, fetchThumbnailUrlWithCache } from "../../../data/camera";
+import type { CameraEntity } from "../../../data/camera";
+import { fetchThumbnailUrlWithCache } from "../../../data/camera";
 import { UNAVAILABLE } from "../../../data/entity";
-import { computeImageUrl, ImageEntity } from "../../../data/image";
-import { HomeAssistant } from "../../../types";
+import type { ImageEntity } from "../../../data/image";
+import { computeImageUrl } from "../../../data/image";
+import type { HomeAssistant } from "../../../types";
 
 const UPDATE_INTERVAL = 10000;
 const DEFAULT_FILTER = "grayscale(100%)";
@@ -32,9 +28,7 @@ const enum LoadState {
   Error = 3,
 }
 
-export interface StateSpecificConfig {
-  [state: string]: string;
-}
+export type StateSpecificConfig = Record<string, string>;
 
 @customElement("hui-image")
 export class HuiImage extends LitElement {
@@ -46,21 +40,21 @@ export class HuiImage extends LitElement {
 
   @property({ attribute: false }) public stateImage?: StateSpecificConfig;
 
-  @property() public cameraImage?: string;
+  @property({ attribute: false }) public cameraImage?: string;
 
-  @property() public cameraView?: "live" | "auto";
+  @property({ attribute: false }) public cameraView?: "live" | "auto";
 
-  @property() public aspectRatio?: string;
+  @property({ attribute: false }) public aspectRatio?: string;
 
   @property() public filter?: string;
 
   @property({ attribute: false }) public stateFilter?: StateSpecificConfig;
 
-  @property() public darkModeImage?: string;
+  @property({ attribute: false }) public darkModeImage?: string;
 
-  @property() public darkModeFilter?: string;
+  @property({ attribute: false }) public darkModeFilter?: string;
 
-  @property() public fitMode?: "cover" | "contain" | "fill";
+  @property({ attribute: false }) public fitMode?: "cover" | "contain" | "fill";
 
   @state() private _imageVisible? = false;
 
@@ -200,8 +194,8 @@ export class HuiImage extends LitElement {
           paddingBottom: useRatio
             ? `${((100 * this._ratio!.h) / this._ratio!.w).toFixed(2)}%`
             : this._lastImageHeight === undefined
-            ? "56.25%"
-            : undefined,
+              ? "56.25%"
+              : undefined,
           backgroundImage:
             useRatio && this._loadedImageSrc
               ? `url("${this._loadedImageSrc}")`
@@ -227,21 +221,22 @@ export class HuiImage extends LitElement {
               ></ha-camera-stream>
             `
           : imageSrc === undefined
-          ? nothing
-          : html`
-              <img
-                id="image"
-                src=${imageSrc}
-                @error=${this._onImageError}
-                @load=${this._onImageLoad}
-                style=${styleMap({
-                  display:
-                    useRatio || this._loadState === LoadState.Loaded
-                      ? "block"
-                      : "none",
-                })}
-              />
-            `}
+            ? nothing
+            : html`
+                <img
+                  id="image"
+                  src=${imageSrc}
+                  alt=${this.entity || ""}
+                  @error=${this._onImageError}
+                  @load=${this._onImageLoad}
+                  style=${styleMap({
+                    display:
+                      useRatio || this._loadState === LoadState.Loaded
+                        ? "block"
+                        : "none",
+                  })}
+                />
+              `}
         ${this._loadState === LoadState.Error
           ? html`<div
               id="brokenImage"
@@ -252,22 +247,22 @@ export class HuiImage extends LitElement {
               })}
             ></div>`
           : this.cameraView !== "live" &&
-            (imageSrc === undefined || this._loadState === LoadState.Loading)
-          ? html`<div
-              class="progress-container"
-              style=${styleMap({
-                height: !useRatio
-                  ? `${this._lastImageHeight}px` || "100%"
-                  : undefined,
-              })}
-            >
-              <ha-circular-progress
-                class="render-spinner"
-                active
-                size="small"
-              ></ha-circular-progress>
-            </div>`
-          : ""}
+              (imageSrc === undefined || this._loadState === LoadState.Loading)
+            ? html`<div
+                class="progress-container"
+                style=${styleMap({
+                  height: !useRatio
+                    ? `${this._lastImageHeight}px` || "100%"
+                    : undefined,
+                })}
+              >
+                <ha-circular-progress
+                  class="render-spinner"
+                  indeterminate
+                  size="small"
+                ></ha-circular-progress>
+              </div>`
+            : ""}
       </div>
     `;
   }
@@ -392,62 +387,68 @@ export class HuiImage extends LitElement {
     }
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host {
-        display: block;
-      }
+  static styles = css`
+    :host {
+      display: block;
+    }
 
-      .container {
-        transition: filter 0.2s linear;
-      }
+    .container {
+      transition: filter 0.2s linear;
+      height: 100%;
+    }
 
-      img {
-        display: block;
-        height: auto;
-        width: 100%;
-      }
+    img {
+      display: block;
+      height: 100%;
+      width: 100%;
+      object-fit: cover;
+    }
 
-      .progress-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-      }
+    .progress-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
 
-      .ratio {
-        position: relative;
-        width: 100%;
-        height: 0;
-        background-position: center;
-        background-size: cover;
-      }
-      .ratio.fill {
-        background-size: 100% 100%;
-      }
-      .ratio.contain {
-        background-size: contain;
-        background-repeat: no-repeat;
-      }
+    .ratio {
+      position: relative;
+      width: 100%;
+      height: 0;
+      background-position: center;
+      background-size: cover;
+    }
+    .ratio.fill {
+      background-size: 100% 100%;
+    }
+    .ratio.contain {
+      background-size: contain;
+      background-repeat: no-repeat;
+    }
+    .fill img {
+      object-fit: fill;
+    }
+    .contain img {
+      object-fit: contain;
+    }
 
-      .ratio img,
-      .ratio div {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-      }
+    .ratio img,
+    .ratio div {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
 
-      .ratio img {
-        visibility: hidden;
-      }
+    .ratio img {
+      visibility: hidden;
+    }
 
-      #brokenImage {
-        background: grey url("/static/images/image-broken.svg") center/36px
-          no-repeat;
-      }
-    `;
-  }
+    #brokenImage {
+      background: grey url("/static/images/image-broken.svg") center/36px
+        no-repeat;
+    }
+  `;
 }
 
 declare global {

@@ -1,18 +1,19 @@
 import "@material/mwc-list/mwc-list-item";
-import { html, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
 import { firstWeekday } from "../../common/datetime/first_weekday";
 import { fireEvent } from "../../common/dom/fire_event";
 import "../../components/ha-select";
 import "../../components/ha-settings-row";
 import { FirstWeekday } from "../../data/translation";
-import { HomeAssistant } from "../../types";
+import type { HomeAssistant } from "../../types";
 
 @customElement("ha-pick-first-weekday-row")
 class FirstWeekdayRow extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public narrow!: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
   protected render(): TemplateResult {
     return html`

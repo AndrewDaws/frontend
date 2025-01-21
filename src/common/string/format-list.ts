@@ -1,6 +1,5 @@
 import memoizeOne from "memoize-one";
-import "../../resources/intl-polyfill";
-import { FrontendLocaleData } from "../../data/translation";
+import type { FrontendLocaleData } from "../../data/translation";
 
 export const formatListWithAnds = (
   locale: FrontendLocaleData,

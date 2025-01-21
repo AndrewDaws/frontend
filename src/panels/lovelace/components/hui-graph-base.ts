@@ -1,12 +1,5 @@
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  PropertyValues,
-  svg,
-  TemplateResult,
-} from "lit";
+import type { PropertyValues, TemplateResult } from "lit";
+import { css, html, LitElement, svg } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { strokeWidth } from "../../../data/graph";
 import { getPath } from "../common/graph/get-path";
@@ -57,17 +50,15 @@ export class HuiGraphBase extends LitElement {
     }
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host {
-        display: flex;
-        width: 100%;
-      }
-      .fill {
-        opacity: 0.1;
-      }
-    `;
-  }
+  static styles = css`
+    :host {
+      display: flex;
+      width: 100%;
+    }
+    .fill {
+      opacity: 0.1;
+    }
+  `;
 }
 
 declare global {

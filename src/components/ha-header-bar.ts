@@ -45,6 +45,11 @@ export class HaHeaderBar extends LitElement {
         .mdc-top-app-bar__section.mdc-top-app-bar__section--align-end {
           flex: none;
         }
+        .mdc-top-app-bar__title {
+          font-size: 20px;
+          padding-inline-start: 24px;
+          padding-inline-end: initial;
+        }
       `,
     ];
   }

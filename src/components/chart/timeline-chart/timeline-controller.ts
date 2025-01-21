@@ -1,6 +1,7 @@
-import { BarController, BarElement } from "chart.js";
-import { TimeLineData } from "./const";
-import { TextBarProps } from "./textbar-element";
+import type { BarElement } from "chart.js";
+import { BarController } from "chart.js";
+import type { TimeLineData } from "./const";
+import type { TextBarProps } from "./textbar-element";
 
 function borderProps(properties) {
   let reverse;
@@ -205,7 +206,9 @@ export class TimelineController extends BarController {
 
       const y = vScale.getPixelForValue(this.index);
 
-      const xStart = iScale.getPixelForValue(data.start.getTime());
+      const xStart = iScale.getPixelForValue(
+        Math.max(iScale.min, data.start.getTime())
+      );
       const xEnd = iScale.getPixelForValue(data.end.getTime());
       const width = xEnd - xStart;
 

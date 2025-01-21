@@ -1,5 +1,6 @@
 import { DIRECTION_ALL, Manager, Pan, Tap } from "@egjs/hammerjs";
-import { css, html, LitElement, PropertyValues, svg } from "lit";
+import type { PropertyValues } from "lit";
+import { css, html, LitElement, svg } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
@@ -56,12 +57,12 @@ function adjustRgb(
 
 function drawColorWheel(
   ctx: CanvasRenderingContext2D,
-  colorBrightness = 255,
   wv?: number,
   cw?: number,
   ww?: number,
   minKelvin?: number,
-  maxKelvin?: number
+  maxKelvin?: number,
+  colorBrightness = 255
 ) {
   const radius = ctx.canvas.width / 2;
 
@@ -115,10 +116,10 @@ class HaHsColorPicker extends LitElement {
   @property({ type: Number, attribute: false })
   public renderSize?: number;
 
-  @property({ type: Number })
+  @property({ type: Array })
   public value?: [number, number];
 
-  @property({ type: Number })
+  @property({ attribute: false, type: Number })
   public colorBrightness?: number;
 
   @property({ type: Number })
@@ -130,10 +131,10 @@ class HaHsColorPicker extends LitElement {
   @property({ type: Number })
   public ww?: number;
 
-  @property({ type: Number })
+  @property({ attribute: false, type: Number })
   public minKelvin?: number;
 
-  @property({ type: Number })
+  @property({ attribute: false, type: Number })
   public maxKelvin?: number;
 
   @query("#canvas") private _canvas!: HTMLCanvasElement;
@@ -159,12 +160,12 @@ class HaHsColorPicker extends LitElement {
     const ctx = this._canvas.getContext("2d")!;
     drawColorWheel(
       ctx,
-      this.colorBrightness,
       this.wv,
       this.cw,
       this.ww,
       this.minKelvin,
-      this.maxKelvin
+      this.maxKelvin,
+      this.colorBrightness
     );
   }
 
@@ -200,7 +201,7 @@ class HaHsColorPicker extends LitElement {
     }
   }
 
-  _setupListeners() {
+  private _setupListeners() {
     if (this._canvas && !this._mc) {
       this._mc = new Manager(this._canvas);
       this._mc.add(
@@ -291,11 +292,11 @@ class HaHsColorPicker extends LitElement {
     const _y = (2 * (y - offsetY)) / maxY - 1;
 
     const [r, phi] = xy2polar(_x, _y);
-    const [__x, __y] = polar2xy(Math.min(1, r), phi);
-    return [__x, __y];
+    const [xx, yy] = polar2xy(Math.min(1, r), phi);
+    return [xx, yy];
   };
 
-  _destroyListeners() {
+  private _destroyListeners() {
     if (this._mc) {
       this._mc.destroy();
       this._mc = undefined;
@@ -378,49 +379,47 @@ class HaHsColorPicker extends LitElement {
     `;
   }
 
-  static get styles() {
-    return css`
-      :host {
-        display: block;
-        outline: none;
-      }
-      .container {
-        position: relative;
-        width: 100%;
-        height: 100%;
-        display: flex;
-      }
-      canvas {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        border-radius: 50%;
-        cursor: pointer;
-      }
-      svg {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        pointer-events: none;
-      }
-      circle {
-        fill: black;
-        stroke: white;
-        stroke-width: 2;
-        filter: url(#marker-shadow);
-      }
-      .container:not(.pressed) circle {
-        transition:
-          transform 100ms ease-in-out,
-          fill 100ms ease-in-out;
-      }
-      .container:not(.pressed) .cursor {
-        transition: transform 200ms ease-in-out;
-      }
-    `;
-  }
+  static styles = css`
+    :host {
+      display: block;
+      outline: none;
+    }
+    .container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    svg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    circle {
+      fill: black;
+      stroke: white;
+      stroke-width: 2;
+      filter: url(#marker-shadow);
+    }
+    .container:not(.pressed) circle {
+      transition:
+        transform 100ms ease-in-out,
+        fill 100ms ease-in-out;
+    }
+    .container:not(.pressed) .cursor {
+      transition: transform 200ms ease-in-out;
+    }
+  `;
 }
 
 declare global {

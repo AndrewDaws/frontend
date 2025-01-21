@@ -1,15 +1,13 @@
-import { HassEntities } from "home-assistant-js-websocket";
-import { PropertyValues } from "lit";
+import type { HassEntities } from "home-assistant-js-websocket";
+import type { PropertyValues } from "lit";
 import { customElement, property } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { computeStateDomain } from "../../../common/entity/compute_state_domain";
 import { debounce } from "../../../common/util/debounce";
-import { SceneEntity } from "../../../data/scene";
-import {
-  HassRouterPage,
-  RouterOptions,
-} from "../../../layouts/hass-router-page";
-import { HomeAssistant } from "../../../types";
+import type { SceneEntity } from "../../../data/scene";
+import type { RouterOptions } from "../../../layouts/hass-router-page";
+import { HassRouterPage } from "../../../layouts/hass-router-page";
+import type { HomeAssistant } from "../../../types";
 import "./ha-scene-dashboard";
 import "./ha-scene-editor";
 
@@ -24,13 +22,13 @@ const equal = (a: SceneEntity[], b: SceneEntity[]): boolean => {
 class HaConfigScene extends HassRouterPage {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public narrow!: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
-  @property() public isWide!: boolean;
+  @property({ attribute: "is-wide", type: Boolean }) public isWide = false;
 
-  @property() public showAdvanced!: boolean;
+  @property({ attribute: false }) public showAdvanced = false;
 
-  @property() public scenes: SceneEntity[] = [];
+  @property({ attribute: false }) public scenes: SceneEntity[] = [];
 
   protected routerOptions: RouterOptions = {
     defaultPage: "dashboard",

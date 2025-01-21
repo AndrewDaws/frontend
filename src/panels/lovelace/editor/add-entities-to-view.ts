@@ -1,20 +1,20 @@
-import {
-  fetchConfig,
-  fetchDashboards,
-  LovelaceConfig,
-  LovelacePanelConfig,
-  saveConfig,
-} from "../../../data/lovelace";
+import type { LovelacePanelConfig } from "../../../data/lovelace";
+import type { LovelaceCardConfig } from "../../../data/lovelace/config/card";
+import type { LovelaceSectionConfig } from "../../../data/lovelace/config/section";
+import type { LovelaceConfig } from "../../../data/lovelace/config/types";
+import { fetchConfig, saveConfig } from "../../../data/lovelace/config/types";
+import { fetchDashboards } from "../../../data/lovelace/dashboard";
 import { showAlertDialog } from "../../../dialogs/generic/show-dialog-box";
-import { HomeAssistant } from "../../../types";
+import type { HomeAssistant } from "../../../types";
 import { showSuggestCardDialog } from "./card-editor/show-suggest-card-dialog";
 import { showSelectViewDialog } from "./select-view/show-select-view-dialog";
 
 export const addEntitiesToLovelaceView = async (
   element: HTMLElement,
   hass: HomeAssistant,
-  entities: string[],
-  cardTitle?: string
+  cardConfig: LovelaceCardConfig[],
+  sectionConfig?: LovelaceSectionConfig,
+  entities?: string[]
 ) => {
   hass.loadFragmentTranslation("lovelace");
   const dashboards = await fetchDashboards(hass);
@@ -30,9 +30,9 @@ export const addEntitiesToLovelaceView = async (
   if (mainLovelaceMode !== "storage" && !storageDashs.length) {
     // no storage dashboards, just show the YAML config
     showSuggestCardDialog(element, {
+      cardConfig,
       entities,
       yaml: true,
-      cardTitle,
     });
     return;
   }
@@ -42,7 +42,7 @@ export const addEntitiesToLovelaceView = async (
   if (mainLovelaceMode === "storage") {
     try {
       lovelaceConfig = await fetchConfig(hass.connection, null, false);
-    } catch (err: any) {
+    } catch (_err: any) {
       // default dashboard is in generated mode
     }
   }
@@ -59,7 +59,7 @@ export const addEntitiesToLovelaceView = async (
         );
         urlPath = storageDash.url_path;
         break;
-      } catch (err: any) {
+      } catch (_err: any) {
         // dashboard is in generated mode
       }
     }
@@ -69,9 +69,10 @@ export const addEntitiesToLovelaceView = async (
     if (dashboards.length > storageDashs.length) {
       // all storage dashboards are generated, but we have YAML dashboards just show the YAML config
       showSuggestCardDialog(element, {
+        cardConfig,
+        sectionConfig,
         entities,
         yaml: true,
-        cardTitle,
       });
     } else {
       // all storage dashboards are generated
@@ -91,12 +92,13 @@ export const addEntitiesToLovelaceView = async (
 
   if (!storageDashs.length && lovelaceConfig.views.length === 1) {
     showSuggestCardDialog(element, {
-      cardTitle,
+      cardConfig,
+      sectionConfig,
       lovelaceConfig: lovelaceConfig!,
       saveConfig: async (newConfig: LovelaceConfig): Promise<void> => {
         try {
           await saveConfig(hass!, null, newConfig);
-        } catch (err: any) {
+        } catch (_err: any) {
           alert(hass.localize("ui.panel.lovelace.add_entities.saving_failed"));
         }
       },
@@ -114,7 +116,8 @@ export const addEntitiesToLovelaceView = async (
     dashboards,
     viewSelectedCallback: (newUrlPath, selectedDashConfig, viewIndex) => {
       showSuggestCardDialog(element, {
-        cardTitle,
+        cardConfig,
+        sectionConfig,
         lovelaceConfig: selectedDashConfig,
         saveConfig: async (newConfig: LovelaceConfig): Promise<void> => {
           try {

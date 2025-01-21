@@ -1,5 +1,5 @@
 import { mdiHomeImportOutline, mdiPause, mdiPlay } from "@mdi/js";
-import { CSSResultGroup, LitElement, css, html, nothing } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { customElement, property } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { computeStateDomain } from "../../../common/entity/compute_state_domain";
@@ -8,16 +8,14 @@ import { blankBeforePercent } from "../../../common/translations/blank_before_pe
 import "../../../components/entity/ha-battery-icon";
 import "../../../components/ha-icon-button";
 import { UNAVAILABLE } from "../../../data/entity";
+import type { EntityRegistryDisplayEntry } from "../../../data/entity_registry";
 import {
-  EntityRegistryDisplayEntry,
   findBatteryChargingEntity,
   findBatteryEntity,
 } from "../../../data/entity_registry";
-import {
-  LawnMowerEntity,
-  LawnMowerEntityFeature,
-} from "../../../data/lawn_mower";
-import { HomeAssistant } from "../../../types";
+import type { LawnMowerEntity } from "../../../data/lawn_mower";
+import { LawnMowerEntityFeature } from "../../../data/lawn_mower";
+import type { HomeAssistant } from "../../../types";
 
 interface LawnMowerCommand {
   translationKey: string;
@@ -54,7 +52,7 @@ const LAWN_MOWER_COMMANDS: LawnMowerCommand[] = [
 class MoreInfoLawnMower extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public stateObj?: LawnMowerEntity;
+  @property({ attribute: false }) public stateObj?: LawnMowerEntity;
 
   protected render() {
     if (!this.hass || !this.stateObj) {
@@ -97,7 +95,7 @@ class MoreInfoLawnMower extends LitElement {
                       <ha-icon-button
                         .path=${item.icon}
                         .entry=${item}
-                        @click=${this.callService}
+                        @click=${this._callService}
                         .label=${this.hass!.localize(
                           `ui.dialogs.more_info_control.lawn_mower.${item.translationKey}`
                         )}
@@ -171,30 +169,29 @@ class MoreInfoLawnMower extends LitElement {
     return nothing;
   }
 
-  private callService(ev: CustomEvent) {
+  private _callService(ev: CustomEvent) {
     const entry = (ev.target! as any).entry as LawnMowerCommand;
     this.hass.callService("lawn_mower", entry.serviceName, {
       entity_id: this.stateObj!.entity_id,
     });
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host {
-        line-height: 1.5;
-      }
-      .status-subtitle {
-        color: var(--secondary-text-color);
-      }
-      .flex-horizontal {
-        display: flex;
-        flex-direction: row;
-      }
-      .space-around {
-        justify-content: space-around;
-      }
-    `;
-  }
+  static styles = css`
+    :host {
+      line-height: 1.5;
+    }
+    .status-subtitle {
+      color: var(--secondary-text-color);
+    }
+    .flex-horizontal {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+    }
+    .space-around {
+      justify-content: space-around;
+    }
+  `;
 }
 
 declare global {

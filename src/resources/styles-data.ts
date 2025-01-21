@@ -1,3 +1,6 @@
+export const DEFAULT_PRIMARY_COLOR = "#03a9f4" as const;
+export const DEFAULT_ACCENT_COLOR = "#ff9800" as const;
+
 export const darkStyles = {
   "primary-background-color": "#111111",
   "card-background-color": "#1c1c1c",
@@ -12,6 +15,7 @@ export const darkStyles = {
   "switch-unchecked-track-color": "#9b9b9b",
   "divider-color": "rgba(225, 225, 225, .12)",
   "outline-color": "rgba(225, 225, 225, .12)",
+  "outline-hover-color": "rgba(225, 225, 225, .24)",
   "mdc-ripple-color": "#AAAAAA",
   "mdc-linear-progress-buffer-color": "rgba(255, 255, 255, 0.1)",
 
@@ -50,7 +54,7 @@ export const darkStyles = {
   "map-filter":
     "invert(.9) hue-rotate(170deg) brightness(1.5) contrast(1.2) saturate(.3)",
   "disabled-color": "#464646",
-};
+} as const;
 
 export const derivedStyles = {
   "state-icon-error-color": "var(--error-state-color, var(--error-color))",
@@ -79,13 +83,6 @@ export const derivedStyles = {
   "table-header-background-color": "var(--input-fill-color)",
   "table-row-background-color": "var(--primary-background-color)",
   "table-row-alternative-background-color": "var(--secondary-background-color)",
-  "paper-slider-knob-color": "var(--slider-color)",
-  "paper-slider-knob-start-color": "var(--slider-color)",
-  "paper-slider-pin-color": "var(--slider-color)",
-  "paper-slider-pin-start-color": "var(--slider-color)",
-  "paper-slider-active-color": "var(--slider-color)",
-  "paper-slider-secondary-color": "var(--slider-secondary-color)",
-  "paper-slider-container-color": "var(--slider-track-color)",
   "data-table-background-color": "var(--card-background-color)",
   "markdown-code-background-color": "var(--primary-background-color)",
 
@@ -105,6 +102,7 @@ export const derivedStyles = {
   "mdc-theme-error": "var(--error-color)",
   "app-header-text-color": "var(--text-primary-color)",
   "app-header-background-color": "var(--primary-color)",
+  "app-theme-color": "var(--app-header-background-color)",
   "mdc-checkbox-unchecked-color": "rgba(var(--rgb-primary-text-color), 0.54)",
   "mdc-checkbox-disabled-color": "var(--disabled-text-color)",
   "mdc-radio-unchecked-color": "rgba(var(--rgb-primary-text-color), 0.54)",
@@ -146,11 +144,14 @@ export const derivedStyles = {
   "mdc-select-disabled-ink-color": "var(--input-disabled-ink-color)",
   "mdc-select-dropdown-icon-color": "var(--input-dropdown-icon-color)",
   "mdc-select-disabled-dropdown-icon-color": "var(--input-disabled-ink-color)",
-
+  "ha-assist-chip-filled-container-color":
+    "rgba(var(--rgb-primary-text-color),0.15)",
+  "ha-assist-chip-active-container-color":
+    "rgba(var(--rgb-primary-color),0.15)",
   "chip-background-color": "rgba(var(--rgb-primary-text-color), 0.15)",
   // Vaadin
   "material-body-text-color": "var(--primary-text-color)",
   "material-background-color": "var(--card-background-color)",
   "material-secondary-background-color": "var(--secondary-background-color)",
   "material-secondary-text-color": "var(--secondary-text-color)",
-};
+} as const;

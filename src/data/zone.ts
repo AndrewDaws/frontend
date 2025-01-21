@@ -1,5 +1,5 @@
 import { navigate } from "../common/navigate";
-import { HomeAssistant } from "../types";
+import type { HomeAssistant } from "../types";
 
 export interface Zone {
   id: string;
@@ -9,6 +9,12 @@ export interface Zone {
   longitude: number;
   passive?: boolean;
   radius?: number;
+}
+
+export interface HomeZoneMutableParams {
+  latitude: number;
+  longitude: number;
+  radius: number;
 }
 
 export interface ZoneMutableParams {

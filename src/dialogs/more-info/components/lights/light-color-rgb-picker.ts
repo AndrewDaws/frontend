@@ -1,13 +1,7 @@
 import "@material/mwc-button";
 import { mdiEyedropper } from "@mdi/js";
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  nothing,
-  PropertyValues,
-} from "lit";
+import type { CSSResultGroup, PropertyValues } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import {
   hex2rgb,
@@ -19,19 +13,17 @@ import {
 } from "../../../../common/color/convert-color";
 import { fireEvent } from "../../../../common/dom/fire_event";
 import { throttle } from "../../../../common/util/throttle";
-import "../../../../components/ha-button-toggle-group";
 import "../../../../components/ha-hs-color-picker";
 import "../../../../components/ha-icon";
 import "../../../../components/ha-icon-button-prev";
 import "../../../../components/ha-labeled-slider";
+import type { LightColor, LightEntity } from "../../../../data/light";
 import {
   getLightCurrentModeRgbColor,
-  LightColor,
   LightColorMode,
-  LightEntity,
   lightSupportsColorMode,
 } from "../../../../data/light";
-import { HomeAssistant } from "../../../../types";
+import type { HomeAssistant } from "../../../../types";
 
 declare global {
   interface HASSDomEvents {
@@ -115,53 +107,57 @@ class LightRgbColorPicker extends LitElement {
       </div>
       ${supportsRgbw || supportsRgbww
         ? html`<ha-labeled-slider
+            labeled
             .caption=${this.hass.localize("ui.card.light.color_brightness")}
             icon="hass:brightness-7"
+            min="0"
             max="100"
             .value=${this._colorBrightnessSliderValue}
-            @change=${this._colorBrightnessSliderChanged}
-            pin
+            @value-changed=${this._colorBrightnessSliderChanged}
           ></ha-labeled-slider>`
         : nothing}
       ${supportsRgbw
         ? html`
             <ha-labeled-slider
+              labeled
               .caption=${this.hass.localize("ui.card.light.white_value")}
               icon="hass:file-word-box"
+              min="0"
               max="100"
               .name=${"wv"}
               .value=${this._wvSliderValue}
-              @change=${this._wvSliderChanged}
-              pin
+              @value-changed=${this._wvSliderChanged}
             ></ha-labeled-slider>
           `
         : nothing}
       ${supportsRgbww
         ? html`
             <ha-labeled-slider
+              labeled
               .caption=${this.hass.localize("ui.card.light.cold_white_value")}
               icon="hass:file-word-box-outline"
+              min="0"
               max="100"
               .name=${"cw"}
               .value=${this._cwSliderValue}
-              @change=${this._wvSliderChanged}
-              pin
+              @value-changed=${this._wvSliderChanged}
             ></ha-labeled-slider>
             <ha-labeled-slider
+              labeled
               .caption=${this.hass.localize("ui.card.light.warm_white_value")}
               icon="hass:file-word-box"
+              min="0"
               max="100"
               .name=${"ww"}
               .value=${this._wwSliderValue}
-              @change=${this._wvSliderChanged}
-              pin
+              @value-changed=${this._wvSliderChanged}
             ></ha-labeled-slider>
           `
         : nothing}
     `;
   }
 
-  public _updateSliderValues() {
+  private _updateSliderValues() {
     const stateObj = this.stateObj;
 
     if (stateObj.state === "on") {
@@ -302,9 +298,9 @@ class LightRgbColorPicker extends LitElement {
   }
 
   private _wvSliderChanged(ev: CustomEvent) {
-    const target = ev.target as any;
+    const target = ev.detail as any;
     let wv = Number(target.value);
-    const name = target.name;
+    const name = (ev.target as any).name;
 
     if (isNaN(wv)) {
       return;
@@ -351,7 +347,7 @@ class LightRgbColorPicker extends LitElement {
   }
 
   private _colorBrightnessSliderChanged(ev: CustomEvent) {
-    const target = ev.target as any;
+    const target = ev.detail as any;
     let value = Number(target.value);
 
     if (isNaN(value)) {
@@ -442,6 +438,8 @@ class LightRgbColorPicker extends LitElement {
           position: absolute;
           top: 0;
           right: 0;
+          inset-inline-end: 0;
+          inset-inline-start: initial;
           z-index: 1;
         }
 

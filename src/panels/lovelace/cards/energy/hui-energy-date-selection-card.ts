@@ -1,9 +1,12 @@
-import { html, LitElement, nothing } from "lit";
+import type { PropertyValues } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
-import { HomeAssistant } from "../../../../types";
+import "../../../../components/ha-card";
+import type { HomeAssistant } from "../../../../types";
+import { hasConfigChanged } from "../../common/has-changed";
 import "../../components/hui-energy-period-selector";
-import { LovelaceCard } from "../../types";
-import { EnergyCardBaseConfig } from "../types";
+import type { LovelaceCard, LovelaceGridOptions } from "../../types";
+import type { EnergyCardBaseConfig } from "../types";
 
 @customElement("hui-energy-date-selection-card")
 export class HuiEnergyDateSelectionCard
@@ -18,8 +21,23 @@ export class HuiEnergyDateSelectionCard
     return 1;
   }
 
+  public getGridOptions(): LovelaceGridOptions {
+    return {
+      rows: 1,
+      columns: 12,
+    };
+  }
+
   public setConfig(config: EnergyCardBaseConfig): void {
     this._config = config;
+  }
+
+  protected shouldUpdate(changedProps: PropertyValues): boolean {
+    return (
+      hasConfigChanged(this, changedProps) ||
+      changedProps.size > 1 ||
+      !changedProps.has("hass")
+    );
   }
 
   protected render() {
@@ -28,12 +46,25 @@ export class HuiEnergyDateSelectionCard
     }
 
     return html`
-      <hui-energy-period-selector
-        .hass=${this.hass}
-        .collectionKey=${this._config.collection_key}
-      ></hui-energy-period-selector>
+      <ha-card>
+        <div class="card-content">
+          <hui-energy-period-selector
+            .hass=${this.hass}
+            .collectionKey=${this._config.collection_key}
+          ></hui-energy-period-selector>
+        </div>
+      </ha-card>
     `;
   }
+
+  static styles = css`
+    ha-card {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+  `;
 }
 
 declare global {

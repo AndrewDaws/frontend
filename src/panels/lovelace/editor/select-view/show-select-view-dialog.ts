@@ -1,9 +1,11 @@
 import { fireEvent } from "../../../../common/dom/fire_event";
-import { LovelaceConfig, LovelaceDashboard } from "../../../../data/lovelace";
+import type { LovelaceConfig } from "../../../../data/lovelace/config/types";
+import type { LovelaceDashboard } from "../../../../data/lovelace/dashboard";
 
 export interface SelectViewDialogParams {
   lovelaceConfig: LovelaceConfig;
   allowDashboardChange: boolean;
+  includeStrategyViews?: boolean;
   dashboards?: LovelaceDashboard[];
   urlPath?: string | null;
   header?: string;

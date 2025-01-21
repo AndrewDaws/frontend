@@ -1,19 +1,20 @@
-import { mdiStorePlus, mdiUpdate } from "@mdi/js";
-import { css, CSSResultGroup, html, LitElement, TemplateResult } from "lit";
+import { mdiRefresh, mdiStorePlus } from "@mdi/js";
+import type { CSSResultGroup, TemplateResult } from "lit";
+import { LitElement, css, html } from "lit";
 import { customElement, property } from "lit/decorators";
 import { atLeastVersion } from "../../../src/common/config/version";
+import { fireEvent } from "../../../src/common/dom/fire_event";
 import "../../../src/components/ha-fab";
-import { Supervisor } from "../../../src/data/supervisor/supervisor";
-import "../../../src/layouts/hass-tabs-subpage";
-import { haStyle } from "../../../src/resources/styles";
-import { HomeAssistant, Route } from "../../../src/types";
-import { supervisorTabs } from "../hassio-tabs";
-import "./hassio-addons";
-import "../../../src/layouts/hass-subpage";
 import { reloadHassioAddons } from "../../../src/data/hassio/addon";
 import { extractApiErrorMessage } from "../../../src/data/hassio/common";
+import type { Supervisor } from "../../../src/data/supervisor/supervisor";
 import { showAlertDialog } from "../../../src/dialogs/generic/show-dialog-box";
-import { fireEvent } from "../../../src/common/dom/fire_event";
+import "../../../src/layouts/hass-subpage";
+import "../../../src/layouts/hass-tabs-subpage";
+import { haStyle } from "../../../src/resources/styles";
+import type { HomeAssistant, Route } from "../../../src/types";
+import { supervisorTabs } from "../hassio-tabs";
+import "./hassio-addons";
 
 @customElement("hassio-dashboard")
 class HassioDashboard extends LitElement {
@@ -21,7 +22,7 @@ class HassioDashboard extends LitElement {
 
   @property({ attribute: false }) public supervisor!: Supervisor;
 
-  @property({ type: Boolean }) public narrow!: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
   @property({ attribute: false }) public route!: Route;
 
@@ -43,7 +44,7 @@ class HassioDashboard extends LitElement {
         <ha-icon-button
           slot="toolbar-icon"
           @click=${this._handleCheckUpdates}
-          .path=${mdiUpdate}
+          .path=${mdiRefresh}
           .label=${this.supervisor.localize("store.check_updates")}
         ></ha-icon-button>
         <hassio-addons
@@ -75,7 +76,7 @@ class HassioDashboard extends LitElement {
         .mainPage=${!atLeastVersion(this.hass.config.version, 2021, 12)}
         back-path="/config"
         supervisor
-        hasFab
+        has-fab
       >
         <span slot="header">
           ${this.supervisor.localize(
@@ -133,6 +134,8 @@ class HassioDashboard extends LitElement {
           position: fixed;
           right: calc(16px + env(safe-area-inset-right));
           bottom: calc(16px + env(safe-area-inset-bottom));
+          inset-inline-end: calc(16px + env(safe-area-inset-right));
+          inset-inline-start: initial;
           z-index: 1;
         }
       `,

@@ -509,7 +509,7 @@ export default {
       away_mode: "on",
       aux_heat: "off",
       unit_of_measurement: "°C",
-      friendly_name: "Hvac",
+      friendly_name: "HVAC",
       supported_features: 3833,
     },
     last_changed: "2018-07-19T10:44:46.200650+00:00",
@@ -531,15 +531,6 @@ export default {
     },
     last_changed: "2018-07-19T10:44:46.200946+00:00",
     last_updated: "2018-07-19T10:44:46.200946+00:00",
-  },
-  "mailbox.demomailbox": {
-    entity_id: "mailbox.demomailbox",
-    state: "10",
-    attributes: {
-      friendly_name: "DemoMailbox",
-    },
-    last_changed: "2018-07-19T10:45:16.555210+00:00",
-    last_updated: "2018-07-19T10:45:16.555210+00:00",
   },
   "input_select.living_room_preset": {
     entity_id: "input_select.living_room_preset",

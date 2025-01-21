@@ -1,13 +1,7 @@
-import { VisibilityChangedEvent } from "@lit-labs/virtualizer";
+import type { VisibilityChangedEvent } from "@lit-labs/virtualizer";
 import type { HassEntity } from "home-assistant-js-websocket";
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  nothing,
-  PropertyValues,
-} from "lit";
+import type { CSSResultGroup, PropertyValues } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, eventOptions, property } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
@@ -23,20 +17,20 @@ import "../../components/entity/state-badge";
 import "../../components/ha-circular-progress";
 import "../../components/ha-icon-next";
 import "../../components/ha-relative-time";
+import type { LogbookEntry } from "../../data/logbook";
 import {
   createHistoricState,
   localizeStateMessage,
   localizeTriggerSource,
-  LogbookEntry,
 } from "../../data/logbook";
-import { TraceContexts } from "../../data/trace";
+import type { TraceContexts } from "../../data/trace";
 import {
   buttonLinkStyle,
   haStyle,
   haStyleScrollbar,
 } from "../../resources/styles";
 import { loadVirtualizer } from "../../resources/virtualizer";
-import { HomeAssistant } from "../../types";
+import type { HomeAssistant } from "../../types";
 import { brandsUrl } from "../../util/brands-url";
 import { domainToName } from "../../data/integration";
 
@@ -174,7 +168,8 @@ class HaLogbookRenderer extends LitElement {
 
     const traceContext =
       triggerDomains.includes(item.domain!) &&
-      item.context_id! in this.traceContexts
+      item.context_id &&
+      item.context_id in this.traceContexts
         ? this.traceContexts[item.context_id!]
         : undefined;
 
@@ -400,7 +395,7 @@ class HaLogbookRenderer extends LitElement {
     // Service call
     if (item.context_event_type === "call_service") {
       return html`${this.hass.localize(
-        "ui.components.logbook.triggered_by_service"
+        "ui.components.logbook.triggered_by_action"
       )}
       ${item.context_domain && item.context_service
         ? `${domainToName(this.hass.localize, item.context_domain)}:
@@ -564,11 +559,12 @@ class HaLogbookRenderer extends LitElement {
     });
   }
 
-  _handleClick(ev) {
-    if (!ev.currentTarget.traceLink) {
+  private _handleClick(ev: Event) {
+    const target = ev.currentTarget as any;
+    if (!target.traceLink) {
       return;
     }
-    navigate(ev.currentTarget.traceLink);
+    navigate(target.traceLink);
     fireEvent(this, "closed");
   }
 
@@ -711,8 +707,8 @@ class HaLogbookRenderer extends LitElement {
         .narrow .icon-message state-badge {
           margin-left: 0;
           margin-inline-start: 0;
-          margin-inline-end: 8px;
           margin-right: 8px;
+          margin-inline-end: 8px;
           direction: var(--direction);
         }
       `,

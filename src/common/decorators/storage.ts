@@ -1,6 +1,6 @@
-import { UnsubscribeFunc } from "home-assistant-js-websocket";
-import { ReactiveElement } from "lit";
-import { InternalPropertyDeclaration } from "lit/decorators";
+import type { UnsubscribeFunc } from "home-assistant-js-websocket";
+import type { ReactiveElement } from "lit";
+import type { InternalPropertyDeclaration } from "lit/decorators";
 import type { ClassElement } from "../../types";
 
 type Callback = (oldValue: any, newValue: any) => void;
@@ -31,11 +31,9 @@ class StorageClass {
 
   public storage: globalThis.Storage;
 
-  private _storage: { [storageKey: string]: any } = {};
+  private _storage: Record<string, any> = {};
 
-  private _listeners: {
-    [storageKey: string]: Callback[];
-  } = {};
+  private _listeners: Record<string, Callback[]> = {};
 
   public addFromStorage(storageKey: any): void {
     if (!this._storage[storageKey]) {
@@ -87,7 +85,7 @@ class StorageClass {
       } else {
         this.storage.setItem(storageKey, JSON.stringify(value));
       }
-    } catch (err: any) {
+    } catch (_err: any) {
       // Safari in private mode doesn't allow localstorage
     } finally {
       if (this._listeners[storageKey]) {
@@ -108,6 +106,8 @@ export const storage =
     subscribe?: boolean;
     state?: boolean;
     stateOptions?: InternalPropertyDeclaration;
+    serializer?: (value: any) => any;
+    deserializer?: (value: any) => any;
   }): any =>
   (clsElement: ClassElement) => {
     const storageName = options.storage || "localStorage";
@@ -141,7 +141,9 @@ export const storage =
 
     const getValue = (): any =>
       storageInstance.hasKey(storageKey!)
-        ? storageInstance.getValue(storageKey!)
+        ? options.deserializer
+          ? options.deserializer(storageInstance.getValue(storageKey!))
+          : storageInstance.getValue(storageKey!)
         : initVal;
 
     const setValue = (el: ReactiveElement, value: any) => {
@@ -149,7 +151,10 @@ export const storage =
       if (options.state) {
         oldValue = getValue();
       }
-      storageInstance.setValue(storageKey!, value);
+      storageInstance.setValue(
+        storageKey!,
+        options.serializer ? options.serializer(value) : value
+      );
       if (options.state) {
         el.requestUpdate(clsElement.key, oldValue);
       }

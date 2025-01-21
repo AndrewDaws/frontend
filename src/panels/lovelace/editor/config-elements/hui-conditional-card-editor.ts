@@ -1,50 +1,33 @@
 import "@material/mwc-tab-bar/mwc-tab-bar";
 import "@material/mwc-tab/mwc-tab";
 import type { MDCTabBarActivatedEvent } from "@material/tab-bar";
-import {
-  mdiCodeBraces,
-  mdiContentCopy,
-  mdiListBoxOutline,
-  mdiPlus,
-} from "@mdi/js";
+import { mdiCodeBraces, mdiContentCopy, mdiListBoxOutline } from "@mdi/js";
 import deepClone from "deep-clone-simple";
-import { CSSResultGroup, LitElement, css, html, nothing } from "lit";
+import type { CSSResultGroup } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { any, array, assert, assign, object, optional } from "superstruct";
 import { storage } from "../../../../common/decorators/storage";
-import { HASSDomEvent, fireEvent } from "../../../../common/dom/fire_event";
-import { stopPropagation } from "../../../../common/dom/stop_propagation";
+import type { HASSDomEvent } from "../../../../common/dom/fire_event";
+import { fireEvent } from "../../../../common/dom/fire_event";
+import "../../../../components/ha-alert";
 import "../../../../components/ha-button";
 import "../../../../components/ha-list-item";
-import "../../../../components/ha-menu-button";
-import type { HaSelect } from "../../../../components/ha-select";
 import "../../../../components/ha-svg-icon";
-import type {
-  LovelaceCardConfig,
-  LovelaceConfig,
-} from "../../../../data/lovelace";
+import type { LovelaceCardConfig } from "../../../../data/lovelace/config/card";
+import type { LovelaceConfig } from "../../../../data/lovelace/config/types";
 import type { HomeAssistant } from "../../../../types";
 import type { ConditionalCardConfig } from "../../cards/types";
-import { ICON_CONDITION } from "../../common/icon-condition";
-import { Condition } from "../../common/validate-condition";
 import type { LovelaceCardEditor } from "../../types";
 import "../card-editor/hui-card-element-editor";
 import type { HuiCardElementEditor } from "../card-editor/hui-card-element-editor";
 import "../card-editor/hui-card-picker";
-import "../conditions/ha-card-condition-editor";
-import { LovelaceConditionEditorConstructor } from "../conditions/types";
-import "../conditions/types/ha-card-condition-screen";
-import "../conditions/types/ha-card-condition-state";
+import "../conditions/ha-card-conditions-editor";
 import "../hui-element-editor";
 import type { ConfigChangedEvent } from "../hui-element-editor";
 import { baseLovelaceCardConfig } from "../structs/base-card-struct";
 import type { GUIModeChangedEvent } from "../types";
 import { configElementStyle } from "./config-elements-style";
-
-const UI_CONDITION = [
-  "state",
-  "screen",
-] as const satisfies readonly Condition["condition"][];
 
 const cardConfigStruct = assign(
   baseLovelaceCardConfig,
@@ -64,7 +47,7 @@ export class HuiConditionalCardEditor
   @property({ attribute: false }) public lovelace?: LovelaceConfig;
 
   @storage({
-    key: "lovelaceClipboard",
+    key: "dashboardCardClipboard",
     state: false,
     subscribe: false,
     storage: "sessionStorage",
@@ -162,53 +145,17 @@ export class HuiConditionalCardEditor
             </div>
           `
         : html`
-            <div class="conditions">
+            <ha-alert alert-type="info">
               ${this.hass!.localize(
-                "ui.panel.lovelace.editor.card.conditional.condition_explanation"
+                "ui.panel.lovelace.editor.condition-editor.explanation"
               )}
-              ${this._config.conditions.map(
-                (cond, idx) => html`
-                  <div class="condition">
-                    <ha-card-condition-editor
-                      .index=${idx}
-                      @value-changed=${this._conditionChanged}
-                      .hass=${this.hass}
-                      .condition=${cond}
-                    ></ha-card-condition-editor>
-                  </div>
-                `
-              )}
-              <div>
-                <ha-button-menu
-                  @action=${this._addCondition}
-                  fixed
-                  @closed=${stopPropagation}
-                >
-                  <ha-button
-                    slot="trigger"
-                    outlined
-                    .label=${this.hass.localize(
-                      "ui.panel.lovelace.editor.card.conditional.add_condition"
-                    )}
-                  >
-                    <ha-svg-icon .path=${mdiPlus} slot="icon"></ha-svg-icon>
-                  </ha-button>
-                  ${UI_CONDITION.map(
-                    (condition) => html`
-                      <ha-list-item .value=${condition} graphic="icon">
-                        ${this.hass!.localize(
-                          `ui.panel.lovelace.editor.card.conditional.condition.${condition}.label`
-                        ) || condition}
-                        <ha-svg-icon
-                          slot="graphic"
-                          .path=${ICON_CONDITION[condition]}
-                        ></ha-svg-icon>
-                      </ha-list-item>
-                    `
-                  )}
-                </ha-button-menu>
-              </div>
-            </div>
+            </ha-alert>
+            <ha-card-conditions-editor
+              .hass=${this.hass}
+              .conditions=${this._config.conditions}
+              @value-changed=${this._conditionChanged}
+            >
+            </ha-card-conditions-editor>
           `}
     `;
   }
@@ -275,40 +222,13 @@ export class HuiConditionalCardEditor
     fireEvent(this, "config-changed", { config: this._config });
   }
 
-  private _addCondition(ev: CustomEvent): void {
-    const condition = (ev.currentTarget as HaSelect).items[ev.detail.index]
-      .value as Condition["condition"];
+  private _conditionChanged(ev: CustomEvent) {
+    ev.stopPropagation();
     if (!this._config) {
       return;
     }
-    const conditions = [...this._config.conditions];
-
-    const elClass = customElements.get(`ha-card-condition-${condition}`) as
-      | LovelaceConditionEditorConstructor
-      | undefined;
-
-    conditions.push(
-      elClass?.defaultConfig
-        ? { ...elClass.defaultConfig }
-        : { condition: condition }
-    );
+    const conditions = ev.detail.value;
     this._config = { ...this._config, conditions };
-    fireEvent(this, "config-changed", { config: this._config });
-  }
-
-  private _conditionChanged(ev: CustomEvent) {
-    ev.stopPropagation();
-    const conditions = [...this._config!.conditions];
-    const newValue = ev.detail.value;
-    const index = (ev.target as any).index;
-
-    if (newValue === null) {
-      conditions.splice(index, 1);
-    } else {
-      conditions[index] = newValue;
-    }
-
-    this._config = { ...this._config!, conditions };
     fireEvent(this, "config-changed", { config: this._config });
   }
 
@@ -319,17 +239,8 @@ export class HuiConditionalCardEditor
         mwc-tab-bar {
           border-bottom: 1px solid var(--divider-color);
         }
-        .conditions {
-          margin-top: 8px;
-        }
-        .condition {
-          margin-top: 8px;
-          border: 1px solid var(--divider-color);
-        }
-        .condition .content {
-          padding: 12px;
-        }
-        ha-button-menu {
+        ha-alert {
+          display: block;
           margin-top: 12px;
         }
         .card {
@@ -350,6 +261,8 @@ export class HuiConditionalCardEditor
         }
         .gui-mode-button {
           margin-right: auto;
+          margin-inline-end: auto;
+          margin-inline-start: initial;
         }
       `,
     ];

@@ -1,4 +1,4 @@
-import { HomeAssistant } from "../types";
+import type { HomeAssistant } from "../types";
 
 interface SystemCheckValueDateObject {
   type: "date";
@@ -26,14 +26,13 @@ export type SystemCheckValue =
   | boolean
   | SystemCheckValueObject;
 
-export interface SystemHealthInfo {
-  [domain: string]: {
+export type SystemHealthInfo = Record<
+  string,
+  {
     manage_url?: string;
-    info: {
-      [key: string]: SystemCheckValue;
-    };
-  };
-}
+    info: Record<string, SystemCheckValue>;
+  }
+>;
 
 interface SystemHealthEventInitial {
   type: "initial";

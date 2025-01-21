@@ -1,19 +1,17 @@
-import { css, CSSResultGroup, html, LitElement, PropertyValues } from "lit";
+import type { CSSResultGroup, PropertyValues } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { isComponentLoaded } from "../../../../common/config/is_component_loaded";
 import "../../../../components/ha-card";
 import "../../../../components/ha-circular-progress";
 import "../../../../components/ha-settings-row";
 import "../../../../components/ha-switch";
-import {
-  CloudStatusLoggedIn,
-  CloudWebhook,
-  createCloudhook,
-  deleteCloudhook,
-} from "../../../../data/cloud";
-import { fetchWebhooks, Webhook, WebhookError } from "../../../../data/webhook";
+import type { CloudStatusLoggedIn, CloudWebhook } from "../../../../data/cloud";
+import { createCloudhook, deleteCloudhook } from "../../../../data/cloud";
+import type { Webhook, WebhookError } from "../../../../data/webhook";
+import { fetchWebhooks } from "../../../../data/webhook";
 import { haStyle } from "../../../../resources/styles";
-import { HomeAssistant } from "../../../../types";
+import type { HomeAssistant } from "../../../../types";
 import { showManageCloudhookDialog } from "../dialog-manage-cloudhook/show-dialog-manage-cloudhook";
 
 @customElement("cloud-webhooks")
@@ -22,11 +20,9 @@ export class CloudWebhooks extends LitElement {
 
   @property({ attribute: false }) public cloudStatus?: CloudStatusLoggedIn;
 
-  @property({ type: Boolean }) public narrow!: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
-  @state() private _cloudHooks?: {
-    [webhookId: string]: CloudWebhook;
-  };
+  @state() private _cloudHooks?: Record<string, CloudWebhook>;
 
   @state() private _localHooks?: Webhook[];
 
@@ -59,55 +55,57 @@ export class CloudWebhooks extends LitElement {
                 </div>
               `
             : this._localHooks.length === 0
-            ? html`
-                <div class="body-text">
-                  ${this.hass.localize(
-                    "ui.panel.config.cloud.account.webhooks.no_hooks_yet"
-                  )}
-                  <a href="/config/integrations"
-                    >${this.hass.localize(
-                      "ui.panel.config.cloud.account.webhooks.no_hooks_yet_link_integration"
+              ? html`
+                  <div class="body-text">
+                    ${this.hass.localize(
+                      "ui.panel.config.cloud.account.webhooks.no_hooks_yet"
                     )}
-                  </a>
-                  ${this.hass.localize(
-                    "ui.panel.config.cloud.account.webhooks.no_hooks_yet2"
-                  )}
-                  <a href="/config/automation/edit/new"
-                    >${this.hass.localize(
-                      "ui.panel.config.cloud.account.webhooks.no_hooks_yet_link_automation"
-                    )}</a
-                  >.
-                </div>
-              `
-            : this._localHooks.map(
-                (entry) => html`
-                  <ha-settings-row .narrow=${this.narrow} .entry=${entry}>
-                    <span slot="heading">
-                      ${entry.name}
-                      ${entry.domain !== entry.name.toLowerCase()
-                        ? ` (${entry.domain})`
-                        : ""}
-                    </span>
-                    <span slot="description">${entry.webhook_id}</span>
-                    ${this._progress.includes(entry.webhook_id)
-                      ? html`
-                          <div class="progress">
-                            <ha-circular-progress active></ha-circular-progress>
-                          </div>
-                        `
-                      : this._cloudHooks![entry.webhook_id]
-                      ? html`
-                          <mwc-button @click=${this._handleManageButton}>
-                            ${this.hass!.localize(
-                              "ui.panel.config.cloud.account.webhooks.manage"
-                            )}
-                          </mwc-button>
-                        `
-                      : html`<ha-switch @click=${this._enableWebhook}>
-                        </ha-switch>`}
-                  </ha-settings-row>
+                    <a href="/config/integrations"
+                      >${this.hass.localize(
+                        "ui.panel.config.cloud.account.webhooks.no_hooks_yet_link_integration"
+                      )}
+                    </a>
+                    ${this.hass.localize(
+                      "ui.panel.config.cloud.account.webhooks.no_hooks_yet2"
+                    )}
+                    <a href="/config/automation/edit/new"
+                      >${this.hass.localize(
+                        "ui.panel.config.cloud.account.webhooks.no_hooks_yet_link_automation"
+                      )}</a
+                    >.
+                  </div>
                 `
-              )}
+              : this._localHooks.map(
+                  (entry) => html`
+                    <ha-settings-row .narrow=${this.narrow} .entry=${entry}>
+                      <span slot="heading">
+                        ${entry.name}
+                        ${entry.domain !== entry.name.toLowerCase()
+                          ? ` (${entry.domain})`
+                          : ""}
+                      </span>
+                      <span slot="description">${entry.webhook_id}</span>
+                      ${this._progress.includes(entry.webhook_id)
+                        ? html`
+                            <div class="progress">
+                              <ha-circular-progress
+                                indeterminate
+                              ></ha-circular-progress>
+                            </div>
+                          `
+                        : this._cloudHooks![entry.webhook_id]
+                          ? html`
+                              <mwc-button @click=${this._handleManageButton}>
+                                ${this.hass!.localize(
+                                  "ui.panel.config.cloud.account.webhooks.manage"
+                                )}
+                              </mwc-button>
+                            `
+                          : html`<ha-switch @click=${this._enableWebhook}>
+                            </ha-switch>`}
+                    </ha-settings-row>
+                  `
+                )}
           <div class="footer">
             <a
               href="https://www.nabucasa.com/config/webhooks"
@@ -221,6 +219,8 @@ export class CloudWebhooks extends LitElement {
         }
         .progress {
           margin-right: 16px;
+          margin-inline-end: 16px;
+          margin-inline-start: initial;
           display: flex;
           flex-direction: column;
           justify-content: center;

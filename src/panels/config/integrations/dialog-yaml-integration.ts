@@ -1,10 +1,11 @@
 import "@material/mwc-button/mwc-button";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { fireEvent } from "../../../common/dom/fire_event";
-import { HomeAssistant } from "../../../types";
+import type { HomeAssistant } from "../../../types";
 import { documentationUrl } from "../../../util/documentation-url";
-import { YamlIntegrationDialogParams } from "./show-add-integration-dialog";
+import type { YamlIntegrationDialogParams } from "./show-add-integration-dialog";
+import "../../../components/ha-dialog";
 
 @customElement("dialog-yaml-integration")
 export class DialogYamlIntegration extends LitElement {
@@ -47,7 +48,7 @@ export class DialogYamlIntegration extends LitElement {
         </mwc-button>
         ${docLink
           ? html`<a
-              .href=${docLink}
+              href=${docLink}
               target="_blank"
               rel="noreferrer noopener"
               slot="primaryAction"
@@ -65,26 +66,24 @@ export class DialogYamlIntegration extends LitElement {
     `;
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host([inert]) {
-        pointer-events: initial !important;
-        cursor: initial !important;
-      }
-      a {
-        text-decoration: none;
-      }
+  static styles = css`
+    :host([inert]) {
+      pointer-events: initial !important;
+      cursor: initial !important;
+    }
+    a {
+      text-decoration: none;
+    }
+    ha-dialog {
+      /* Place above other dialogs */
+      --dialog-z-index: 104;
+    }
+    @media all and (min-width: 600px) {
       ha-dialog {
-        /* Place above other dialogs */
-        --dialog-z-index: 104;
+        --mdc-dialog-min-width: 400px;
       }
-      @media all and (min-width: 600px) {
-        ha-dialog {
-          --mdc-dialog-min-width: 400px;
-        }
-      }
-    `;
-  }
+    }
+  `;
 }
 
 declare global {

@@ -2,8 +2,10 @@ import { ContextProvider } from "@lit-labs/context";
 import {
   areasContext,
   configContext,
+  connectionContext,
   devicesContext,
   entitiesContext,
+  floorsContext,
   localeContext,
   localizeContext,
   panelsContext,
@@ -13,8 +15,8 @@ import {
   userContext,
   userDataContext,
 } from "../data/context";
-import { Constructor, HomeAssistant } from "../types";
-import { HassBaseEl } from "./hass-base-mixin";
+import type { Constructor, HomeAssistant } from "../types";
+import type { HassBaseEl } from "./hass-base-mixin";
 
 export const contextMixin = <T extends Constructor<HassBaseEl>>(
   superClass: T
@@ -24,6 +26,12 @@ export const contextMixin = <T extends Constructor<HassBaseEl>>(
       string,
       ContextProvider<any> | undefined
     > = {
+      connection: new ContextProvider(this, {
+        context: connectionContext,
+        initialValue: this.hass
+          ? this.hass.connection
+          : this._pendingHass.connection,
+      }),
       states: new ContextProvider(this, {
         context: statesContext,
         initialValue: this.hass ? this.hass.states : this._pendingHass.states,
@@ -79,6 +87,10 @@ export const contextMixin = <T extends Constructor<HassBaseEl>>(
       panels: new ContextProvider(this, {
         context: panelsContext,
         initialValue: this.hass ? this.hass.panels : this._pendingHass.panels,
+      }),
+      floors: new ContextProvider(this, {
+        context: floorsContext,
+        initialValue: this.hass ? this.hass.floors : this._pendingHass.floors,
       }),
     };
 

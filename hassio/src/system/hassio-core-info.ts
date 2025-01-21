@@ -1,25 +1,26 @@
 import "@material/mwc-button";
 import "@material/mwc-list/mwc-list-item";
-import { css, CSSResultGroup, html, LitElement, TemplateResult } from "lit";
+import type { CSSResultGroup, TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { atLeastVersion } from "../../../src/common/config/version";
 import "../../../src/components/buttons/ha-progress-button";
 import "../../../src/components/ha-button-menu";
 import "../../../src/components/ha-card";
 import "../../../src/components/ha-settings-row";
+import type { HassioStats } from "../../../src/data/hassio/common";
 import {
   extractApiErrorMessage,
   fetchHassioStats,
-  HassioStats,
 } from "../../../src/data/hassio/common";
 import { restartCore } from "../../../src/data/supervisor/core";
-import { Supervisor } from "../../../src/data/supervisor/supervisor";
+import type { Supervisor } from "../../../src/data/supervisor/supervisor";
 import {
   showAlertDialog,
   showConfirmationDialog,
 } from "../../../src/dialogs/generic/show-dialog-box";
 import { haStyle } from "../../../src/resources/styles";
-import { HomeAssistant } from "../../../src/types";
+import type { HomeAssistant } from "../../../src/types";
 import { bytesToString } from "../../../src/util/bytes-to-string";
 import "../components/supervisor-metric";
 import { hassioStyle } from "../resources/hassio-style";
@@ -32,7 +33,7 @@ class HassioCoreInfo extends LitElement {
 
   @state() private _metrics?: HassioStats;
 
-  protected render(): TemplateResult | void {
+  protected render(): TemplateResult | undefined {
     const metrics = [
       {
         description: this.supervisor.localize("system.core.cpu_usage"),
@@ -96,13 +97,11 @@ class HassioCoreInfo extends LitElement {
             slot="primaryAction"
             class="warning"
             @click=${this._coreRestart}
-            .title=${this.supervisor.localize(
-              "common.restart_name",
-              "name",
-              "Core"
-            )}
+            .title=${this.supervisor.localize("common.restart_name", {
+              name: "Core",
+            })}
           >
-            ${this.supervisor.localize("common.restart_name", "name", "Core")}
+            ${this.supervisor.localize("common.restart_name", { name: "Core" })}
           </ha-progress-button>
         </div>
       </ha-card>
@@ -122,16 +121,12 @@ class HassioCoreInfo extends LitElement {
     button.progress = true;
 
     const confirmed = await showConfirmationDialog(this, {
-      title: this.supervisor.localize(
-        "confirm.restart.title",
-        "name",
-        "Home Assistant Core"
-      ),
-      text: this.supervisor.localize(
-        "confirm.restart.text",
-        "name",
-        "Home Assistant Core"
-      ),
+      title: this.supervisor.localize("confirm.restart.title", {
+        name: "Home Assistant Core",
+      }),
+      text: this.supervisor.localize("confirm.restart.text", {
+        name: "Home Assistant Core",
+      }),
       confirmText: this.supervisor.localize("common.restart"),
       dismissText: this.supervisor.localize("common.cancel"),
     });
@@ -146,11 +141,9 @@ class HassioCoreInfo extends LitElement {
     } catch (err: any) {
       if (this.hass.connection.connected) {
         showAlertDialog(this, {
-          title: this.supervisor.localize(
-            "common.failed_to_restart_name",
-            "name",
-            "Home AssistantCore"
-          ),
+          title: this.supervisor.localize("common.failed_to_restart_name", {
+            name: "Home Assistant Core",
+          }),
           text: extractApiErrorMessage(err),
         });
       }

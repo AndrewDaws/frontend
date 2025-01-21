@@ -1,9 +1,10 @@
 import { mdiHelpCircle } from "@mdi/js";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import type { CSSResultGroup } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { fireEvent } from "../../../common/dom/fire_event";
-import { LocalizeFunc } from "../../../common/translations/localize";
+import type { LocalizeFunc } from "../../../common/translations/localize";
 import { computeRTLDirection } from "../../../common/util/compute_rtl";
 import "../../../components/buttons/ha-progress-button";
 import type { HaProgressButton } from "../../../components/buttons/ha-progress-button";
@@ -11,18 +12,18 @@ import "../../../components/ha-form/ha-form";
 import type { SchemaUnion } from "../../../components/ha-form/types";
 import "../../../components/ha-icon-button";
 import { extractApiErrorMessage } from "../../../data/hassio/common";
+import type { SupervisorMountRequestParams } from "../../../data/supervisor/mounts";
 import {
   createSupervisorMount,
   removeSupervisorMount,
-  SupervisorMountRequestParams,
   SupervisorMountType,
   SupervisorMountUsage,
   updateSupervisorMount,
 } from "../../../data/supervisor/mounts";
 import { haStyle, haStyleDialog } from "../../../resources/styles";
-import { HomeAssistant } from "../../../types";
+import type { HomeAssistant } from "../../../types";
 import { documentationUrl } from "../../../util/documentation-url";
-import { MountViewDialogParams } from "./show-dialog-view-mount";
+import type { MountViewDialogParams } from "./show-dialog-view-mount";
 
 const mountSchema = memoizeOne(
   (
@@ -92,59 +93,59 @@ const mountSchema = memoizeOne(
             },
           ] as const)
         : mountType === "cifs"
-        ? ([
-            ...(showCIFSVersion
-              ? ([
-                  {
-                    name: "version",
-                    required: true,
-                    selector: {
-                      select: {
-                        options: [
-                          {
-                            label: localize(
-                              "ui.panel.config.storage.network_mounts.cifs_versions.auto"
-                            ),
-                            value: "auto",
-                          },
-                          {
-                            label: localize(
-                              "ui.panel.config.storage.network_mounts.cifs_versions.legacy",
-                              { version: "2.0" }
-                            ),
-                            value: "2.0",
-                          },
-                          {
-                            label: localize(
-                              "ui.panel.config.storage.network_mounts.cifs_versions.legacy",
-                              { version: "1.0" }
-                            ),
-                            value: "1.0",
-                          },
-                        ],
-                        mode: "dropdown",
+          ? ([
+              ...(showCIFSVersion
+                ? ([
+                    {
+                      name: "version",
+                      required: true,
+                      selector: {
+                        select: {
+                          options: [
+                            {
+                              label: localize(
+                                "ui.panel.config.storage.network_mounts.cifs_versions.auto"
+                              ),
+                              value: "auto",
+                            },
+                            {
+                              label: localize(
+                                "ui.panel.config.storage.network_mounts.cifs_versions.legacy",
+                                { version: "2.0" }
+                              ),
+                              value: "2.0",
+                            },
+                            {
+                              label: localize(
+                                "ui.panel.config.storage.network_mounts.cifs_versions.legacy",
+                                { version: "1.0" }
+                              ),
+                              value: "1.0",
+                            },
+                          ],
+                          mode: "dropdown",
+                        },
                       },
                     },
-                  },
-                ] as const)
-              : ([] as const)),
-            {
-              name: "share",
-              required: true,
-              selector: { text: {} },
-            },
-            {
-              name: "username",
-              required: false,
-              selector: { text: {} },
-            },
-            {
-              name: "password",
-              required: false,
-              selector: { text: { type: "password" } },
-            },
-          ] as const)
-        : ([] as const)),
+                  ] as const)
+                : ([] as const)),
+              {
+                name: "share",
+                required: true,
+                selector: { text: {} },
+              },
+              {
+                name: "username",
+                required: false,
+                selector: { text: {} },
+              },
+              {
+                name: "password",
+                required: false,
+                selector: { text: { type: "password" } },
+              },
+            ] as const)
+          : ([] as const)),
     ] as const
 );
 

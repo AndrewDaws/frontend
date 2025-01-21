@@ -1,20 +1,23 @@
 import "@material/mwc-button";
 import { mdiCastConnected, mdiCast } from "@mdi/js";
-import "@polymer/paper-input/paper-input";
-import {
+import type {
   Auth,
   Connection,
+  getAuthOptions,
+} from "home-assistant-js-websocket";
+import {
   createConnection,
   ERR_CANNOT_CONNECT,
   ERR_HASS_HOST_REQUIRED,
   ERR_INVALID_AUTH,
   ERR_INVALID_HTTPS_TO_HTTP,
   getAuth,
-  getAuthOptions,
 } from "home-assistant-js-websocket";
-import { css, CSSResultGroup, html, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, state } from "lit/decorators";
-import { CastManager, getCastManager } from "../../../../src/cast/cast_manager";
+import type { CastManager } from "../../../../src/cast/cast_manager";
+import { getCastManager } from "../../../../src/cast/cast_manager";
 import { castSendShowDemo } from "../../../../src/cast/receiver_messages";
 import {
   loadTokens,
@@ -24,6 +27,7 @@ import "../../../../src/components/ha-svg-icon";
 import "../../../../src/layouts/hass-loading-screen";
 import { registerServiceWorker } from "../../../../src/util/register-service-worker";
 import "./hc-layout";
+import "../../../../src/components/ha-textfield";
 
 const seeFAQ = (qid) => html`
   See <a href="./faq.html${qid ? `#${qid}` : ""}">the FAQ</a> for more
@@ -33,13 +37,13 @@ const translateErr = (err) =>
   err === ERR_CANNOT_CONNECT
     ? "Unable to connect"
     : err === ERR_HASS_HOST_REQUIRED
-    ? "Please enter a Home Assistant URL."
-    : err === ERR_INVALID_HTTPS_TO_HTTP
-    ? html`
-        Cannot connect to Home Assistant instances over "http://".
-        ${seeFAQ("https")}
-      `
-    : `Unknown error (${err}).`;
+      ? "Please enter a Home Assistant URL."
+      : err === ERR_INVALID_HTTPS_TO_HTTP
+        ? html`
+            Cannot connect to Home Assistant instances over "http://".
+            ${seeFAQ("https")}
+          `
+        : `Unknown error (${err}).`;
 
 const INTRO = html`
   <p>
@@ -116,13 +120,11 @@ export class HcConnect extends LitElement {
               To get started, enter your Home Assistant URL and click authorize.
               If you want a preview instead, click the show demo button.
             </p>
-            <p>
-              <paper-input
-                label="Home Assistant URL"
-                placeholder="https://abcdefghijklmnop.ui.nabu.casa"
-                @keydown=${this._handleInputKeyDown}
-              ></paper-input>
-            </p>
+            <ha-textfield
+              label="Home Assistant URL"
+              placeholder="https://abcdefghijklmnop.ui.nabu.casa"
+              @keydown=${this._handleInputKeyDown}
+            ></ha-textfield>
             ${this.error ? html` <p class="error">${this.error}</p> ` : ""}
           </div>
           <div class="card-actions">
@@ -196,7 +198,7 @@ export class HcConnect extends LitElement {
   }
 
   private async _handleConnect() {
-    const inputEl = this.shadowRoot!.querySelector("paper-input")!;
+    const inputEl = this.shadowRoot!.querySelector("ha-textfield")!;
     const value = inputEl.value || "";
     this.error = undefined;
 
@@ -213,7 +215,7 @@ export class HcConnect extends LitElement {
     let url: URL;
     try {
       url = new URL(value);
-    } catch (err: any) {
+    } catch (_err: any) {
       this.error = "Invalid URL";
       return;
     }
@@ -250,7 +252,7 @@ export class HcConnect extends LitElement {
       this.loading = false;
       return;
     } finally {
-      // Clear url if we have a auth callback in url.
+      // Clear url if we have an auth callback in url.
       if (location.search.includes("auth_callback=1")) {
         history.replaceState(null, "", location.pathname);
       }
@@ -286,37 +288,39 @@ export class HcConnect extends LitElement {
     try {
       saveTokens(null);
       location.reload();
-    } catch (err: any) {
+    } catch (_err: any) {
       alert("Unable to log out!");
     }
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      .card-content a {
-        color: var(--primary-color);
-      }
-      .card-actions a {
-        text-decoration: none;
-      }
-      .error {
-        color: red;
-        font-weight: bold;
-      }
+  static styles = css`
+    .card-content a {
+      color: var(--primary-color);
+    }
+    .card-actions a {
+      text-decoration: none;
+    }
+    .error {
+      color: red;
+      font-weight: bold;
+    }
 
-      .error a {
-        color: darkred;
-      }
+    .error a {
+      color: darkred;
+    }
 
-      mwc-button ha-svg-icon {
-        margin-left: 8px;
-      }
+    mwc-button ha-svg-icon {
+      margin-left: 8px;
+    }
 
-      .spacer {
-        flex: 1;
-      }
-    `;
-  }
+    .spacer {
+      flex: 1;
+    }
+
+    ha-textfield {
+      width: 100%;
+    }
+  `;
 }
 
 declare global {

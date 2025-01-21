@@ -1,4 +1,5 @@
-import { css, html, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
 import { fireEvent } from "../../../common/dom/fire_event";
 import { deleteConfigEntry } from "../../../data/config_entries";
@@ -13,9 +14,9 @@ import "../../../components/ha-button";
 export class HaIgnoredConfigEntryCard extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public entry!: ConfigEntryExtended;
+  @property({ attribute: false }) public entry!: ConfigEntryExtended;
 
-  @property() public manifest?: IntegrationManifest;
+  @property({ attribute: false }) public manifest?: IntegrationManifest;
 
   protected render(): TemplateResult {
     return html`
@@ -47,8 +48,7 @@ export class HaIgnoredConfigEntryCard extends LitElement {
     showConfirmationDialog(this, {
       title: this.hass!.localize(
         "ui.panel.config.integrations.ignore.confirm_delete_ignore_title",
-        "name",
-        this.hass.localize(`component.${this.entry.domain}.title`)
+        { name: this.hass.localize(`component.${this.entry.domain}.title`) }
       ),
       text: this.hass!.localize(
         "ui.panel.config.integrations.ignore.confirm_delete_ignore"

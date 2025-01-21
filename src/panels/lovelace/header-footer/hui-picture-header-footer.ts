@@ -1,22 +1,16 @@
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  PropertyValues,
-  nothing,
-} from "lit";
-import { customElement, property } from "lit/decorators";
+import type { PropertyValues } from "lit";
+import { LitElement, css, html, nothing } from "lit";
+import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { ifDefined } from "lit/directives/if-defined";
 import "../../../components/ha-card";
-import { ActionHandlerEvent } from "../../../data/lovelace";
-import { HomeAssistant } from "../../../types";
+import type { ActionHandlerEvent } from "../../../data/lovelace/action_handler";
+import type { HomeAssistant } from "../../../types";
 import { actionHandler } from "../common/directives/action-handler-directive";
 import { handleAction } from "../common/handle-action";
 import { hasAction } from "../common/has-action";
-import { LovelaceHeaderFooter } from "../types";
-import { PictureHeaderFooterConfig } from "./types";
+import type { LovelaceHeaderFooter } from "../types";
+import type { PictureHeaderFooterConfig } from "./types";
 
 @customElement("hui-picture-header-footer")
 export class HuiPictureHeaderFooter
@@ -36,7 +30,7 @@ export class HuiPictureHeaderFooter
 
   @property() public type!: "header" | "footer";
 
-  @property() protected _config?: PictureHeaderFooterConfig;
+  @state() protected _config?: PictureHeaderFooterConfig;
 
   public getCardSize(): number {
     return 3;
@@ -68,7 +62,7 @@ export class HuiPictureHeaderFooter
 
     return html`
       <img
-        alt=${this._config!.alt_text}
+        alt=${ifDefined(this._config?.alt_text)}
         @action=${this._handleAction}
         .actionHandler=${actionHandler({
           hasHold: hasAction(this._config!.hold_action),
@@ -83,18 +77,16 @@ export class HuiPictureHeaderFooter
     `;
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      img.clickable {
-        cursor: pointer;
-      }
+  static styles = css`
+    img.clickable {
+      cursor: pointer;
+    }
 
-      img {
-        display: block;
-        width: 100%;
-      }
-    `;
-  }
+    img {
+      display: block;
+      width: 100%;
+    }
+  `;
 
   private _handleAction(ev: ActionHandlerEvent) {
     handleAction(this, this.hass!, this._config!, ev.detail.action!);

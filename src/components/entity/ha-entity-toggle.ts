@@ -1,20 +1,14 @@
 import { mdiFlash, mdiFlashOff } from "@mdi/js";
-import { HassEntity } from "home-assistant-js-websocket";
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  PropertyValues,
-  TemplateResult,
-} from "lit";
-import { property, state } from "lit/decorators";
+import type { HassEntity } from "home-assistant-js-websocket";
+import type { PropertyValues, TemplateResult } from "lit";
+import { LitElement, css, html } from "lit";
+import { customElement, property, state } from "lit/decorators";
 import { STATES_OFF } from "../../common/const";
 import { computeStateDomain } from "../../common/entity/compute_state_domain";
 import { computeStateName } from "../../common/entity/compute_state_name";
-import { isUnavailableState, UNAVAILABLE, UNKNOWN } from "../../data/entity";
+import { UNAVAILABLE, UNKNOWN, isUnavailableState } from "../../data/entity";
 import { forwardHaptic } from "../../data/haptics";
-import { HomeAssistant } from "../../types";
+import type { HomeAssistant } from "../../types";
 import "../ha-formfield";
 import "../ha-icon-button";
 import "../ha-switch";
@@ -24,11 +18,12 @@ const isOn = (stateObj?: HassEntity) =>
   !STATES_OFF.includes(stateObj.state) &&
   !isUnavailableState(stateObj.state);
 
+@customElement("ha-entity-toggle")
 export class HaEntityToggle extends LitElement {
   // hass is not a property so that we only re-render on stateObj changes
   public hass?: HomeAssistant;
 
-  @property() public stateObj?: HassEntity;
+  @property({ attribute: false }) public stateObj?: HassEntity;
 
   @property() public label?: string;
 
@@ -128,6 +123,9 @@ export class HaEntityToggle extends LitElement {
     } else if (stateDomain === "cover") {
       serviceDomain = "cover";
       service = turnOn ? "open_cover" : "close_cover";
+    } else if (stateDomain === "valve") {
+      serviceDomain = "valve";
+      service = turnOn ? "open_valve" : "close_valve";
     } else if (stateDomain === "group") {
       serviceDomain = "homeassistant";
       service = turnOn ? "turn_on" : "turn_off";
@@ -154,25 +152,27 @@ export class HaEntityToggle extends LitElement {
     }, 2000);
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host {
-        white-space: nowrap;
-        min-width: 38px;
-      }
-      ha-icon-button {
-        --mdc-icon-button-size: 40px;
-        color: var(--ha-icon-button-inactive-color, var(--primary-text-color));
-        transition: color 0.5s;
-      }
-      ha-icon-button.state-active {
-        color: var(--ha-icon-button-active-color, var(--primary-color));
-      }
-      ha-switch {
-        padding: 13px 5px;
-      }
-    `;
-  }
+  static styles = css`
+    :host {
+      white-space: nowrap;
+      min-width: 38px;
+    }
+    ha-icon-button {
+      --mdc-icon-button-size: 40px;
+      color: var(--ha-icon-button-inactive-color, var(--primary-text-color));
+      transition: color 0.5s;
+    }
+    ha-icon-button.state-active {
+      color: var(--ha-icon-button-active-color, var(--primary-color));
+    }
+    ha-switch {
+      padding: 13px 5px;
+    }
+  `;
 }
 
-customElements.define("ha-entity-toggle", HaEntityToggle);
+declare global {
+  interface HTMLElementTagNameMap {
+    "ha-entity-toggle": HaEntityToggle;
+  }
+}

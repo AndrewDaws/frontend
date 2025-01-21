@@ -1,14 +1,12 @@
 import "@material/mwc-list/mwc-list-item";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { caseInsensitiveStringCompare } from "../../../../common/string/compare";
 import "../../../../components/ha-card";
 import "../../../../components/ha-icon-next";
-import {
-  computeDeviceName,
-  DeviceRegistryEntry,
-} from "../../../../data/device_registry";
+import type { DeviceRegistryEntry } from "../../../../data/device_registry";
+import { computeDeviceName } from "../../../../data/device_registry";
 import type { HomeAssistant } from "../../../../types";
 
 const MAX_VISIBLE_VIA_DEVICES = 10;
@@ -17,7 +15,7 @@ const MAX_VISIBLE_VIA_DEVICES = 10;
 export class HaDeviceViaDevicesCard extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public deviceId!: string;
+  @property({ attribute: false }) public deviceId!: string;
 
   @state() public _showAll = false;
 
@@ -69,8 +67,7 @@ export class HaDeviceViaDevicesCard extends LitElement {
               <button class="show-more" @click=${this._toggleShowAll}>
                 ${this.hass.localize(
                   "ui.panel.config.devices.connected_devices.show_more",
-                  "count",
-                  viaDevices.length - MAX_VISIBLE_VIA_DEVICES
+                  { count: viaDevices.length - MAX_VISIBLE_VIA_DEVICES }
                 )}
               </button>
             `
@@ -83,39 +80,37 @@ export class HaDeviceViaDevicesCard extends LitElement {
     this._showAll = !this._showAll;
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host {
-        display: block;
-      }
+  static styles = css`
+    :host {
+      display: block;
+    }
 
-      .card-header {
-        padding-bottom: 0;
-      }
+    .card-header {
+      padding-bottom: 0;
+    }
 
-      a {
-        text-decoration: none;
-        color: var(--primary-text-color);
-      }
+    a {
+      text-decoration: none;
+      color: var(--primary-text-color);
+    }
 
-      button.show-more {
-        color: var(--primary-color);
-        text-align: left;
-        cursor: pointer;
-        background: none;
-        border-width: initial;
-        border-style: none;
-        border-color: initial;
-        border-image: initial;
-        padding: 16px;
-        font: inherit;
-      }
-      button.show-more:focus {
-        outline: none;
-        text-decoration: underline;
-      }
-    `;
-  }
+    button.show-more {
+      color: var(--primary-color);
+      text-align: left;
+      cursor: pointer;
+      background: none;
+      border-width: initial;
+      border-style: none;
+      border-color: initial;
+      border-image: initial;
+      padding: 16px;
+      font: inherit;
+    }
+    button.show-more:focus {
+      outline: none;
+      text-decoration: underline;
+    }
+  `;
 }
 
 declare global {

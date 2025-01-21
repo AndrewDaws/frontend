@@ -1,4 +1,4 @@
-import { HassEntity } from "home-assistant-js-websocket";
+import type { HassEntity } from "home-assistant-js-websocket";
 import { isUnavailableState, OFF, UNAVAILABLE } from "../../data/entity";
 import { computeDomain } from "./compute_domain";
 
@@ -42,6 +42,8 @@ export function stateActive(stateObj: HassEntity, state?: string): boolean {
       return compareState !== "standby";
     case "vacuum":
       return !["idle", "docked", "paused"].includes(compareState);
+    case "valve":
+      return compareState !== "closed";
     case "plant":
       return compareState === "problem";
     case "group":

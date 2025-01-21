@@ -1,10 +1,11 @@
-import { css, CSSResultGroup, html, LitElement, TemplateResult } from "lit";
+import type { CSSResultGroup, TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
 import { atLeastVersion } from "../../../src/common/config/version";
-import { Supervisor } from "../../../src/data/supervisor/supervisor";
+import type { Supervisor } from "../../../src/data/supervisor/supervisor";
 import "../../../src/layouts/hass-tabs-subpage";
 import { haStyle } from "../../../src/resources/styles";
-import { HomeAssistant, Route } from "../../../src/types";
+import type { HomeAssistant, Route } from "../../../src/types";
 import { supervisorTabs } from "../hassio-tabs";
 import { hassioStyle } from "../resources/hassio-style";
 import "./hassio-core-info";
@@ -18,11 +19,11 @@ class HassioSystem extends LitElement {
 
   @property({ attribute: false }) public supervisor!: Supervisor;
 
-  @property({ type: Boolean }) public narrow!: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
   @property({ attribute: false }) public route!: Route;
 
-  protected render(): TemplateResult | void {
+  protected render(): TemplateResult | undefined {
     return html`
       <hass-tabs-subpage
         .hass=${this.hass}
@@ -73,6 +74,8 @@ class HassioSystem extends LitElement {
           color: var(--primary-text-color);
           font-size: 2em;
           padding-left: 8px;
+          padding-inline-start: 8px;
+          padding-inline-end: initial;
           margin-bottom: 8px;
         }
         hassio-supervisor-log {

@@ -1,10 +1,9 @@
-import { css, CSSResultGroup, html, LitElement } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { fireEvent } from "../common/dom/fire_event";
 import { stopPropagation } from "../common/dom/stop_propagation";
 import { caseInsensitiveStringCompare } from "../common/string/compare";
-import "../resources/intl-polyfill";
 import "./ha-list-item";
 import "./ha-select";
 import type { HaSelect } from "./ha-select";
@@ -269,37 +268,57 @@ export class HaCountryPicker extends LitElement {
 
   @property() public label?: string;
 
+  @property({ type: Array }) public countries?: string[];
+
+  @property() public helper?: string;
+
   @property({ type: Boolean }) public required = false;
 
   @property({ type: Boolean, reflect: true }) public disabled = false;
 
-  private _getOptions = memoizeOne((language?: string) => {
-    const countryDisplayNames =
-      Intl && "DisplayNames" in Intl
-        ? new Intl.DisplayNames(language, {
-            type: "region",
-            fallback: "code",
-          })
-        : undefined;
+  @property({ attribute: "no-sort", type: Boolean }) public noSort = false;
 
-    const options = COUNTRIES.map((country) => ({
-      value: country,
-      label: countryDisplayNames ? countryDisplayNames.of(country)! : country,
-    }));
-    options.sort((a, b) =>
-      caseInsensitiveStringCompare(a.label, b.label, language)
-    );
-    return options;
-  });
+  private _getOptions = memoizeOne(
+    (language?: string, countries?: string[]) => {
+      let options: { label: string; value: string }[] = [];
+      const countryDisplayNames = new Intl.DisplayNames(language, {
+        type: "region",
+        fallback: "code",
+      });
+      if (countries) {
+        options = countries.map((country) => ({
+          value: country,
+          label: countryDisplayNames
+            ? countryDisplayNames.of(country)!
+            : country,
+        }));
+      } else {
+        options = COUNTRIES.map((country) => ({
+          value: country,
+          label: countryDisplayNames
+            ? countryDisplayNames.of(country)!
+            : country,
+        }));
+      }
+
+      if (!this.noSort) {
+        options.sort((a, b) =>
+          caseInsensitiveStringCompare(a.label, b.label, language)
+        );
+      }
+      return options;
+    }
+  );
 
   protected render() {
-    const options = this._getOptions(this.language);
+    const options = this._getOptions(this.language, this.countries);
 
     return html`
       <ha-select
         .label=${this.label}
         .value=${this.value}
         .required=${this.required}
+        .helper=${this.helper}
         .disabled=${this.disabled}
         @selected=${this._changed}
         @closed=${stopPropagation}
@@ -315,13 +334,11 @@ export class HaCountryPicker extends LitElement {
     `;
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      ha-select {
-        width: 100%;
-      }
-    `;
-  }
+  static styles = css`
+    ha-select {
+      width: 100%;
+    }
+  `;
 
   private _changed(ev): void {
     const target = ev.target as HaSelect;

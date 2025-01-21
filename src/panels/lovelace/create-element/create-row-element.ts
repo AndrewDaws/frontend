@@ -5,7 +5,7 @@ import "../entity-rows/hui-script-entity-row";
 import "../entity-rows/hui-sensor-entity-row";
 import "../entity-rows/hui-simple-entity-row";
 import "../entity-rows/hui-toggle-entity-row";
-import { LovelaceRowConfig } from "../entity-rows/types";
+import type { LovelaceRowConfig } from "../entity-rows/types";
 import "../special-rows/hui-attribute-row";
 import "../special-rows/hui-button-row";
 import "../special-rows/hui-call-service-row";
@@ -48,6 +48,8 @@ const LAZY_LOAD_TYPES = {
   "text-entity": () => import("../entity-rows/hui-text-entity-row"),
   "time-entity": () => import("../entity-rows/hui-time-entity-row"),
   "timer-entity": () => import("../entity-rows/hui-timer-entity-row"),
+  "update-entity": () => import("../entity-rows/hui-update-entity-row"),
+  "valve-entity": () => import("../entity-rows/hui-valve-entity-row"),
   conditional: () => import("../special-rows/hui-conditional-row"),
   "weather-entity": () => import("../entity-rows/hui-weather-entity-row"),
   divider: () => import("../special-rows/hui-divider-row"),
@@ -73,6 +75,7 @@ const DOMAIN_TO_ELEMENT_TYPE = {
   humidifier: "humidifier",
   input_boolean: "toggle",
   input_button: "input-button",
+  input_datetime: "input-datetime",
   input_number: "input-number",
   input_select: "input-select",
   input_text: "input-text",
@@ -90,11 +93,12 @@ const DOMAIN_TO_ELEMENT_TYPE = {
   text: "text",
   time: "time",
   timer: "timer",
+  update: "update",
   vacuum: "toggle",
+  valve: "valve",
   // Temporary. Once climate is rewritten,
   // water heater should get its own row.
   water_heater: "climate",
-  input_datetime: "input-datetime",
   weather: "weather",
 };
 

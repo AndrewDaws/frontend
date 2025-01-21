@@ -1,14 +1,14 @@
 import { mdiTelevision } from "@mdi/js";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, state } from "lit/decorators";
-import { CastManager } from "../../../src/cast/cast_manager";
+import type { CastManager } from "../../../src/cast/cast_manager";
 import { castSendShowDemo } from "../../../src/cast/receiver_messages";
 import "../../../src/components/ha-icon";
-import {
+import type {
   CastConfig,
   LovelaceRow,
 } from "../../../src/panels/lovelace/entity-rows/types";
-import { HomeAssistant } from "../../../src/types";
+import type { HomeAssistant } from "../../../src/types";
 
 @customElement("cast-demo-row")
 class CastDemoRow extends LitElement implements LovelaceRow {
@@ -45,7 +45,6 @@ class CastDemoRow extends LitElement implements LovelaceRow {
           this.requestUpdate();
         });
         mgr.castContext.addEventListener(
-          // eslint-disable-next-line no-undef
           cast.framework.CastContextEventType.SESSION_STATE_CHANGED,
           (ev) => {
             // On Android, opening a new session always results in SESSION_RESUMED.
@@ -67,37 +66,35 @@ class CastDemoRow extends LitElement implements LovelaceRow {
     this.style.display = this._castManager ? "" : "none";
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host {
-        display: flex;
-        align-items: center;
-      }
-      ha-svg-icon {
-        padding: 8px;
-        color: var(--paper-item-icon-color);
-      }
-      .flex {
-        flex: 1;
-        overflow: hidden;
-        margin-left: 16px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      .name {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      google-cast-launcher {
-        cursor: pointer;
-        display: inline-block;
-        height: 24px;
-        width: 24px;
-      }
-    `;
-  }
+  static styles = css`
+    :host {
+      display: flex;
+      align-items: center;
+    }
+    ha-svg-icon {
+      padding: 8px;
+      color: var(--paper-item-icon-color);
+    }
+    .flex {
+      flex: 1;
+      overflow: hidden;
+      margin-left: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    google-cast-launcher {
+      cursor: pointer;
+      display: inline-block;
+      height: 24px;
+      width: 24px;
+    }
+  `;
 }
 
 declare global {

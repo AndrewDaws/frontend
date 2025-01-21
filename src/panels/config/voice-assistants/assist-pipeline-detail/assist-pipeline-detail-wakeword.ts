@@ -1,26 +1,20 @@
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  nothing,
-  PropertyValues,
-} from "lit";
+import type { PropertyValues } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
-import { LocalizeKeys } from "../../../../common/translations/localize";
+import type { LocalizeKeys } from "../../../../common/translations/localize";
 import "../../../../components/ha-form/ha-form";
-import { AssistPipeline } from "../../../../data/assist_pipeline";
-import { HomeAssistant } from "../../../../types";
-import { fetchWakeWordInfo, WakeWord } from "../../../../data/wake_word";
-import { documentationUrl } from "../../../../util/documentation-url";
+import type { AssistPipeline } from "../../../../data/assist_pipeline";
+import type { HomeAssistant } from "../../../../types";
+import type { WakeWord } from "../../../../data/wake_word";
+import { fetchWakeWordInfo } from "../../../../data/wake_word";
 import { fireEvent } from "../../../../common/dom/fire_event";
 
 @customElement("assist-pipeline-detail-wakeword")
 export class AssistPipelineDetailWakeWord extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public data?: Partial<AssistPipeline>;
+  @property({ attribute: false }) public data?: Partial<AssistPipeline>;
 
   @state() private _wakeWords?: WakeWord[];
 
@@ -84,12 +78,7 @@ export class AssistPipelineDetailWakeWord extends LitElement {
     }
   }
 
-  private _hasWakeWorkEntities = memoizeOne((states: HomeAssistant["states"]) =>
-    Object.keys(states).some((entityId) => entityId.startsWith("wake_word."))
-  );
-
   protected render() {
-    const hasWakeWorkEntities = this._hasWakeWorkEntities(this.hass.states);
     return html`
       <div class="section">
         <div class="content">
@@ -104,26 +93,17 @@ export class AssistPipelineDetailWakeWord extends LitElement {
                 `ui.panel.config.voice_assistants.assistants.pipeline.detail.steps.wakeword.description`
               )}
             </p>
+            <ha-alert alert-type="info">
+              ${this.hass.localize(
+                `ui.panel.config.voice_assistants.assistants.pipeline.detail.steps.wakeword.note`
+              )}
+            </ha-alert>
           </div>
-          ${!hasWakeWorkEntities
-            ? html`${this.hass.localize(
-                  `ui.panel.config.voice_assistants.assistants.pipeline.detail.steps.wakeword.no_wake_words`
-                )}
-                <a
-                  href=${documentationUrl(this.hass, "/docs/assist/")}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  >${this.hass.localize(
-                    `ui.panel.config.voice_assistants.assistants.pipeline.detail.steps.wakeword.no_wake_words_link`
-                  )}</a
-                >`
-            : nothing}
           <ha-form
             .schema=${this._schema(this._wakeWords)}
             .data=${this.data}
             .hass=${this.hass}
             .computeLabel=${this._computeLabel}
-            .disabled=${!hasWakeWorkEntities}
           ></ha-form>
         </div>
       </div>
@@ -153,36 +133,34 @@ export class AssistPipelineDetailWakeWord extends LitElement {
     }
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      .section {
-        border: 1px solid var(--divider-color);
-        border-radius: 8px;
-      }
-      .content {
-        padding: 16px;
-      }
-      .intro {
-        margin-bottom: 16px;
-      }
-      h3 {
-        font-weight: normal;
-        font-size: 22px;
-        line-height: 28px;
-        margin-top: 0;
-        margin-bottom: 4px;
-      }
-      p {
-        color: var(--secondary-text-color);
-        font-size: var(--mdc-typography-body2-font-size, 0.875rem);
-        margin-top: 0;
-        margin-bottom: 0;
-      }
-      a {
-        color: var(--primary-color);
-      }
-    `;
-  }
+  static styles = css`
+    .section {
+      border: 1px solid var(--divider-color);
+      border-radius: 8px;
+    }
+    .content {
+      padding: 16px;
+    }
+    .intro {
+      margin-bottom: 16px;
+    }
+    h3 {
+      font-weight: normal;
+      font-size: 22px;
+      line-height: 28px;
+      margin-top: 0;
+      margin-bottom: 4px;
+    }
+    p {
+      color: var(--secondary-text-color);
+      font-size: var(--mdc-typography-body2-font-size, 0.875rem);
+      margin-top: 0;
+      margin-bottom: 0;
+    }
+    a {
+      color: var(--primary-color);
+    }
+  `;
 }
 
 declare global {

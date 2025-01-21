@@ -1,22 +1,18 @@
-import { PropertyValues } from "lit";
+import type { PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { navigate } from "../../../common/navigate";
-import { LocalizeFunc } from "../../../common/translations/localize";
-import {
-  ConfigEntry,
-  subscribeConfigEntries,
-} from "../../../data/config_entries";
+import type { LocalizeFunc } from "../../../common/translations/localize";
+import type { ConfigEntry } from "../../../data/config_entries";
+import { subscribeConfigEntries } from "../../../data/config_entries";
 import {
   localizeConfigFlowTitle,
   subscribeConfigFlowInProgress,
 } from "../../../data/config_flow";
-import { DataEntryFlowProgress } from "../../../data/data_entry_flow";
+import type { DataEntryFlowProgress } from "../../../data/data_entry_flow";
 import { domainToName } from "../../../data/integration";
 import "../../../layouts/hass-loading-screen";
-import {
-  HassRouterPage,
-  RouterOptions,
-} from "../../../layouts/hass-router-page";
+import type { RouterOptions } from "../../../layouts/hass-router-page";
+import { HassRouterPage } from "../../../layouts/hass-router-page";
 import { SubscribeMixin } from "../../../mixins/subscribe-mixin";
 import type { HomeAssistant } from "../../../types";
 
@@ -51,11 +47,11 @@ export interface ConfigEntryExtended extends ConfigEntry {
 class HaConfigIntegrations extends SubscribeMixin(HassRouterPage) {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property({ type: Boolean, reflect: true }) public narrow!: boolean;
+  @property({ type: Boolean, reflect: true }) public narrow = false;
 
-  @property() public isWide!: boolean;
+  @property({ attribute: "is-wide", type: Boolean }) public isWide = false;
 
-  @property() public showAdvanced!: boolean;
+  @property({ attribute: false }) public showAdvanced = false;
 
   protected routerOptions: RouterOptions = {
     defaultPage: "dashboard",
@@ -72,8 +68,7 @@ class HaConfigIntegrations extends SubscribeMixin(HassRouterPage) {
 
   @state() private _configEntries?: ConfigEntryExtended[];
 
-  @property()
-  private _configEntriesInProgress?: DataEntryFlowProgressExtended[];
+  @state() private _configEntriesInProgress?: DataEntryFlowProgressExtended[];
 
   private _loadTranslationsPromise?: Promise<LocalizeFunc>;
 
@@ -89,7 +84,7 @@ class HaConfigIntegrations extends SubscribeMixin(HassRouterPage) {
                 window.setTimeout(resolve, 0);
               })
           );
-          let fullUpdate = false;
+          let fullUpdate = this._configEntries === undefined;
           const newEntries: ConfigEntryExtended[] = [];
           messages.forEach((message) => {
             if (message.type === null || message.type === "added") {
@@ -128,7 +123,7 @@ class HaConfigIntegrations extends SubscribeMixin(HassRouterPage) {
         { type: ["device", "hub", "service"] }
       ),
       subscribeConfigFlowInProgress(this.hass, async (flowsInProgress) => {
-        const integrations: Set<string> = new Set();
+        const integrations = new Set<string>();
         flowsInProgress.forEach((flow) => {
           // To render title placeholders
           if (flow.context.title_placeholders) {
@@ -152,7 +147,10 @@ class HaConfigIntegrations extends SubscribeMixin(HassRouterPage) {
     if (this.hasUpdated) {
       return;
     }
-    this._loadTranslationsPromise = this.hass.loadBackendTranslation("title");
+    this._loadTranslationsPromise = this.hass.loadBackendTranslation(
+      "title",
+      this.hass.config.components.map((comp) => comp.split(".")[0])
+    );
   }
 
   protected updatePageEl(pageEl) {

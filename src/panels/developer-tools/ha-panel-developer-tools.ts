@@ -1,7 +1,8 @@
 import { mdiDotsVertical } from "@mdi/js";
 import "@polymer/paper-tabs/paper-tab";
 import "@polymer/paper-tabs/paper-tabs";
-import { css, CSSResultGroup, html, LitElement, TemplateResult } from "lit";
+import type { CSSResultGroup, TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
 import type { ActionDetail } from "@material/mwc-list";
 import { navigate } from "../../common/navigate";
@@ -10,16 +11,16 @@ import "../../components/ha-button-menu";
 import "../../components/ha-icon-button";
 import "../../components/ha-list-item";
 import { haStyle } from "../../resources/styles";
-import { HomeAssistant, Route } from "../../types";
+import type { HomeAssistant, Route } from "../../types";
 import "./developer-tools-router";
 
 @customElement("ha-panel-developer-tools")
 class PanelDeveloperTools extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public route!: Route;
+  @property({ attribute: false }) public route!: Route;
 
-  @property() public narrow!: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
   protected firstUpdated(changedProps) {
     super.firstUpdated(changedProps);
@@ -54,7 +55,7 @@ class PanelDeveloperTools extends LitElement {
           scrollable
           attr-for-selected="page-name"
           .selected=${page}
-          @selected-changed=${this.handlePageSelected}
+          @selected-changed=${this._handlePageSelected}
         >
           <paper-tab page-name="yaml">
             ${this.hass.localize("ui.panel.developer-tools.tabs.yaml.title")}
@@ -62,10 +63,8 @@ class PanelDeveloperTools extends LitElement {
           <paper-tab page-name="state">
             ${this.hass.localize("ui.panel.developer-tools.tabs.states.title")}
           </paper-tab>
-          <paper-tab page-name="service">
-            ${this.hass.localize(
-              "ui.panel.developer-tools.tabs.services.title"
-            )}
+          <paper-tab page-name="action">
+            ${this.hass.localize("ui.panel.developer-tools.tabs.actions.title")}
           </paper-tab>
           <paper-tab page-name="template">
             ${this.hass.localize(
@@ -91,7 +90,7 @@ class PanelDeveloperTools extends LitElement {
     `;
   }
 
-  private handlePageSelected(ev) {
+  private _handlePageSelected(ev) {
     const newPage = ev.detail.value;
     if (newPage !== this._page) {
       navigate(`/developer-tools/${newPage}`);
@@ -131,6 +130,8 @@ class PanelDeveloperTools extends LitElement {
           padding-top: env(safe-area-inset-top);
           color: var(--app-header-text-color, white);
           border-bottom: var(--app-header-border-bottom, none);
+          -webkit-backdrop-filter: var(--app-header-backdrop-filter, none);
+          backdrop-filter: var(--app-header-backdrop-filter, none);
         }
         .toolbar {
           height: var(--header-height);
@@ -147,7 +148,7 @@ class PanelDeveloperTools extends LitElement {
           }
         }
         .main-title {
-          margin: 0 0 0 24px;
+          margin: var(--margin-title);
           line-height: 20px;
           flex-grow: 1;
         }
@@ -163,6 +164,8 @@ class PanelDeveloperTools extends LitElement {
         paper-tabs {
           margin-left: max(env(safe-area-inset-left), 24px);
           margin-right: max(env(safe-area-inset-right), 24px);
+          margin-inline-start: max(env(safe-area-inset-left), 24px);
+          margin-inline-end: max(env(safe-area-inset-right), 24px);
           --paper-tabs-selection-bar-color: var(
             --app-header-selection-bar-color,
             var(--app-header-text-color, #fff)

@@ -1,25 +1,17 @@
 import { mdiArrowLeft, mdiArrowRight, mdiPlus } from "@mdi/js";
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  PropertyValues,
-  TemplateResult,
-} from "lit";
+import type { PropertyValues, TemplateResult } from "lit";
+import { LitElement, css, html } from "lit";
 import { property, state } from "lit/decorators";
-import { classMap } from "lit/directives/class-map";
 import { fireEvent } from "../../../common/dom/fire_event";
-import { computeRTL } from "../../../common/util/compute_rtl";
-import type {
-  LovelaceViewConfig,
-  LovelaceViewElement,
-} from "../../../data/lovelace";
+import type { LovelaceViewElement } from "../../../data/lovelace";
+import type { LovelaceViewConfig } from "../../../data/lovelace/config/view";
 import type { HomeAssistant } from "../../../types";
-import { HuiErrorCard } from "../cards/hui-error-card";
-import { HuiCardOptions } from "../components/hui-card-options";
+import type { HuiBadge } from "../badges/hui-badge";
+import "../badges/hui-view-badges";
+import type { HuiCard } from "../cards/hui-card";
+import type { HuiCardOptions } from "../components/hui-card-options";
 import { replaceCard } from "../editor/config-util";
-import type { Lovelace, LovelaceCard } from "../types";
+import type { Lovelace } from "../types";
 
 export class SideBarView extends LitElement implements LovelaceViewElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
@@ -28,11 +20,11 @@ export class SideBarView extends LitElement implements LovelaceViewElement {
 
   @property({ type: Number }) public index?: number;
 
-  @property({ type: Boolean }) public isStrategy = false;
+  @property({ attribute: false }) public isStrategy = false;
 
-  @property({ attribute: false }) public cards: Array<
-    LovelaceCard | HuiErrorCard
-  > = [];
+  @property({ attribute: false }) public cards: HuiCard[] = [];
+
+  @property({ attribute: false }) public badges: HuiBadge[] = [];
 
   @state() private _config?: LovelaceViewConfig;
 
@@ -91,6 +83,12 @@ export class SideBarView extends LitElement implements LovelaceViewElement {
 
   protected render(): TemplateResult {
     return html`
+      <hui-view-badges
+        .hass=${this.hass}
+        .badges=${this.badges}
+        .lovelace=${this.lovelace}
+        .viewIndex=${this.index}
+      ></hui-view-badges>
       <div
         class="container ${this.lovelace?.editMode ? "edit-mode" : ""}"
       ></div>
@@ -102,9 +100,6 @@ export class SideBarView extends LitElement implements LovelaceViewElement {
               )}
               extended
               @click=${this._addCard}
-              class=${classMap({
-                rtl: computeRTL(this.hass!),
-              })}
             >
               <ha-svg-icon slot="icon" .path=${mdiPlus}></ha-svg-icon>
             </ha-fab>
@@ -149,18 +144,18 @@ export class SideBarView extends LitElement implements LovelaceViewElement {
       });
     }
 
-    this.cards.forEach((card: LovelaceCard, idx) => {
+    this.cards.forEach((card, idx) => {
       const cardConfig = this._config?.cards?.[idx];
-      let element: LovelaceCard | HuiCardOptions;
+      let element: HuiCard | HuiCardOptions;
       if (this.isStrategy || !this.lovelace?.editMode) {
-        card.editMode = false;
+        card.preview = false;
         element = card;
       } else {
         element = document.createElement("hui-card-options");
         element.hass = this.hass;
         element.lovelace = this.lovelace;
         element.path = [this.index!, idx];
-        card.editMode = true;
+        card.preview = true;
         const movePositionButton = document.createElement("ha-icon-button");
         movePositionButton.slot = "buttons";
         const moveIcon = document.createElement("ha-svg-icon");
@@ -193,65 +188,66 @@ export class SideBarView extends LitElement implements LovelaceViewElement {
     });
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host {
-        display: block;
-        padding-top: 4px;
-      }
+  static styles = css`
+    :host {
+      display: block;
+      padding-top: 4px;
+    }
 
-      .container {
-        display: flex;
-        justify-content: center;
-        margin-left: 4px;
-        margin-right: 4px;
-      }
+    hui-view-badges {
+      display: block;
+      margin: 4px 8px 4px 8px;
+      font-size: 85%;
+    }
 
-      .container.edit-mode {
-        margin-bottom: 72px;
-      }
+    .container {
+      display: flex;
+      justify-content: center;
+      margin-left: 4px;
+      margin-right: 4px;
+    }
 
-      #main {
-        max-width: 1620px;
-        flex-grow: 2;
-      }
+    .container.edit-mode {
+      margin-bottom: 72px;
+    }
 
-      #sidebar {
-        flex-grow: 1;
-        flex-shrink: 0;
-        max-width: 380px;
-      }
+    #main {
+      max-width: 1620px;
+      flex-grow: 2;
+    }
 
-      .container > div {
-        min-width: 0;
-        box-sizing: border-box;
-      }
+    #sidebar {
+      flex-grow: 1;
+      flex-shrink: 0;
+      max-width: 380px;
+    }
 
-      .container > div > *:not([hidden]) {
-        display: block;
-        margin: var(--masonry-view-card-margin, 4px 4px 8px);
-      }
+    .container > div {
+      min-width: 0;
+      box-sizing: border-box;
+    }
 
-      @media (max-width: 500px) {
-        .container > div > * {
-          margin-left: 0;
-          margin-right: 0;
-        }
-      }
+    .container > div > *:not([hidden]) {
+      display: block;
+      margin: var(--masonry-view-card-margin, 4px 4px 8px);
+    }
 
-      ha-fab {
-        position: fixed;
-        right: calc(16px + env(safe-area-inset-right));
-        bottom: calc(16px + env(safe-area-inset-bottom));
-        z-index: 1;
+    @media (max-width: 500px) {
+      .container > div > * {
+        margin-left: 0;
+        margin-right: 0;
       }
+    }
 
-      ha-fab.rtl {
-        right: auto;
-        left: calc(16px + env(safe-area-inset-left));
-      }
-    `;
-  }
+    ha-fab {
+      position: fixed;
+      right: calc(16px + env(safe-area-inset-right));
+      bottom: calc(16px + env(safe-area-inset-bottom));
+      inset-inline-end: calc(16px + env(safe-area-inset-right));
+      inset-inline-start: initial;
+      z-index: 1;
+    }
+  `;
 }
 
 declare global {

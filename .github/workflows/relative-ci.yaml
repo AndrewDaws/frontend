@@ -5,8 +5,6 @@ on:
     workflows: [CI]
     types:
       - completed
-    branches:
-      - dev
 
 jobs:
   upload:
@@ -19,10 +17,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Send bundle stats and build information to RelativeCI
-        uses: relative-ci/agent-action@v2.1.8
+        uses: relative-ci/agent-action@v2.1.14
         with:
           key: ${{ secrets[format('RELATIVE_CI_KEY_{0}_{1}', matrix.bundle, matrix.build)] }}
           token: ${{ github.token }}
-          slug: ${{ format('{0}-{1}', matrix.bundle, matrix.build) }}
           artifactName: ${{ format('{0}-bundle-stats', matrix.bundle) }}
           webpackStatsFile: ${{ format('{0}-{1}.json', matrix.bundle, matrix.build) }}

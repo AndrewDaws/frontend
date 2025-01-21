@@ -1,18 +1,20 @@
-import { html, css, LitElement } from "lit";
+import "@material/mwc-list/mwc-list";
+import { LitElement, css, html } from "lit";
 import { customElement, state } from "lit/decorators";
-import "../../../../src/components/ha-card";
-import { translationMetadata } from "../../../../src/resources/translations-metadata";
 import { formatTimeWeekday } from "../../../../src/common/datetime/format_time";
-import { timeOptions } from "../../data/date-options";
-import { demoConfig } from "../../../../src/fake_data/demo_config";
+import "../../../../src/components/ha-card";
+import "../../../../src/components/ha-control-select";
+import type { FrontendLocaleData } from "../../../../src/data/translation";
 import {
-  FrontendLocaleData,
-  NumberFormat,
-  TimeFormat,
   DateFormat,
   FirstWeekday,
+  NumberFormat,
+  TimeFormat,
   TimeZone,
 } from "../../../../src/data/translation";
+import { demoConfig } from "../../../../src/fake_data/demo_config";
+import { translationMetadata } from "../../../../src/resources/translations-metadata";
+import { timeOptions } from "../../data/date-options";
 
 @customElement("demo-date-time-time-weekday")
 export class DemoDateTimeTimeWeekday extends LitElement {
@@ -54,78 +56,74 @@ export class DemoDateTimeTimeWeekday extends LitElement {
           <div class="center">12 Hours</div>
           <div class="center">24 Hours</div>
         </div>
-        ${Object.entries(translationMetadata.translations)
-          .filter(([key, _]) => key !== "test")
-          .map(
-            ([key, value]) => html`
-              <div class="container">
-                <div>${value.nativeName}</div>
-                <div class="center">
-                  ${formatTimeWeekday(
-                    this.date,
-                    {
-                      ...defaultLocale,
-                      language: key,
-                      time_format: TimeFormat.language,
-                    },
-                    demoConfig
-                  )}
-                </div>
-                <div class="center">
-                  ${formatTimeWeekday(
-                    this.date,
-                    {
-                      ...defaultLocale,
-                      language: key,
-                      time_format: TimeFormat.am_pm,
-                    },
-                    demoConfig
-                  )}
-                </div>
-                <div class="center">
-                  ${formatTimeWeekday(
-                    this.date,
-                    {
-                      ...defaultLocale,
-                      language: key,
-                      time_format: TimeFormat.twenty_four,
-                    },
-                    demoConfig
-                  )}
-                </div>
+        ${Object.entries(translationMetadata.translations).map(
+          ([key, value]) => html`
+            <div class="container">
+              <div>${value.nativeName}</div>
+              <div class="center">
+                ${formatTimeWeekday(
+                  this.date,
+                  {
+                    ...defaultLocale,
+                    language: key,
+                    time_format: TimeFormat.language,
+                  },
+                  demoConfig
+                )}
               </div>
-            `
-          )}
+              <div class="center">
+                ${formatTimeWeekday(
+                  this.date,
+                  {
+                    ...defaultLocale,
+                    language: key,
+                    time_format: TimeFormat.am_pm,
+                  },
+                  demoConfig
+                )}
+              </div>
+              <div class="center">
+                ${formatTimeWeekday(
+                  this.date,
+                  {
+                    ...defaultLocale,
+                    language: key,
+                    time_format: TimeFormat.twenty_four,
+                  },
+                  demoConfig
+                )}
+              </div>
+            </div>
+          `
+        )}
       </mwc-list>
     `;
   }
 
-  static get styles() {
-    return css`
-      ha-control-select {
-        max-width: 800px;
-        margin: 12px auto;
-      }
-      .header {
-        font-weight: bold;
-      }
-      .center {
-        text-align: center;
-      }
-      .container {
-        max-width: 800px;
-        margin: 12px auto;
-        display: flex;
-        align-items: center;
-        justify-content: space-evenly;
-      }
+  static styles = css`
+    ha-control-select {
+      max-width: 800px;
+      margin: 12px auto;
+    }
+    .header {
+      font-weight: bold;
+    }
+    .center {
+      text-align: center;
+    }
+    .container {
+      max-width: 800px;
+      margin: 12px auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-evenly;
+    }
 
-      .container > div {
-        flex-grow: 1;
-        width: 20%;
-      }
-    `;
-  }
+    .container > div {
+      flex-grow: 1;
+      width: 20%;
+    }
+  `;
 }
 
 declare global {

@@ -1,12 +1,6 @@
 import "./ha-form";
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  PropertyValues,
-  TemplateResult,
-} from "lit";
+import type { PropertyValues, TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
 import type {
   HaFormGridSchema,
@@ -26,12 +20,18 @@ export class HaFormGrid extends LitElement implements HaFormElement {
 
   @property({ type: Boolean }) public disabled = false;
 
-  @property() public computeLabel?: (
+  @property({ attribute: false }) public computeLabel?: (
     schema: HaFormSchema,
     data?: HaFormDataContainer
   ) => string;
 
-  @property() public computeHelper?: (schema: HaFormSchema) => string;
+  @property({ attribute: false }) public computeHelper?: (
+    schema: HaFormSchema
+  ) => string;
+
+  @property({ attribute: false }) public localizeValue?: (
+    key: string
+  ) => string;
 
   public async focus() {
     await this.updateComplete;
@@ -63,28 +63,27 @@ export class HaFormGrid extends LitElement implements HaFormElement {
             .disabled=${this.disabled}
             .computeLabel=${this.computeLabel}
             .computeHelper=${this.computeHelper}
+            .localizeValue=${this.localizeValue}
           ></ha-form>
         `
       )}
     `;
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host {
-        display: grid !important;
-        grid-template-columns: repeat(
-          var(--form-grid-column-count, auto-fit),
-          minmax(var(--form-grid-min-width, 200px), 1fr)
-        );
-        grid-column-gap: 8px;
-        grid-row-gap: 24px;
-      }
-      :host > ha-form {
-        display: block;
-      }
-    `;
-  }
+  static styles = css`
+    :host {
+      display: grid !important;
+      grid-template-columns: repeat(
+        var(--form-grid-column-count, auto-fit),
+        minmax(var(--form-grid-min-width, 200px), 1fr)
+      );
+      grid-column-gap: 8px;
+      grid-row-gap: 24px;
+    }
+    :host > ha-form {
+      display: block;
+    }
+  `;
 }
 
 declare global {

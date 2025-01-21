@@ -1,20 +1,17 @@
-import "@polymer/paper-input/paper-input";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import type { CSSResultGroup } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
-import "../../../../../components/buttons/ha-call-service-button";
-import "../../../../../components/entity/state-badge";
-import "../../../../../components/ha-area-picker";
 import "../../../../../components/ha-card";
+import type { ZHADevice } from "../../../../../data/zha";
 import {
   CONFIGURED,
   INCOMPLETE_PAIRING_STATUSES,
   INITIALIZED,
   INTERVIEW_COMPLETE,
-  ZHADevice,
 } from "../../../../../data/zha";
 import { haStyle } from "../../../../../resources/styles";
-import { HomeAssistant } from "../../../../../types";
+import type { HomeAssistant } from "../../../../../types";
 import { formatAsPaddedHex } from "./functions";
 import "./zha-device-card";
 
@@ -22,9 +19,9 @@ import "./zha-device-card";
 class ZHADevicePairingStatusCard extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public device?: ZHADevice;
+  @property({ attribute: false }) public device?: ZHADevice;
 
-  @property({ type: Boolean }) public narrow?: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
   @state() private _showHelp = false;
 
@@ -58,11 +55,9 @@ class ZHADevicePairingStatusCard extends LitElement {
             ? html`
                 <div class="model">${this.device.model}</div>
                 <div class="manuf">
-                  ${this.hass.localize(
-                    "ui.dialogs.zha_device_info.manuf",
-                    "manufacturer",
-                    this.device.manufacturer
-                  )}
+                  ${this.hass.localize("ui.dialogs.zha_device_info.manuf", {
+                    manufacturer: this.device.manufacturer,
+                  })}
                 </div>
               `
             : nothing}

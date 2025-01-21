@@ -1,12 +1,15 @@
-import {
+import type {
   HassEntityAttributeBase,
   HassEntityBase,
 } from "home-assistant-js-websocket";
 import { navigate } from "../common/navigate";
-import { Context, HomeAssistant } from "../types";
-import { BlueprintInput } from "./blueprint";
-import { DeviceCondition, DeviceTrigger } from "./device_automation";
-import { Action, MODES } from "./script";
+import { ensureArray } from "../common/array/ensure-array";
+import type { Context, HomeAssistant } from "../types";
+import type { BlueprintInput } from "./blueprint";
+import type { DeviceCondition, DeviceTrigger } from "./device_automation";
+import type { Action, MODES } from "./script";
+import { migrateAutomationAction } from "./script";
+import { createSearchParam } from "../common/url/search-params";
 
 export const AUTOMATION_DEFAULT_MODE: (typeof MODES)[number] = "single";
 export const AUTOMATION_DEFAULT_MAX = 10;
@@ -26,9 +29,15 @@ export interface ManualAutomationConfig {
   id?: string;
   alias?: string;
   description?: string;
-  trigger: Trigger | Trigger[];
+  triggers: Trigger | Trigger[];
+  /** @deprecated Use `triggers` instead */
+  trigger?: Trigger | Trigger[];
+  conditions?: Condition | Condition[];
+  /** @deprecated Use `conditions` instead */
   condition?: Condition | Condition[];
-  action: Action | Action[];
+  actions: Action | Action[];
+  /** @deprecated Use `actions` instead */
+  action?: Action | Action[];
   mode?: (typeof MODES)[number];
   max?: number;
   max_exceeded?:
@@ -62,43 +71,49 @@ export interface ContextConstraint {
   user_id?: string | string[];
 }
 
+export interface TriggerList {
+  triggers: Trigger | Trigger[] | undefined;
+}
+
 export interface BaseTrigger {
   alias?: string;
-  platform: string;
+  /** @deprecated Use `trigger` instead */
+  platform?: string;
+  trigger: string;
   id?: string;
   variables?: Record<string, unknown>;
   enabled?: boolean;
 }
 
 export interface StateTrigger extends BaseTrigger {
-  platform: "state";
+  trigger: "state";
   entity_id: string | string[];
   attribute?: string;
-  from?: string | number;
-  to?: string | string[] | number;
+  from?: string | string[];
+  to?: string | string[];
   for?: string | number | ForDict;
 }
 
 export interface MqttTrigger extends BaseTrigger {
-  platform: "mqtt";
+  trigger: "mqtt";
   topic: string;
   payload?: string;
 }
 
 export interface GeoLocationTrigger extends BaseTrigger {
-  platform: "geo_location";
+  trigger: "geo_location";
   source: string;
   zone: string;
   event: "enter" | "leave";
 }
 
 export interface HassTrigger extends BaseTrigger {
-  platform: "homeassistant";
+  trigger: "homeassistant";
   event: "start" | "shutdown";
 }
 
 export interface NumericStateTrigger extends BaseTrigger {
-  platform: "numeric_state";
+  trigger: "numeric_state";
   entity_id: string | string[];
   attribute?: string;
   above?: number;
@@ -108,69 +123,69 @@ export interface NumericStateTrigger extends BaseTrigger {
 }
 
 export interface ConversationTrigger extends BaseTrigger {
-  platform: "conversation";
+  trigger: "conversation";
   command: string | string[];
 }
 
 export interface SunTrigger extends BaseTrigger {
-  platform: "sun";
+  trigger: "sun";
   offset: number;
   event: "sunrise" | "sunset";
 }
 
 export interface TimePatternTrigger extends BaseTrigger {
-  platform: "time_pattern";
+  trigger: "time_pattern";
   hours?: number | string;
   minutes?: number | string;
   seconds?: number | string;
 }
 
 export interface WebhookTrigger extends BaseTrigger {
-  platform: "webhook";
+  trigger: "webhook";
   webhook_id: string;
   allowed_methods?: string[];
   local_only?: boolean;
 }
 
 export interface PersistentNotificationTrigger extends BaseTrigger {
-  platform: "persistent_notification";
+  trigger: "persistent_notification";
   notification_id?: string;
   update_type?: string[];
 }
 
 export interface ZoneTrigger extends BaseTrigger {
-  platform: "zone";
+  trigger: "zone";
   entity_id: string;
   zone: string;
   event: "enter" | "leave";
 }
 
 export interface TagTrigger extends BaseTrigger {
-  platform: "tag";
+  trigger: "tag";
   tag_id: string;
   device_id?: string;
 }
 
 export interface TimeTrigger extends BaseTrigger {
-  platform: "time";
-  at: string;
+  trigger: "time";
+  at: string | { entity_id: string; offset?: string };
 }
 
 export interface TemplateTrigger extends BaseTrigger {
-  platform: "template";
+  trigger: "template";
   value_template: string;
   for?: string | number | ForDict;
 }
 
 export interface EventTrigger extends BaseTrigger {
-  platform: "event";
+  trigger: "event";
   event_type: string;
   event_data?: any;
   context?: ContextConstraint;
 }
 
 export interface CalendarTrigger extends BaseTrigger {
-  platform: "calendar";
+  trigger: "calendar";
   event: "start" | "end";
   entity_id: string;
   offset: string;
@@ -193,7 +208,8 @@ export type Trigger =
   | TemplateTrigger
   | EventTrigger
   | DeviceTrigger
-  | CalendarTrigger;
+  | CalendarTrigger
+  | TriggerList;
 
 interface BaseCondition {
   condition: string;
@@ -219,8 +235,8 @@ export interface NumericStateCondition extends BaseCondition {
   condition: "numeric_state";
   entity_id: string;
   attribute?: string;
-  above?: number;
-  below?: number;
+  above?: string | number;
+  below?: string | number;
   value_template?: string;
 }
 
@@ -275,6 +291,11 @@ export interface ShorthandNotCondition extends ShorthandBaseCondition {
   not: Condition[];
 }
 
+export type AutomationElementGroup = Record<
+  string,
+  { icon?: string; members?: AutomationElementGroup }
+>;
+
 export type Condition =
   | StateCondition
   | NumericStateCondition
@@ -328,7 +349,7 @@ export const triggerAutomationActions = (
 export const deleteAutomation = (hass: HomeAssistant, id: string) =>
   hass.callApi("DELETE", `config/automation/config/${id}`);
 
-let inititialAutomationEditorData: Partial<AutomationConfig> | undefined;
+let initialAutomationEditorData: Partial<AutomationConfig> | undefined;
 
 export const fetchAutomationFileConfig = (hass: HomeAssistant, id: string) =>
   hass.callApi<AutomationConfig>("GET", `config/automation/config/${id}`);
@@ -346,11 +367,115 @@ export const saveAutomationConfig = (
   hass: HomeAssistant,
   id: string,
   config: AutomationConfig
-) => hass.callApi<void>("POST", `config/automation/config/${id}`, config);
+) => hass.callApi<undefined>("POST", `config/automation/config/${id}`, config);
 
-export const showAutomationEditor = (data?: Partial<AutomationConfig>) => {
-  inititialAutomationEditorData = data;
-  navigate("/config/automation/edit/new");
+export const normalizeAutomationConfig = <
+  T extends Partial<AutomationConfig> | AutomationConfig,
+>(
+  config: T
+): T => {
+  config = migrateAutomationConfig(config);
+
+  // Normalize data: ensure triggers, actions and conditions are lists
+  // Happens when people copy paste their automations into the config
+  for (const key of ["triggers", "conditions", "actions"]) {
+    const value = config[key];
+    if (value && !Array.isArray(value)) {
+      config[key] = [value];
+    }
+  }
+
+  return config;
+};
+
+export const migrateAutomationConfig = <
+  T extends Partial<AutomationConfig> | AutomationConfig,
+>(
+  config: T
+) => {
+  if ("trigger" in config) {
+    if (!("triggers" in config)) {
+      config.triggers = config.trigger;
+    }
+    delete config.trigger;
+  }
+  if ("condition" in config) {
+    if (!("conditions" in config)) {
+      config.conditions = config.condition;
+    }
+    delete config.condition;
+  }
+  if ("action" in config) {
+    if (!("actions" in config)) {
+      config.actions = config.action;
+    }
+    delete config.action;
+  }
+
+  if (config.triggers) {
+    config.triggers = migrateAutomationTrigger(config.triggers);
+  }
+
+  if (config.actions) {
+    config.actions = migrateAutomationAction(config.actions);
+  }
+
+  return config;
+};
+
+export const migrateAutomationTrigger = (
+  trigger: Trigger | Trigger[]
+): Trigger | Trigger[] => {
+  if (!trigger) {
+    return trigger;
+  }
+
+  if (Array.isArray(trigger)) {
+    return trigger.map(migrateAutomationTrigger) as Trigger[];
+  }
+
+  if ("triggers" in trigger && trigger.triggers) {
+    trigger.triggers = migrateAutomationTrigger(trigger.triggers);
+  }
+
+  if ("platform" in trigger) {
+    if (!("trigger" in trigger)) {
+      // @ts-ignore
+      trigger.trigger = trigger.platform;
+    }
+    delete trigger.platform;
+  }
+  return trigger;
+};
+
+export const flattenTriggers = (
+  triggers: undefined | Trigger | Trigger[]
+): Trigger[] => {
+  if (!triggers) {
+    return [];
+  }
+
+  const flatTriggers: Trigger[] = [];
+
+  ensureArray(triggers).forEach((t) => {
+    if ("triggers" in t) {
+      if (t.triggers) {
+        flatTriggers.push(...flattenTriggers(t.triggers));
+      }
+    } else {
+      flatTriggers.push(t);
+    }
+  });
+  return flatTriggers;
+};
+
+export const showAutomationEditor = (
+  data?: Partial<AutomationConfig>,
+  expanded?: boolean
+) => {
+  initialAutomationEditorData = data;
+  const params = expanded ? `?${createSearchParam({ expanded: "1" })}` : "";
+  navigate(`/config/automation/edit/new${params}`);
 };
 
 export const duplicateAutomation = (config: AutomationConfig) => {
@@ -362,8 +487,8 @@ export const duplicateAutomation = (config: AutomationConfig) => {
 };
 
 export const getAutomationEditorInitData = () => {
-  const data = inititialAutomationEditorData;
-  inititialAutomationEditorData = undefined;
+  const data = initialAutomationEditorData;
+  initialAutomationEditorData = undefined;
   return data;
 };
 
@@ -395,8 +520,8 @@ export const testCondition = (
     variables,
   });
 
-export type AutomationClipboard = {
+export interface AutomationClipboard {
   trigger?: Trigger;
   condition?: Condition;
   action?: Action;
-};
+}

@@ -1,11 +1,11 @@
 import { mdiCog } from "@mdi/js";
-import { css, html, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
 import "../../../components/ha-button";
-import {
-  DisableConfigEntryResult,
-  enableConfigEntry,
-} from "../../../data/config_entries";
+import "../../../components/ha-icon-button";
+import type { DisableConfigEntryResult } from "../../../data/config_entries";
+import { enableConfigEntry } from "../../../data/config_entries";
 import type { IntegrationManifest } from "../../../data/integration";
 import { showAlertDialog } from "../../../dialogs/generic/show-dialog-box";
 import type { HomeAssistant } from "../../../types";
@@ -16,9 +16,9 @@ import "./ha-integration-action-card";
 export class HaDisabledConfigEntryCard extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public entry!: ConfigEntryExtended;
+  @property({ attribute: false }) public entry!: ConfigEntryExtended;
 
-  @property() public manifest?: IntegrationManifest;
+  @property({ attribute: false }) public manifest?: IntegrationManifest;
 
   protected render(): TemplateResult {
     return html`

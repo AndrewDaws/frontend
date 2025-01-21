@@ -1,5 +1,6 @@
 import "@material/mwc-button/mwc-button";
-import { css, html, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement } from "lit/decorators";
 import { applyThemesOnElement } from "../../../../src/common/dom/apply_themes_on_element";
 import "../../../../src/components/ha-alert";
@@ -176,46 +177,44 @@ export class DemoHaAlert extends LitElement {
     );
   }
 
-  static get styles() {
-    return css`
-      :host {
-        display: flex;
-        flex-direction: row;
-        justify-content: space-between;
-      }
-      .dark,
-      .light {
-        display: block;
-        background-color: var(--primary-background-color);
-        padding: 0 50px;
-      }
-      ha-card {
-        margin: 24px auto;
-      }
-      ha-alert {
-        display: block;
-        margin: 24px 0;
-      }
-      .condition {
-        padding: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-      }
-      .image {
-        display: inline-flex;
-        height: 100%;
-        align-items: center;
-      }
-      img {
-        max-height: 24px;
-        width: 24px;
-      }
-      mwc-button {
-        --mdc-theme-primary: var(--primary-text-color);
-      }
-    `;
-  }
+  static styles = css`
+    :host {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+    }
+    .dark,
+    .light {
+      display: block;
+      background-color: var(--primary-background-color);
+      padding: 0 50px;
+    }
+    ha-card {
+      margin: 24px auto;
+    }
+    ha-alert {
+      display: block;
+      margin: 24px 0;
+    }
+    .condition {
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .image {
+      display: inline-flex;
+      height: 100%;
+      align-items: center;
+    }
+    img {
+      max-height: 24px;
+      width: 24px;
+    }
+    mwc-button {
+      --mdc-theme-primary: var(--primary-text-color);
+    }
+  `;
 }
 
 declare global {

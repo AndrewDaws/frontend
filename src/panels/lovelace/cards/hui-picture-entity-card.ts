@@ -1,21 +1,15 @@
-import {
-  CSSResultGroup,
-  LitElement,
-  PropertyValues,
-  TemplateResult,
-  css,
-  html,
-  nothing,
-} from "lit";
+import type { PropertyValues, TemplateResult } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { ifDefined } from "lit/directives/if-defined";
 import { applyThemesOnElement } from "../../../common/dom/apply_themes_on_element";
 import { computeDomain } from "../../../common/entity/compute_domain";
 import { computeStateName } from "../../../common/entity/compute_state_name";
 import "../../../components/ha-card";
-import { ImageEntity, computeImageUrl } from "../../../data/image";
-import { ActionHandlerEvent } from "../../../data/lovelace";
-import { HomeAssistant } from "../../../types";
+import type { ImageEntity } from "../../../data/image";
+import { computeImageUrl } from "../../../data/image";
+import type { ActionHandlerEvent } from "../../../data/lovelace/action_handler";
+import type { HomeAssistant } from "../../../types";
 import { actionHandler } from "../common/directives/action-handler-directive";
 import { findEntities } from "../common/find-entities";
 import { handleAction } from "../common/handle-action";
@@ -23,8 +17,10 @@ import { hasAction } from "../common/has-action";
 import { hasConfigOrEntityChanged } from "../common/has-changed";
 import "../components/hui-image";
 import { createEntityNotFoundWarning } from "../components/hui-warning";
-import { LovelaceCard, LovelaceCardEditor } from "../types";
-import { PictureEntityCardConfig } from "./types";
+import type { LovelaceCard, LovelaceCardEditor } from "../types";
+import type { PictureEntityCardConfig } from "./types";
+import type { CameraEntity } from "../../../data/camera";
+import type { PersonEntity } from "../../../data/person";
 
 @customElement("hui-picture-entity-card")
 class HuiPictureEntityCard extends LitElement implements LovelaceCard {
@@ -68,7 +64,7 @@ class HuiPictureEntityCard extends LitElement implements LovelaceCard {
     }
 
     if (
-      !["camera", "image"].includes(computeDomain(config.entity)) &&
+      !["camera", "image", "person"].includes(computeDomain(config.entity)) &&
       !config.image &&
       !config.state_image &&
       !config.camera_image
@@ -108,7 +104,8 @@ class HuiPictureEntityCard extends LitElement implements LovelaceCard {
       return nothing;
     }
 
-    const stateObj = this.hass.states[this._config.entity];
+    const stateObj: CameraEntity | ImageEntity | PersonEntity | undefined =
+      this.hass.states[this._config.entity];
 
     if (!stateObj) {
       return html`
@@ -135,15 +132,24 @@ class HuiPictureEntityCard extends LitElement implements LovelaceCard {
       footer = html`<div class="footer single">${entityState}</div>`;
     }
 
-    const domain = computeDomain(this._config.entity);
+    const domain: string = computeDomain(this._config.entity);
+    let image: string | undefined = this._config.image;
+    switch (domain) {
+      case "image":
+        image = computeImageUrl(stateObj as ImageEntity);
+        break;
+      case "person":
+        if ((stateObj as PersonEntity).attributes.entity_picture) {
+          image = (stateObj as PersonEntity).attributes.entity_picture;
+        }
+        break;
+    }
 
     return html`
       <ha-card>
         <hui-image
           .hass=${this.hass}
-          .image=${domain === "image"
-            ? computeImageUrl(stateObj as ImageEntity)
-            : this._config.image}
+          .image=${image}
           .stateImage=${this._config.state_image}
           .stateFilter=${this._config.state_filter}
           .cameraImage=${domain === "camera"
@@ -169,52 +175,51 @@ class HuiPictureEntityCard extends LitElement implements LovelaceCard {
     `;
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      ha-card {
-        min-height: 75px;
-        overflow: hidden;
-        position: relative;
-        height: 100%;
-        box-sizing: border-box;
-      }
+  static styles = css`
+    ha-card {
+      min-height: 75px;
+      overflow: hidden;
+      position: relative;
+      height: 100%;
+      box-sizing: border-box;
+    }
 
-      hui-image {
-        cursor: pointer;
-      }
+    hui-image {
+      cursor: pointer;
+      height: 100%;
+    }
 
-      .footer {
-        /* start paper-font-common-nowrap style */
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        /* end paper-font-common-nowrap style */
+    .footer {
+      /* start paper-font-common-nowrap style */
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      /* end paper-font-common-nowrap style */
 
-        position: absolute;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: var(
-          --ha-picture-card-background-color,
-          rgba(0, 0, 0, 0.3)
-        );
-        padding: 16px;
-        font-size: 16px;
-        line-height: 16px;
-        color: var(--ha-picture-card-text-color, white);
-        pointer-events: none;
-      }
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: var(
+        --ha-picture-card-background-color,
+        rgba(0, 0, 0, 0.3)
+      );
+      padding: 16px;
+      font-size: 16px;
+      line-height: 16px;
+      color: var(--ha-picture-card-text-color, white);
+      pointer-events: none;
+    }
 
-      .both {
-        display: flex;
-        justify-content: space-between;
-      }
+    .both {
+      display: flex;
+      justify-content: space-between;
+    }
 
-      .single {
-        text-align: center;
-      }
-    `;
-  }
+    .single {
+      text-align: center;
+    }
+  `;
 
   private _handleAction(ev: ActionHandlerEvent) {
     handleAction(this, this.hass!, this._config!, ev.detail.action!);

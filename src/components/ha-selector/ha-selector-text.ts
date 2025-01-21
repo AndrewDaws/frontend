@@ -1,16 +1,18 @@
 import { mdiEye, mdiEyeOff } from "@mdi/js";
-import { css, CSSResultGroup, html, LitElement } from "lit";
+import { LitElement, css, html } from "lit";
 import { customElement, property, state } from "lit/decorators";
+import { ensureArray } from "../../common/array/ensure-array";
 import { fireEvent } from "../../common/dom/fire_event";
-import { StringSelector } from "../../data/selector";
-import { HomeAssistant } from "../../types";
+import type { StringSelector } from "../../data/selector";
+import type { HomeAssistant } from "../../types";
 import "../ha-icon-button";
+import "../ha-multi-textfield";
 import "../ha-textarea";
 import "../ha-textfield";
 
 @customElement("ha-selector-text")
 export class HaTextSelector extends LitElement {
-  @property() public hass!: HomeAssistant;
+  @property({ attribute: false }) public hass?: HomeAssistant;
 
   @property() public value?: any;
 
@@ -22,7 +24,7 @@ export class HaTextSelector extends LitElement {
 
   @property() public helper?: string;
 
-  @property() public selector!: StringSelector;
+  @property({ attribute: false }) public selector!: StringSelector;
 
   @property({ type: Boolean }) public disabled = false;
 
@@ -38,6 +40,23 @@ export class HaTextSelector extends LitElement {
   }
 
   protected render() {
+    if (this.selector.text?.multiple) {
+      return html`
+        <ha-multi-textfield
+          .hass=${this.hass}
+          .value=${ensureArray(this.value ?? [])}
+          .disabled=${this.disabled}
+          .label=${this.label}
+          .inputType=${this.selector.text?.type}
+          .inputSuffix=${this.selector.text?.suffix}
+          .inputPrefix=${this.selector.text?.prefix}
+          .helper=${this.helper}
+          .autocomplete=${this.selector.text?.autocomplete}
+          @value-changed=${this._handleChange}
+        >
+        </ha-multi-textfield>
+      `;
+    }
     if (this.selector.text?.multiline) {
       return html`<ha-textarea
         .name=${this.name}
@@ -64,6 +83,7 @@ export class HaTextSelector extends LitElement {
         .disabled=${this.disabled}
         .type=${this._unmaskedPassword ? "text" : this.selector.text?.type}
         @input=${this._handleChange}
+        @change=${this._handleChange}
         .label=${this.label || ""}
         .prefix=${this.selector.text?.prefix}
         .suffix=${this.selector.text?.type === "password"
@@ -76,7 +96,11 @@ export class HaTextSelector extends LitElement {
       ${this.selector.text?.type === "password"
         ? html`<ha-icon-button
             toggles
-            .label=${`${this._unmaskedPassword ? "Hide" : "Show"} password`}
+            .label=${this.hass?.localize(
+              this._unmaskedPassword
+                ? "ui.components.selectors.text.hide_password"
+                : "ui.components.selectors.text.show_password"
+            ) || (this._unmaskedPassword ? "Hide password" : "Show password")}
             @click=${this._toggleUnmaskedPassword}
             .path=${this._unmaskedPassword ? mdiEyeOff : mdiEye}
           ></ha-icon-button>`
@@ -88,40 +112,41 @@ export class HaTextSelector extends LitElement {
   }
 
   private _handleChange(ev) {
-    let value = ev.target.value;
+    let value = ev.detail?.value ?? ev.target.value;
     if (this.value === value) {
       return;
     }
-    if (value === "" && !this.required) {
+    if (
+      (value === "" || (Array.isArray(value) && value.length === 0)) &&
+      !this.required
+    ) {
       value = undefined;
     }
 
     fireEvent(this, "value-changed", { value });
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host {
-        display: block;
-        position: relative;
-      }
-      ha-textarea,
-      ha-textfield {
-        width: 100%;
-      }
-      ha-icon-button {
-        position: absolute;
-        top: 8px;
-        right: 8px;
-        inset-inline-start: initial;
-        inset-inline-end: 8px;
-        --mdc-icon-button-size: 40px;
-        --mdc-icon-size: 20px;
-        color: var(--secondary-text-color);
-        direction: var(--direction);
-      }
-    `;
-  }
+  static styles = css`
+    :host {
+      display: block;
+      position: relative;
+    }
+    ha-textarea,
+    ha-textfield {
+      width: 100%;
+    }
+    ha-icon-button {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      inset-inline-start: initial;
+      inset-inline-end: 8px;
+      --mdc-icon-button-size: 40px;
+      --mdc-icon-size: 20px;
+      color: var(--secondary-text-color);
+      direction: var(--direction);
+    }
+  `;
 }
 
 declare global {

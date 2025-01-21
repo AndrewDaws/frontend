@@ -1,20 +1,24 @@
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  PropertyValues,
-  TemplateResult,
-} from "lit";
+import type { PropertyValues, TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property, query } from "lit/decorators";
 import { fireEvent } from "../../common/dom/fire_event";
-import { HaCheckbox } from "../ha-checkbox";
+import type { HaCheckbox } from "../ha-checkbox";
 import "../ha-slider";
-import { HaTextField } from "../ha-textfield";
-import { HaFormElement, HaFormIntegerData, HaFormIntegerSchema } from "./types";
+import "../ha-checkbox";
+import "../ha-input-helper-text";
+import "../ha-textfield";
+import type { HaTextField } from "../ha-textfield";
+import type {
+  HaFormElement,
+  HaFormIntegerData,
+  HaFormIntegerSchema,
+} from "./types";
+import type { LocalizeFunc } from "../../common/translations/localize";
 
 @customElement("ha-form-integer")
 export class HaFormInteger extends LitElement implements HaFormElement {
+  @property({ attribute: false }) public localize?: LocalizeFunc;
+
   @property({ attribute: false }) public schema!: HaFormIntegerSchema;
 
   @property({ attribute: false }) public data?: HaFormIntegerData;
@@ -57,8 +61,7 @@ export class HaFormInteger extends LitElement implements HaFormElement {
                 `
               : ""}
             <ha-slider
-              pin
-              ignore-bar-touch
+              labeled
               .value=${this._value}
               .min=${this.schema.valueMin}
               .max=${this.schema.valueMax}
@@ -86,7 +89,9 @@ export class HaFormInteger extends LitElement implements HaFormElement {
         .required=${this.schema.required}
         .autoValidate=${this.schema.required}
         .suffix=${this.schema.description?.suffix}
-        .validationMessage=${this.schema.required ? "Required" : undefined}
+        .validationMessage=${this.schema.required
+          ? this.localize?.("ui.common.error_required")
+          : undefined}
         @input=${this._valueChanged}
       ></ha-textfield>
     `;
@@ -169,22 +174,20 @@ export class HaFormInteger extends LitElement implements HaFormElement {
     });
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host([own-margin]) {
-        margin-bottom: 5px;
-      }
-      .flex {
-        display: flex;
-      }
-      ha-slider {
-        flex: 1;
-      }
-      ha-textfield {
-        display: block;
-      }
-    `;
-  }
+  static styles = css`
+    :host([own-margin]) {
+      margin-bottom: 5px;
+    }
+    .flex {
+      display: flex;
+    }
+    ha-slider {
+      flex: 1;
+    }
+    ha-textfield {
+      display: block;
+    }
+  `;
 }
 
 declare global {

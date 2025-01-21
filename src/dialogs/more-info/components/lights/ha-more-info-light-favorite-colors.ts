@@ -1,34 +1,18 @@
 import { mdiCheck, mdiMinus, mdiPlus } from "@mdi/js";
-import {
-  CSSResultGroup,
-  LitElement,
-  PropertyValues,
-  TemplateResult,
-  css,
-  html,
-  nothing,
-} from "lit";
+import type { PropertyValues, TemplateResult } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
-import type { SortableEvent } from "sortablejs";
 import { fireEvent } from "../../../../common/dom/fire_event";
 import "../../../../components/ha-control-slider";
+import "../../../../components/ha-sortable";
 import { UNAVAILABLE } from "../../../../data/entity";
-import {
-  ExtEntityRegistryEntry,
-  updateEntityRegistryEntry,
-} from "../../../../data/entity_registry";
-import {
-  LightColor,
-  LightEntity,
-  computeDefaultFavoriteColors,
-} from "../../../../data/light";
+import type { ExtEntityRegistryEntry } from "../../../../data/entity_registry";
+import { updateEntityRegistryEntry } from "../../../../data/entity_registry";
+import type { LightColor, LightEntity } from "../../../../data/light";
+import { computeDefaultFavoriteColors } from "../../../../data/light";
 import { actionHandler } from "../../../../panels/lovelace/common/directives/action-handler-directive";
-import {
-  SortableInstance,
-  loadSortable,
-} from "../../../../resources/sortable.ondemand";
-import { HomeAssistant } from "../../../../types";
+import type { HomeAssistant } from "../../../../types";
 import { showConfirmationDialog } from "../../../generic/show-dialog-box";
 import "./ha-favorite-color-button";
 import { showLightColorFavoriteDialog } from "./show-dialog-light-color-favorite";
@@ -51,16 +35,7 @@ export class HaMoreInfoLightFavoriteColors extends LitElement {
 
   @state() private _favoriteColors: LightColor[] = [];
 
-  private _sortable?: SortableInstance;
-
   protected updated(changedProps: PropertyValues): void {
-    if (changedProps.has("editMode")) {
-      if (this.editMode) {
-        this._createSortable();
-      } else {
-        this._destroySortable();
-      }
-    }
     if (changedProps.has("entry")) {
       if (this.entry) {
         if (this.entry.options?.light?.favorite_colors) {
@@ -72,34 +47,10 @@ export class HaMoreInfoLightFavoriteColors extends LitElement {
     }
   }
 
-  private async _createSortable() {
-    const Sortable = await loadSortable();
-    this._sortable = new Sortable(
-      this.shadowRoot!.querySelector(".container")!,
-      {
-        animation: 150,
-        fallbackClass: "sortable-fallback",
-        draggable: ".color",
-        onChoose: (evt: SortableEvent) => {
-          (evt.item as any).placeholder =
-            document.createComment("sort-placeholder");
-          evt.item.after((evt.item as any).placeholder);
-        },
-        onEnd: (evt: SortableEvent) => {
-          // put back in original location
-          if ((evt.item as any).placeholder) {
-            (evt.item as any).placeholder.replaceWith(evt.item);
-            delete (evt.item as any).placeholder;
-          }
-          this._dragged(evt);
-        },
-      }
-    );
-  }
-
-  private _dragged(ev: SortableEvent): void {
-    if (ev.oldIndex === ev.newIndex) return;
-    this._move(ev.oldIndex!, ev.newIndex!);
+  private _colorMoved(ev: CustomEvent): void {
+    ev.stopPropagation();
+    const { oldIndex, newIndex } = ev.detail;
+    this._move(oldIndex, newIndex);
   }
 
   private _move(index: number, newIndex: number) {
@@ -108,11 +59,6 @@ export class HaMoreInfoLightFavoriteColors extends LitElement {
     favoriteColors.splice(newIndex, 0, action);
     this._favoriteColors = favoriteColors;
     this._save(favoriteColors);
-  }
-
-  private _destroySortable() {
-    this._sortable?.destroy();
-    this._sortable = undefined;
   }
 
   private _apply = (index: number) => {
@@ -226,156 +172,163 @@ export class HaMoreInfoLightFavoriteColors extends LitElement {
 
   protected render(): TemplateResult {
     return html`
-      <div class="container">
-        ${this._favoriteColors.map(
-          (color, index) => html`
-            <div class="color">
-              <div
-                class="color-bubble ${classMap({
-                  shake: !!this.editMode,
-                })}"
-              >
-                <ha-favorite-color-button
-                  .label=${this.hass.localize(
-                    `ui.dialogs.more_info_control.light.favorite_color.${
-                      this.editMode ? "edit" : "set"
-                    }`,
-                    { number: index }
-                  )}
-                  .disabled=${this.stateObj!.state === UNAVAILABLE}
-                  .color=${color}
-                  .index=${index}
-                  .actionHandler=${actionHandler({
-                    hasHold: !this.editMode && this.hass.user?.is_admin,
-                    disabled: this.stateObj!.state === UNAVAILABLE,
-                  })}
-                  @action=${this._handleColorAction}
+      <ha-sortable
+        @item-moved=${this._colorMoved}
+        item=".color"
+        no-style
+        .disabled=${!this.editMode}
+      >
+        <div class="container">
+          ${this._favoriteColors.map(
+            (color, index) => html`
+              <div class="color">
+                <div
+                  class="color-bubble ${classMap({
+                    shake: !!this.editMode,
+                  })}"
                 >
-                </ha-favorite-color-button>
-                ${this.editMode
-                  ? html`
-                      <button
-                        @click=${this._handleDeleteButton}
-                        class="delete"
-                        .index=${index}
-                        aria-label=${this.hass.localize(
-                          `ui.dialogs.more_info_control.light.favorite_color.delete`,
-                          { number: index }
-                        )}
-                        .title=${this.hass.localize(
-                          `ui.dialogs.more_info_control.light.favorite_color.delete`,
-                          { number: index }
-                        )}
-                      >
-                        <ha-svg-icon .path=${mdiMinus}></ha-svg-icon>
-                      </button>
-                    `
-                  : nothing}
+                  <ha-favorite-color-button
+                    .label=${this.hass.localize(
+                      `ui.dialogs.more_info_control.light.favorite_color.${
+                        this.editMode ? "edit" : "set"
+                      }`,
+                      { number: index }
+                    )}
+                    .disabled=${this.stateObj!.state === UNAVAILABLE}
+                    .color=${color}
+                    .index=${index}
+                    .actionHandler=${actionHandler({
+                      hasHold: !this.editMode && this.hass.user?.is_admin,
+                      disabled: this.stateObj!.state === UNAVAILABLE,
+                    })}
+                    @action=${this._handleColorAction}
+                  >
+                  </ha-favorite-color-button>
+                  ${this.editMode
+                    ? html`
+                        <button
+                          @click=${this._handleDeleteButton}
+                          class="delete"
+                          .index=${index}
+                          aria-label=${this.hass.localize(
+                            `ui.dialogs.more_info_control.light.favorite_color.delete`,
+                            { number: index }
+                          )}
+                          .title=${this.hass.localize(
+                            `ui.dialogs.more_info_control.light.favorite_color.delete`,
+                            { number: index }
+                          )}
+                        >
+                          <ha-svg-icon .path=${mdiMinus}></ha-svg-icon>
+                        </button>
+                      `
+                    : nothing}
+                </div>
               </div>
-            </div>
-          `
-        )}
-        ${this.editMode
-          ? html`
-              <ha-outlined-icon-button
-                class="button"
-                @click=${this._handleAddButton}
-              >
-                <ha-svg-icon .path=${mdiPlus}></ha-svg-icon>
-              </ha-outlined-icon-button>
-              <ha-outlined-icon-button
-                @click=${this._exitEditMode}
-                class="button"
-              >
-                <ha-svg-icon .path=${mdiCheck}></ha-svg-icon>
-              </ha-outlined-icon-button>
             `
-          : nothing}
-      </div>
+          )}
+          ${this.editMode
+            ? html`
+                <ha-outlined-icon-button
+                  class="button"
+                  @click=${this._handleAddButton}
+                >
+                  <ha-svg-icon .path=${mdiPlus}></ha-svg-icon>
+                </ha-outlined-icon-button>
+                <ha-outlined-icon-button
+                  @click=${this._exitEditMode}
+                  class="button"
+                >
+                  <ha-svg-icon .path=${mdiCheck}></ha-svg-icon>
+                </ha-outlined-icon-button>
+              `
+            : nothing}
+        </div>
+      </ha-sortable>
     `;
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      .container {
-        position: relative;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: -8px;
-        flex-wrap: wrap;
-        max-width: 250px;
-        user-select: none;
-      }
+  static styles = css`
+    .container {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: -8px;
+      flex-wrap: wrap;
+      max-width: 250px;
+      user-select: none;
+    }
 
-      .container > * {
-        margin: 8px;
-      }
+    .container > * {
+      margin: 8px;
+    }
 
-      .color {
-        display: block;
-      }
+    .color {
+      display: block;
+    }
 
-      .color .color-bubble.shake {
-        position: relative;
-        display: block;
-        animation: shake 0.45s linear infinite;
-      }
-      .color:nth-child(3n + 1) .color-bubble.shake {
-        animation-delay: 0.15s;
-      }
-      .color:nth-child(3n + 2) .color-bubble.shake {
-        animation-delay: 0.3s;
-      }
+    .color .color-bubble.shake {
+      position: relative;
+      display: block;
+      animation: shake 0.45s linear infinite;
+    }
+    .color:nth-child(3n + 1) .color-bubble.shake {
+      animation-delay: 0.15s;
+    }
+    .color:nth-child(3n + 2) .color-bubble.shake {
+      animation-delay: 0.3s;
+    }
 
-      .sortable-ghost {
-        opacity: 0.4;
-      }
-      .sortable-fallback {
-        display: none;
-      }
+    .sortable-ghost {
+      opacity: 0.4;
+    }
+    .sortable-fallback {
+      display: none;
+    }
 
-      @keyframes shake {
-        0% {
-          transform: rotateZ(0deg) translateX(-1px) translateY(0) scale(1);
-        }
-        20% {
-          transform: rotateZ(-3deg) translateX(0) translateY();
-        }
-        40% {
-          transform: rotateZ(0deg) translateX(1px) translateY(0);
-        }
-        60% {
-          transform: rotateZ(3deg) translateX(0) translateY(0);
-        }
-        100% {
-          transform: rotateZ(0deg) translateX(-1px) translateY(0);
-        }
+    @keyframes shake {
+      0% {
+        transform: rotateZ(0deg) translateX(-1px) translateY(0) scale(1);
       }
+      20% {
+        transform: rotateZ(-3deg) translateX(0) translateY();
+      }
+      40% {
+        transform: rotateZ(0deg) translateX(1px) translateY(0);
+      }
+      60% {
+        transform: rotateZ(3deg) translateX(0) translateY(0);
+      }
+      100% {
+        transform: rotateZ(0deg) translateX(-1px) translateY(0);
+      }
+    }
 
-      .delete {
-        position: absolute;
-        top: -6px;
-        right: -6px;
-        width: 20px;
-        height: 20px;
-        outline: none;
-        background-color: var(--secondary-background-color);
-        padding: 0;
-        border-radius: 10px;
-        border: none;
-        cursor: pointer;
-        display: block;
-      }
-      .delete {
-        --mdc-icon-size: 12px;
-        color: var(--primary-text-color);
-      }
-      .delete * {
-        pointer-events: none;
-      }
-    `;
-  }
+    .delete {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      inset-inline-end: -6px;
+      inset-inline-start: initial;
+      width: 20px;
+      height: 20px;
+      outline: none;
+      background-color: var(--secondary-background-color);
+      padding: 0;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      display: block;
+    }
+    .delete {
+      --mdc-icon-size: 12px;
+      color: var(--primary-text-color);
+    }
+    .delete * {
+      pointer-events: none;
+    }
+  `;
 }
 
 declare global {

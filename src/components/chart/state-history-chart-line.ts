@@ -1,6 +1,7 @@
 import type { ChartData, ChartDataset, ChartOptions } from "chart.js";
-import { html, LitElement, PropertyValues } from "lit";
-import { property, query, state } from "lit/decorators";
+import type { PropertyValues } from "lit";
+import { html, LitElement } from "lit";
+import { property, state } from "lit/decorators";
 import { getGraphColorByIndex } from "../../common/color/colors";
 import { fireEvent } from "../../common/dom/fire_event";
 import { computeRTL } from "../../common/util/compute_rtl";
@@ -9,13 +10,10 @@ import {
   numberFormatToLocale,
   getNumberFormatOptions,
 } from "../../common/number/format_number";
-import { LineChartEntity, LineChartState } from "../../data/history";
-import { HomeAssistant } from "../../types";
-import {
-  ChartResizeOptions,
-  HaChartBase,
-  MIN_TIME_BETWEEN_UPDATES,
-} from "./ha-chart-base";
+import type { LineChartEntity, LineChartState } from "../../data/history";
+import type { HomeAssistant } from "../../types";
+import { MIN_TIME_BETWEEN_UPDATES } from "./ha-chart-base";
+import { clickIsTouch } from "./click_is_touch";
 
 const safeParseFloat = (value) => {
   const parsed = parseFloat(value);
@@ -27,39 +25,46 @@ export class StateHistoryChartLine extends LitElement {
 
   @property({ attribute: false }) public data: LineChartEntity[] = [];
 
-  @property() public names?: Record<string, string>;
+  @property({ attribute: false }) public names?: Record<string, string>;
 
   @property() public unit?: string;
 
   @property() public identifier?: string;
 
-  @property({ type: Boolean }) public showNames = true;
+  @property({ attribute: "show-names", type: Boolean })
+  public showNames = true;
 
-  @property({ type: Boolean }) public clickForMoreInfo = true;
+  @property({ attribute: "click-for-more-info", type: Boolean })
+  public clickForMoreInfo = true;
 
   @property({ attribute: false }) public startTime!: Date;
 
   @property({ attribute: false }) public endTime!: Date;
 
-  @property({ type: Number }) public paddingYAxis = 0;
+  @property({ attribute: false, type: Number }) public paddingYAxis = 0;
 
-  @property({ type: Number }) public chartIndex?;
+  @property({ attribute: false, type: Number }) public chartIndex?;
+
+  @property({ attribute: "logarithmic-scale", type: Boolean })
+  public logarithmicScale = false;
+
+  @property({ attribute: false, type: Number }) public minYAxis?: number;
+
+  @property({ attribute: false, type: Number }) public maxYAxis?: number;
+
+  @property({ attribute: "fit-y-data", type: Boolean }) public fitYData = false;
 
   @state() private _chartData?: ChartData<"line">;
 
   @state() private _entityIds: string[] = [];
+
+  private _datasetToDataIndex: number[] = [];
 
   @state() private _chartOptions?: ChartOptions;
 
   @state() private _yWidth = 0;
 
   private _chartTime: Date = new Date();
-
-  @query("ha-chart-base") private _chart?: HaChartBase;
-
-  public resize = (options?: ChartResizeOptions): void => {
-    this._chart?.resize(options);
-  };
 
   protected render() {
     return html`
@@ -78,11 +83,15 @@ export class StateHistoryChartLine extends LitElement {
       !this.hasUpdated ||
       changedProps.has("showNames") ||
       changedProps.has("startTime") ||
-      changedProps.has("endTime")
+      changedProps.has("endTime") ||
+      changedProps.has("unit") ||
+      changedProps.has("logarithmicScale") ||
+      changedProps.has("minYAxis") ||
+      changedProps.has("maxYAxis") ||
+      changedProps.has("fitYData")
     ) {
       this._chartOptions = {
         parsing: false,
-        animation: false,
         interaction: {
           mode: "nearest",
           axis: "xy",
@@ -96,8 +105,8 @@ export class StateHistoryChartLine extends LitElement {
                 config: this.hass.config,
               },
             },
-            suggestedMin: this.startTime,
-            suggestedMax: this.endTime,
+            min: this.startTime,
+            max: this.endTime,
             ticks: {
               maxRotation: 0,
               sampleSize: 5,
@@ -115,6 +124,10 @@ export class StateHistoryChartLine extends LitElement {
             },
           },
           y: {
+            suggestedMin: this.fitYData ? this.minYAxis : null,
+            suggestedMax: this.fitYData ? this.maxYAxis : null,
+            min: this.fitYData ? null : this.minYAxis,
+            max: this.fitYData ? null : this.maxYAxis,
             ticks: {
               maxTicksLimit: 7,
             },
@@ -132,26 +145,38 @@ export class StateHistoryChartLine extends LitElement {
               }
             },
             position: computeRTL(this.hass) ? "right" : "left",
+            type: this.logarithmicScale ? "logarithmic" : "linear",
           },
         },
         plugins: {
           tooltip: {
             callbacks: {
-              label: (context) =>
-                `${context.dataset.label}: ${formatNumber(
+              label: (context) => {
+                let label = `${context.dataset.label}: ${formatNumber(
                   context.parsed.y,
                   this.hass.locale,
-                  this.data[context.datasetIndex]?.entity_id
-                    ? getNumberFormatOptions(
-                        this.hass.states[
-                          this.data[context.datasetIndex].entity_id
-                        ],
-                        this.hass.entities[
-                          this.data[context.datasetIndex].entity_id
-                        ]
-                      )
-                    : undefined
-                )} ${this.unit}`,
+                  getNumberFormatOptions(
+                    undefined,
+                    this.hass.entities[this._entityIds[context.datasetIndex]]
+                  )
+                )} ${this.unit}`;
+                const dataIndex =
+                  this._datasetToDataIndex[context.datasetIndex];
+                const data = this.data[dataIndex];
+                if (data.statistics && data.statistics.length > 0) {
+                  const source =
+                    data.states.length === 0 ||
+                    context.parsed.x < data.states[0].last_changed
+                      ? `\n${this.hass.localize(
+                          "ui.components.history_charts.source_stats"
+                        )}`
+                      : `\n${this.hass.localize(
+                          "ui.components.history_charts.source_history"
+                        )}`;
+                  label += source;
+                }
+                return label;
+              },
             },
           },
           filler: {
@@ -173,10 +198,23 @@ export class StateHistoryChartLine extends LitElement {
             hitRadius: 50,
           },
         },
+        segment: {
+          borderColor: (context) => {
+            // render stat data with a slightly transparent line
+            const dataIndex = this._datasetToDataIndex[context.datasetIndex];
+            const data = this.data[dataIndex];
+            return data.statistics &&
+              data.statistics.length > 0 &&
+              (data.states.length === 0 ||
+                context.p0.parsed.x < data.states[0].last_changed)
+              ? this._chartData!.datasets[dataIndex].borderColor + "7F"
+              : undefined;
+          },
+        },
         // @ts-expect-error
         locale: numberFormatToLocale(this.hass.locale),
         onClick: (e: any) => {
-          if (!this.clickForMoreInfo) {
+          if (!this.clickForMoreInfo || clickIsTouch(e)) {
             return;
           }
 
@@ -218,6 +256,7 @@ export class StateHistoryChartLine extends LitElement {
     const entityStates = this.data;
     const datasets: ChartDataset<"line">[] = [];
     const entityIds: string[] = [];
+    const datasetToDataIndex: number[] = [];
     if (entityStates.length === 0) {
       return;
     }
@@ -225,7 +264,7 @@ export class StateHistoryChartLine extends LitElement {
     this._chartTime = new Date();
     const endTime = this.endTime;
     const names = this.names || {};
-    entityStates.forEach((states) => {
+    entityStates.forEach((states, dataIdx) => {
       const domain = states.domain;
       const name = names[states.entity_id] || states.name;
       // array containing [value1, value2, etc]
@@ -255,7 +294,7 @@ export class StateHistoryChartLine extends LitElement {
         prevValues = datavalues;
       };
 
-      const addDataSet = (nameY: string, fill = false, color?: string) => {
+      const addDataSet = (nameY: string, color?: string, fill = false) => {
         if (!color) {
           color = getGraphColorByIndex(colorIndex, computedStyles);
           colorIndex++;
@@ -270,6 +309,7 @@ export class StateHistoryChartLine extends LitElement {
           data: [],
         });
         entityIds.push(states.entity_id);
+        datasetToDataIndex.push(dataIdx);
       };
 
       if (
@@ -312,8 +352,8 @@ export class StateHistoryChartLine extends LitElement {
         if (hasHeat) {
           addDataSet(
             `${this.hass.localize("ui.card.climate.heating", { name: name })}`,
-            true,
-            computedStyles.getPropertyValue("--state-climate-heat-color")
+            computedStyles.getPropertyValue("--state-climate-heat-color"),
+            true
           );
           // The "heating" series uses steppedArea to shade the area below the current
           // temperature when the thermostat is calling for heat.
@@ -321,8 +361,8 @@ export class StateHistoryChartLine extends LitElement {
         if (hasCool) {
           addDataSet(
             `${this.hass.localize("ui.card.climate.cooling", { name: name })}`,
-            true,
-            computedStyles.getPropertyValue("--state-climate-cool-color")
+            computedStyles.getPropertyValue("--state-climate-cool-color"),
+            true
           );
           // The "cooling" series uses steppedArea to shade the area below the current
           // temperature when the thermostat is calling for heat.
@@ -421,22 +461,23 @@ export class StateHistoryChartLine extends LitElement {
             `${this.hass.localize("ui.card.humidifier.humidifying", {
               name: name,
             })}`,
-            true,
-            computedStyles.getPropertyValue("--state-humidifier-on-color")
+            computedStyles.getPropertyValue("--state-humidifier-on-color"),
+            true
           );
         } else if (hasDrying) {
           addDataSet(
             `${this.hass.localize("ui.card.humidifier.drying", {
               name: name,
             })}`,
-            true,
-            computedStyles.getPropertyValue("--state-humidifier-on-color")
+            computedStyles.getPropertyValue("--state-humidifier-on-color"),
+            true
           );
         } else {
           addDataSet(
             `${this.hass.localize("ui.card.humidifier.on_entity", {
               name: name,
             })}`,
+            undefined,
             true
           );
         }
@@ -476,7 +517,7 @@ export class StateHistoryChartLine extends LitElement {
 
         // Process chart data.
         // When state is `unknown`, calculate the value and break the line.
-        states.states.forEach((entityState) => {
+        const processData = (entityState: LineChartState) => {
           const value = safeParseFloat(entityState.state);
           const date = new Date(entityState.last_changed);
           if (value !== null && lastNullDate) {
@@ -505,6 +546,22 @@ export class StateHistoryChartLine extends LitElement {
           ) {
             lastNullDate = date;
           }
+        };
+
+        if (states.statistics) {
+          const stopTime =
+            !states.states || states.states.length === 0
+              ? 0
+              : states.states[0].last_changed;
+          for (const statistic of states.statistics) {
+            if (stopTime && statistic.last_changed >= stopTime) {
+              break;
+            }
+            processData(statistic);
+          }
+        }
+        states.states.forEach((entityState) => {
+          processData(entityState);
         });
         if (lastNullDate !== null) {
           pushData(lastNullDate, [null]);
@@ -522,6 +579,7 @@ export class StateHistoryChartLine extends LitElement {
       datasets,
     };
     this._entityIds = entityIds;
+    this._datasetToDataIndex = datasetToDataIndex;
   }
 }
 customElements.define("state-history-chart-line", StateHistoryChartLine);

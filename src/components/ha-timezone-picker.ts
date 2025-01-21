@@ -1,5 +1,5 @@
 import timezones from "google-timezones-json";
-import { css, CSSResultGroup, html, LitElement } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
 import { fireEvent } from "../common/dom/fire_event";
 import { stopPropagation } from "../common/dom/stop_propagation";
@@ -37,13 +37,11 @@ export class HaTimeZonePicker extends LitElement {
     `;
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      ha-select {
-        width: 100%;
-      }
-    `;
-  }
+  static styles = css`
+    ha-select {
+      width: 100%;
+    }
+  `;
 
   private _changed(ev): void {
     const target = ev.target as HaSelect;

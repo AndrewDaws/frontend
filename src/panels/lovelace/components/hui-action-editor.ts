@@ -1,22 +1,27 @@
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
-import { customElement, property } from "lit/decorators";
+import type { PropertyValues } from "lit";
+import { css, html, LitElement, nothing } from "lit";
+import { customElement, property, query } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { fireEvent } from "../../../common/dom/fire_event";
 import { stopPropagation } from "../../../common/dom/stop_propagation";
 import "../../../components/ha-assist-pipeline-picker";
-import { HaFormSchema, SchemaUnion } from "../../../components/ha-form/types";
+import type {
+  HaFormSchema,
+  SchemaUnion,
+} from "../../../components/ha-form/types";
 import "../../../components/ha-help-tooltip";
 import "../../../components/ha-navigation-picker";
 import "../../../components/ha-service-control";
-import {
+import type {
   ActionConfig,
   CallServiceActionConfig,
   NavigateActionConfig,
   UrlActionConfig,
-} from "../../../data/lovelace";
-import { ServiceAction } from "../../../data/script";
-import { HomeAssistant } from "../../../types";
-import { EditorTarget } from "../editor/types";
+} from "../../../data/lovelace/config/action";
+import type { ServiceAction } from "../../../data/script";
+import type { HomeAssistant } from "../../../types";
+import type { EditorTarget } from "../editor/types";
+import type { HaSelect } from "../../../components/ha-select";
 
 export type UiAction = Exclude<ActionConfig["action"], "fire-dom-event">;
 
@@ -25,7 +30,7 @@ const DEFAULT_ACTIONS: UiAction[] = [
   "toggle",
   "navigate",
   "url",
-  "call-service",
+  "perform-action",
   "assist",
   "none",
 ];
@@ -64,15 +69,19 @@ const ASSIST_SCHEMA = [
 
 @customElement("hui-action-editor")
 export class HuiActionEditor extends LitElement {
-  @property() public config?: ActionConfig;
+  @property({ attribute: false }) public config?: ActionConfig;
 
-  @property() public label?: string;
+  @property({ attribute: false }) public label?: string;
 
-  @property() public actions?: UiAction[];
+  @property({ attribute: false }) public actions?: UiAction[];
 
-  @property() public tooltipText?: string;
+  @property({ attribute: false }) public defaultAction?: UiAction;
 
-  @property() protected hass?: HomeAssistant;
+  @property({ attribute: false }) public tooltipText?: string;
+
+  @property({ attribute: false }) public hass?: HomeAssistant;
+
+  @query("ha-select") private _select!: HaSelect;
 
   get _navigation_path(): string {
     const config = this.config as NavigateActionConfig | undefined;
@@ -86,18 +95,27 @@ export class HuiActionEditor extends LitElement {
 
   get _service(): string {
     const config = this.config as CallServiceActionConfig;
-    return config?.service || "";
+    return config?.perform_action || config?.service || "";
   }
 
   private _serviceAction = memoizeOne(
     (config: CallServiceActionConfig): ServiceAction => ({
-      service: this._service,
+      action: this._service,
       ...(config.data || config.service_data
         ? { data: config.data ?? config.service_data }
         : null),
       target: config.target,
     })
   );
+
+  protected updated(changedProperties: PropertyValues<typeof this>) {
+    super.updated(changedProperties);
+    if (changedProperties.has("defaultAction")) {
+      if (changedProperties.get("defaultAction") !== this.defaultAction) {
+        this._select.layoutOptions();
+      }
+    }
+  }
 
   protected render() {
     if (!this.hass) {
@@ -106,13 +124,19 @@ export class HuiActionEditor extends LitElement {
 
     const actions = this.actions ?? DEFAULT_ACTIONS;
 
+    let action = this.config?.action || "default";
+
+    if (action === "call-service") {
+      action = "perform-action";
+    }
+
     return html`
       <div class="dropdown">
         <ha-select
           .label=${this.label}
           .configValue=${"action"}
           @selected=${this._actionPicked}
-          .value=${this.config?.action ?? "default"}
+          .value=${action}
           @closed=${stopPropagation}
           fixedMenuPosition
           naturalMenuWidt
@@ -121,12 +145,17 @@ export class HuiActionEditor extends LitElement {
             ${this.hass!.localize(
               "ui.panel.lovelace.editor.action-editor.actions.default_action"
             )}
+            ${this.defaultAction
+              ? ` (${this.hass!.localize(
+                  `ui.panel.lovelace.editor.action-editor.actions.${this.defaultAction}`
+                ).toLowerCase()})`
+              : nothing}
           </mwc-list-item>
           ${actions.map(
-            (action) => html`
-              <mwc-list-item .value=${action}>
+            (actn) => html`
+              <mwc-list-item .value=${actn}>
                 ${this.hass!.localize(
-                  `ui.panel.lovelace.editor.action-editor.actions.${action}`
+                  `ui.panel.lovelace.editor.action-editor.actions.${actn}`
                 )}
               </mwc-list-item>
             `
@@ -162,7 +191,8 @@ export class HuiActionEditor extends LitElement {
             ></ha-textfield>
           `
         : nothing}
-      ${this.config?.action === "call-service"
+      ${this.config?.action === "call-service" ||
+      this.config?.action === "perform-action"
         ? html`
             <ha-service-control
               .hass=${this.hass}
@@ -193,8 +223,15 @@ export class HuiActionEditor extends LitElement {
     if (!this.hass) {
       return;
     }
+    let action = this.config?.action;
+
+    if (action === "call-service") {
+      action = "perform-action";
+    }
+
     const value = ev.target.value;
-    if (this.config?.action === value) {
+
+    if (action === value) {
       return;
     }
     if (value === "default") {
@@ -208,8 +245,8 @@ export class HuiActionEditor extends LitElement {
         data = { url_path: this._url_path };
         break;
       }
-      case "call-service": {
-        data = { service: this._service };
+      case "perform-action": {
+        data = { perform_action: this._service };
         break;
       }
       case "navigate": {
@@ -259,7 +296,8 @@ export class HuiActionEditor extends LitElement {
     ev.stopPropagation();
     const value = {
       ...this.config!,
-      service: ev.detail.value.service || "",
+      action: "perform-action",
+      perform_action: ev.detail.value.action || "",
       data: ev.detail.value.data,
       target: ev.detail.value.target || {},
     };
@@ -270,49 +308,50 @@ export class HuiActionEditor extends LitElement {
     if ("service_data" in value) {
       delete value.service_data;
     }
+    if ("service" in value) {
+      delete value.service;
+    }
 
     fireEvent(this, "value-changed", { value });
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      .dropdown {
-        position: relative;
-      }
-      ha-help-tooltip {
-        position: absolute;
-        right: 40px;
-        top: 16px;
-        inset-inline-start: initial;
-        inset-inline-end: 40px;
-        direction: var(--direction);
-      }
-      ha-select,
-      ha-textfield {
-        width: 100%;
-      }
-      ha-service-control,
-      ha-navigation-picker,
-      ha-form {
-        display: block;
-      }
-      ha-textfield,
-      ha-service-control,
-      ha-navigation-picker,
-      ha-form {
-        margin-top: 8px;
-      }
-      ha-service-control {
-        --service-control-padding: 0;
-      }
-      ha-formfield {
-        display: flex;
-        height: 56px;
-        align-items: center;
-        --mdc-typography-body2-font-size: 1em;
-      }
-    `;
-  }
+  static styles = css`
+    .dropdown {
+      position: relative;
+    }
+    ha-help-tooltip {
+      position: absolute;
+      right: 40px;
+      top: 16px;
+      inset-inline-start: initial;
+      inset-inline-end: 40px;
+      direction: var(--direction);
+    }
+    ha-select,
+    ha-textfield {
+      width: 100%;
+    }
+    ha-service-control,
+    ha-navigation-picker,
+    ha-form {
+      display: block;
+    }
+    ha-textfield,
+    ha-service-control,
+    ha-navigation-picker,
+    ha-form {
+      margin-top: 8px;
+    }
+    ha-service-control {
+      --service-control-padding: 0;
+    }
+    ha-formfield {
+      display: flex;
+      height: 56px;
+      align-items: center;
+      --mdc-typography-body2-font-size: 1em;
+    }
+  `;
 }
 
 declare global {

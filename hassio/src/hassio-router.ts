@@ -1,12 +1,10 @@
 import { customElement, property } from "lit/decorators";
 import memoizeOne from "memoize-one";
-import { HassioPanelInfo } from "../../src/data/hassio/supervisor";
-import { Supervisor } from "../../src/data/supervisor/supervisor";
-import {
-  HassRouterPage,
-  RouterOptions,
-} from "../../src/layouts/hass-router-page";
-import { HomeAssistant } from "../../src/types";
+import type { HassioPanelInfo } from "../../src/data/hassio/supervisor";
+import type { Supervisor } from "../../src/data/supervisor/supervisor";
+import type { RouterOptions } from "../../src/layouts/hass-router-page";
+import { HassRouterPage } from "../../src/layouts/hass-router-page";
+import type { HomeAssistant } from "../../src/types";
 // Don't codesplit it, that way the dashboard always loads fast.
 import "./hassio-panel";
 
@@ -18,7 +16,7 @@ class HassioRouter extends HassRouterPage {
 
   @property({ attribute: false }) public panel!: HassioPanelInfo;
 
-  @property({ type: Boolean }) public narrow!: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
   protected routerOptions: RouterOptions = {
     // Hass.io has a page with tabs, so we route all non-matching routes to it.
@@ -67,8 +65,8 @@ class HassioRouter extends HassRouterPage {
     const route = hassioPanel
       ? this.route
       : ingressPanel && this.panel.config?.ingress
-      ? this._ingressRoute(this.panel.config?.ingress)
-      : this.routeTail;
+        ? this._ingressRoute(this.panel.config?.ingress)
+        : this.routeTail;
 
     el.hass = this.hass;
     el.narrow = this.narrow;

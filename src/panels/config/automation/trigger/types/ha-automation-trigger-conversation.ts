@@ -1,14 +1,15 @@
 import { mdiClose } from "@mdi/js";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query } from "lit/decorators";
 import { ensureArray } from "../../../../../common/array/ensure-array";
 import { fireEvent } from "../../../../../common/dom/fire_event";
 import "../../../../../components/ha-textfield";
 import type { HaTextField } from "../../../../../components/ha-textfield";
-import { ConversationTrigger } from "../../../../../data/automation";
+import "../../../../../components/ha-icon-button";
+import type { ConversationTrigger } from "../../../../../data/automation";
 import { showConfirmationDialog } from "../../../../../dialogs/generic/show-dialog-box";
-import { HomeAssistant } from "../../../../../types";
-import { TriggerElement } from "../ha-automation-trigger-row";
+import type { HomeAssistant } from "../../../../../types";
+import type { TriggerElement } from "../ha-automation-trigger-row";
 
 const PATTERN = "^[^.。,，?¿？؟!！;；:：]+$";
 
@@ -25,8 +26,8 @@ export class HaConversationTrigger
 
   @query("#option_input", true) private _optionInput?: HaTextField;
 
-  public static get defaultConfig(): Omit<ConversationTrigger, "platform"> {
-    return { command: "" };
+  public static get defaultConfig(): ConversationTrigger {
+    return { trigger: "conversation", command: "" };
   }
 
   protected render() {
@@ -143,45 +144,45 @@ export class HaConversationTrigger
     });
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      .layout {
-        display: flex;
-        flex-direction: row;
-        flex-wrap: nowrap;
-        align-items: center;
-        justify-content: flex-start;
-      }
-      .option {
-        margin-top: 4px;
-      }
-      mwc-button {
-        margin-left: 8px;
-      }
-      ha-textfield {
-        display: block;
-        margin-bottom: 8px;
-        --textfield-icon-trailing-padding: 0;
-      }
-      ha-textfield > ha-icon-button {
-        position: relative;
-        right: -8px;
-        --mdc-icon-button-size: 36px;
-        --mdc-icon-size: 20px;
-        color: var(--secondary-text-color);
-        inset-inline-start: initial;
-        inset-inline-end: -8px;
-        direction: var(--direction);
-      }
-      #option_input {
-        margin-top: 8px;
-      }
-      .header {
-        margin-top: 8px;
-        margin-bottom: 8px;
-      }
-    `;
-  }
+  static styles = css`
+    .layout {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: nowrap;
+      align-items: center;
+      justify-content: flex-start;
+    }
+    .option {
+      margin-top: 4px;
+    }
+    mwc-button {
+      margin-left: 8px;
+      margin-inline-start: 8px;
+      margin-inline-end: initial;
+    }
+    ha-textfield {
+      display: block;
+      margin-bottom: 8px;
+      --textfield-icon-trailing-padding: 0;
+    }
+    ha-textfield > ha-icon-button {
+      position: relative;
+      right: -8px;
+      --mdc-icon-button-size: 36px;
+      --mdc-icon-size: 20px;
+      color: var(--secondary-text-color);
+      inset-inline-start: initial;
+      inset-inline-end: -8px;
+      direction: var(--direction);
+    }
+    #option_input {
+      margin-top: 8px;
+    }
+    .header {
+      margin-top: 8px;
+      margin-bottom: 8px;
+    }
+  `;
 }
 
 declare global {

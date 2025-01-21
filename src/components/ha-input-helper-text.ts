@@ -1,4 +1,5 @@
-import { css, html, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement } from "lit/decorators";
 
 @customElement("ha-input-helper-text")
@@ -14,6 +15,8 @@ class InputHelperText extends LitElement {
       font-size: 0.75rem;
       padding-left: 16px;
       padding-right: 16px;
+      padding-inline-start: 16px;
+      padding-inline-end: 16px;
     }
   `;
 }

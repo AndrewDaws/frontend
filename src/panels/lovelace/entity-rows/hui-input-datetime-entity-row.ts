@@ -1,11 +1,5 @@
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  PropertyValues,
-  nothing,
-} from "lit";
+import type { PropertyValues } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { computeStateName } from "../../../common/entity/compute_state_name";
 import "../../../components/ha-date-input";
@@ -85,8 +79,8 @@ class HuiInputDatetimeEntityRow extends LitElement implements LovelaceRow {
                   .value=${stateObj.state === UNKNOWN
                     ? ""
                     : stateObj.attributes.has_date
-                    ? stateObj.state.split(" ")[1]
-                    : stateObj.state}
+                      ? stateObj.state.split(" ")[1]
+                      : stateObj.state}
                   .locale=${this.hass.locale}
                   .disabled=${isUnavailableState(stateObj.state)}
                   @value-changed=${this._timeChanged}
@@ -124,21 +118,19 @@ class HuiInputDatetimeEntityRow extends LitElement implements LovelaceRow {
     );
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      ha-date-input + ha-time-input {
-        margin-left: 4px;
-        margin-inline-start: 4px;
-        margin-inline-end: initial;
-        direction: var(--direction);
-      }
-      div.both {
-        display: flex;
-        justify-content: flex-end;
-        width: 100%;
-      }
-    `;
-  }
+  static styles = css`
+    ha-date-input + ha-time-input {
+      margin-left: 4px;
+      margin-inline-start: 4px;
+      margin-inline-end: initial;
+      direction: var(--direction);
+    }
+    div.both {
+      display: flex;
+      justify-content: flex-end;
+      width: 100%;
+    }
+  `;
 }
 
 declare global {

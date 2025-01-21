@@ -2,11 +2,11 @@ import {
   applyThemesOnElement,
   invalidateThemeCache,
 } from "../common/dom/apply_themes_on_element";
-import { HASSDomEvent } from "../common/dom/fire_event";
+import type { HASSDomEvent } from "../common/dom/fire_event";
 import { subscribeThemes } from "../data/ws-themes";
-import { Constructor, HomeAssistant } from "../types";
+import type { Constructor, HomeAssistant } from "../types";
 import { storeState } from "../util/ha-pref-storage";
-import { HassBaseEl } from "./hass-base-mixin";
+import type { HassBaseEl } from "./hass-base-mixin";
 
 declare global {
   // for add event listener
@@ -71,16 +71,27 @@ export default <T extends Constructor<HassBaseEl>>(superClass: T) =>
       }
 
       let themeSettings: Partial<HomeAssistant["selectedTheme"]> =
-        this.hass!.selectedTheme;
+        this.hass.config.recovery_mode || this.hass.config.safe_mode
+          ? {
+              ...this.hass.selectedTheme,
+              theme: "default",
+              primaryColor: this.hass.config.recovery_mode
+                ? "#db4437"
+                : "#e48629",
+              accentColor: this.hass.config.recovery_mode
+                ? "#ffca28"
+                : "#db4437",
+            }
+          : this.hass.selectedTheme;
+
+      let darkMode =
+        themeSettings?.dark === undefined ? darkPreferred : themeSettings.dark;
 
       const themeName =
         themeSettings?.theme ||
-        (darkPreferred && this.hass.themes.default_dark_theme
+        (darkMode && this.hass.themes.default_dark_theme
           ? this.hass.themes.default_dark_theme
           : this.hass.themes.default_theme);
-
-      let darkMode =
-        themeSettings?.dark === undefined ? darkPreferred : themeSettings?.dark;
 
       const selectedTheme = themeName
         ? this.hass.themes.themes[themeName]
@@ -90,7 +101,7 @@ export default <T extends Constructor<HassBaseEl>>(superClass: T) =>
         darkMode = false;
       }
 
-      themeSettings = { ...this.hass.selectedTheme, dark: darkMode };
+      themeSettings = { ...themeSettings, dark: darkMode };
       this._updateHass({
         themes: { ...this.hass.themes!, theme: themeName },
       });
@@ -119,9 +130,8 @@ export default <T extends Constructor<HassBaseEl>>(superClass: T) =>
 
       const themeMeta = document.querySelector("meta[name=theme-color]");
       const computedStyles = getComputedStyle(document.documentElement);
-      const headerColor = computedStyles.getPropertyValue(
-        "--app-header-background-color"
-      );
+      const themeMetaColor =
+        computedStyles.getPropertyValue("--app-theme-color");
 
       document.documentElement.style.backgroundColor =
         computedStyles.getPropertyValue("--primary-background-color");
@@ -134,7 +144,7 @@ export default <T extends Constructor<HassBaseEl>>(superClass: T) =>
           );
         }
         const themeColor =
-          headerColor?.trim() ||
+          themeMetaColor?.trim() ||
           (themeMeta.getAttribute("default-content") as string);
         themeMeta.setAttribute("content", themeColor);
       }

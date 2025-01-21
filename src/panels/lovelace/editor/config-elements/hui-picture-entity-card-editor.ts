@@ -1,4 +1,5 @@
-import { CSSResultGroup, html, LitElement, nothing } from "lit";
+import type { CSSResultGroup } from "lit";
+import { html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { assert, assign, boolean, object, optional, string } from "superstruct";
 import { fireEvent } from "../../../../common/dom/fire_event";
@@ -32,7 +33,7 @@ const cardConfigStruct = assign(
 const SCHEMA = [
   { name: "entity", required: true, selector: { entity: {} } },
   { name: "name", selector: { text: {} } },
-  { name: "image", selector: { text: {} } },
+  { name: "image", selector: { image: {} } },
   { name: "camera_image", selector: { entity: { domain: "camera" } } },
   {
     name: "",

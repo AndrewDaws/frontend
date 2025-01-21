@@ -1,5 +1,6 @@
-import { ActionConfig, LovelaceConfig } from "../../../data/lovelace";
-import { HomeAssistant } from "../../../types";
+import type { ActionConfig } from "../../../data/lovelace/config/action";
+import type { LovelaceConfig } from "../../../data/lovelace/config/types";
+import type { HomeAssistant } from "../../../types";
 
 export const EXCLUDED_DOMAINS = ["zone", "persistent_notification"];
 
@@ -19,12 +20,15 @@ const addFromAction = (entities: Set<string>, actionConfig: ActionConfig) => {
   if (!Array.isArray(entityIds)) {
     entityIds = [entityIds];
   }
-  for (const entityId of entityIds as Array<string>) {
+  for (const entityId of entityIds as string[]) {
     entities.add(entityId);
   }
 };
 
 const addEntityId = (entities: Set<string>, entity) => {
+  if (!entity) {
+    return;
+  }
   if (typeof entity === "string") {
     entities.add(entity);
     return;
@@ -63,11 +67,16 @@ const addEntities = (entities: Set<string>, obj) => {
   if (obj.badges && Array.isArray(obj.badges)) {
     obj.badges.forEach((badge) => addEntityId(entities, badge));
   }
+  if (obj.sections && Array.isArray(obj.sections)) {
+    obj.sections.forEach((section) => addEntities(entities, section));
+  }
 };
 
 export const computeUsedEntities = (config: LovelaceConfig): Set<string> => {
   const entities = new Set<string>();
-  config.views.forEach((view) => addEntities(entities, view));
+  config.views.forEach((view) => {
+    addEntities(entities, view);
+  });
   return entities;
 };
 
@@ -75,7 +84,7 @@ export const calcUnusedEntities = (
   hass: HomeAssistant,
   usedEntities: Set<string>
 ): Set<string> => {
-  const unusedEntities: Set<string> = new Set();
+  const unusedEntities = new Set<string>();
 
   for (const entity of Object.keys(hass.states)) {
     if (

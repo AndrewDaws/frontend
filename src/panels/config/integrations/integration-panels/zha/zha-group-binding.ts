@@ -1,28 +1,21 @@
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  PropertyValues,
-  TemplateResult,
-} from "lit";
+import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property, state, query } from "lit/decorators";
 import type { HASSDomEvent } from "../../../../../common/dom/fire_event";
 import { stopPropagation } from "../../../../../common/dom/stop_propagation";
 import "../../../../../components/buttons/ha-progress-button";
-import { SelectionChangedEvent } from "../../../../../components/data-table/ha-data-table";
+import type { SelectionChangedEvent } from "../../../../../components/data-table/ha-data-table";
 import "../../../../../components/ha-card";
+import "../../../../../components/ha-select";
+import type { Cluster, ZHADevice, ZHAGroup } from "../../../../../data/zha";
 import {
   bindDeviceToGroup,
-  Cluster,
   fetchClustersForZhaDevice,
   unbindDeviceFromGroup,
-  ZHADevice,
-  ZHAGroup,
 } from "../../../../../data/zha";
 import { haStyle } from "../../../../../resources/styles";
 import type { HomeAssistant } from "../../../../../types";
-import { ItemSelectedEvent } from "./types";
+import type { ItemSelectedEvent } from "./types";
 import "./zha-clusters-data-table";
 import type { ZHAClustersDataTable } from "./zha-clusters-data-table";
 import "@material/mwc-list/mwc-list-item";
@@ -31,7 +24,7 @@ import "@material/mwc-list/mwc-list-item";
 export class ZHAGroupBindingControl extends LitElement {
   @property({ attribute: false }) public hass?: HomeAssistant;
 
-  @property() public device?: ZHADevice;
+  @property({ attribute: false }) public device?: ZHADevice;
 
   @state() private _bindTargetIndex = -1;
 
@@ -137,7 +130,7 @@ export class ZHAGroupBindingControl extends LitElement {
         );
         this._zhaClustersDataTable.clearSelection();
         button.actionSuccess();
-      } catch (err: any) {
+      } catch (_err: any) {
         button.actionError();
       } finally {
         this._bindingOperationInProgress = false;
@@ -160,7 +153,7 @@ export class ZHAGroupBindingControl extends LitElement {
         );
         this._zhaClustersDataTable.clearSelection();
         button.actionSuccess();
-      } catch (err: any) {
+      } catch (_err: any) {
         button.actionError();
       } finally {
         this._bindingOperationInProgress = false;
@@ -216,12 +209,16 @@ export class ZHAGroupBindingControl extends LitElement {
           align-items: center;
           padding-left: 28px;
           padding-right: 28px;
+          padding-inline-start: 28px;
+          padding-inline-end: 28px;
           padding-bottom: 10px;
         }
 
         .input-text {
           padding-left: 28px;
           padding-right: 28px;
+          padding-inline-start: 28px;
+          padding-inline-end: 28px;
           padding-bottom: 10px;
         }
 

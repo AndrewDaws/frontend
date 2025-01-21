@@ -1,14 +1,15 @@
-import { html, LitElement, PropertyValues, nothing } from "lit";
+import type { PropertyValues } from "lit";
+import { html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import "../../../../../components/ha-code-editor";
-import { ZHADevice } from "../../../../../data/zha";
-import { HomeAssistant } from "../../../../../types";
+import type { ZHADevice } from "../../../../../data/zha";
+import type { HomeAssistant } from "../../../../../types";
 
 @customElement("zha-device-zigbee-info")
 class ZHADeviceZigbeeInfo extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public device: ZHADevice | undefined;
+  @property({ attribute: false }) public device?: ZHADevice;
 
   @state() private _signature: any;
 

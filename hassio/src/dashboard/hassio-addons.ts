@@ -1,5 +1,6 @@
 import { mdiArrowUpBoldCircle, mdiPuzzle } from "@mdi/js";
-import { css, CSSResultGroup, html, LitElement, TemplateResult } from "lit";
+import type { CSSResultGroup, TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { atLeastVersion } from "../../../src/common/config/version";
@@ -7,10 +8,10 @@ import { navigate } from "../../../src/common/navigate";
 import { caseInsensitiveStringCompare } from "../../../src/common/string/compare";
 import "../../../src/components/ha-card";
 import "../../../src/components/search-input";
-import { HassioAddonInfo } from "../../../src/data/hassio/addon";
-import { Supervisor } from "../../../src/data/supervisor/supervisor";
+import type { HassioAddonInfo } from "../../../src/data/hassio/addon";
+import type { Supervisor } from "../../../src/data/supervisor/supervisor";
 import { haStyle } from "../../../src/resources/styles";
-import { HomeAssistant } from "../../../src/types";
+import type { HomeAssistant } from "../../../src/types";
 import "../components/hassio-card-content";
 import { hassioStyle } from "../resources/hassio-style";
 
@@ -20,7 +21,7 @@ class HassioAddons extends LitElement {
 
   @property({ attribute: false }) public supervisor!: Supervisor;
 
-  @property({ type: Boolean }) public narrow!: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
   @state() private _filter?: string;
 
@@ -68,17 +69,19 @@ class HassioAddons extends LitElement {
                         .iconTitle=${addon.state !== "started"
                           ? this.supervisor.localize("dashboard.addon_stopped")
                           : addon.update_available!
-                          ? this.supervisor.localize(
-                              "dashboard.addon_new_version"
-                            )
-                          : this.supervisor.localize("dashboard.addon_running")}
+                            ? this.supervisor.localize(
+                                "dashboard.addon_new_version"
+                              )
+                            : this.supervisor.localize(
+                                "dashboard.addon_running"
+                              )}
                         .iconClass=${addon.update_available
                           ? addon.state === "started"
                             ? "update"
                             : "update stopped"
                           : addon.state === "started"
-                          ? "running"
-                          : "stopped"}
+                            ? "running"
+                            : "stopped"}
                         .iconImage=${atLeastVersion(
                           this.hass.config.version,
                           0,
@@ -126,6 +129,7 @@ class HassioAddons extends LitElement {
         ha-card {
           cursor: pointer;
           overflow: hidden;
+          direction: ltr;
         }
         .search {
           position: sticky;

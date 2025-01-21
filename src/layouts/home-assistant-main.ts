@@ -1,21 +1,15 @@
-/* eslint-disable lit/prefer-static-styles */
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  PropertyValues,
-  TemplateResult,
-} from "lit";
+import type { PropertyValues, TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators";
-import { fireEvent, HASSDomEvent } from "../common/dom/fire_event";
+import type { HASSDomEvent } from "../common/dom/fire_event";
+import { fireEvent } from "../common/dom/fire_event";
 import { listenMediaQuery } from "../common/dom/media_query";
 import { toggleAttribute } from "../common/dom/toggle_attribute";
-import { computeRTLDirection } from "../common/util/compute_rtl";
 import "../components/ha-drawer";
 import { showNotificationDrawer } from "../dialogs/notifications/show-notification-drawer";
 import type { HomeAssistant, Route } from "../types";
 import "./partial-panel-resolver";
+import { computeRTLDirection } from "../common/util/compute_rtl";
 
 declare global {
   // for fire event
@@ -38,9 +32,9 @@ interface EditSideBarEvent {
 export class HomeAssistantMain extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public route?: Route;
+  @property({ attribute: false }) public route?: Route;
 
-  @property({ type: Boolean }) public narrow!: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
   @state() private _sidebarEditMode = false;
 
@@ -127,10 +121,10 @@ export class HomeAssistantMain extends LitElement {
           dock: ev.detail?.open
             ? "docked"
             : ev.detail?.open === false
-            ? "auto"
-            : this.hass.dockedSidebar === "auto"
-            ? "docked"
-            : "auto",
+              ? "auto"
+              : this.hass.dockedSidebar === "auto"
+                ? "docked"
+                : "auto",
         });
       }
     });
@@ -169,29 +163,27 @@ export class HomeAssistantMain extends LitElement {
     this._sidebarEditMode = false;
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host {
-        color: var(--primary-text-color);
-        /* remove the grey tap highlights in iOS on the fullscreen touch targets */
-        -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
-        --mdc-drawer-width: 56px;
-        --mdc-top-app-bar-width: calc(100% - var(--mdc-drawer-width));
-      }
-      :host([expanded]) {
-        --mdc-drawer-width: calc(256px + env(safe-area-inset-left));
-      }
-      :host([modal]) {
-        --mdc-drawer-width: unset;
-        --mdc-top-app-bar-width: unset;
-      }
-      partial-panel-resolver,
-      ha-sidebar {
-        /* allow a light tap highlight on the actual interface elements  */
-        -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
-      }
-    `;
-  }
+  static styles = css`
+    :host {
+      color: var(--primary-text-color);
+      /* remove the grey tap highlights in iOS on the fullscreen touch targets */
+      -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+      --mdc-drawer-width: 56px;
+      --mdc-top-app-bar-width: calc(100% - var(--mdc-drawer-width));
+    }
+    :host([expanded]) {
+      --mdc-drawer-width: calc(256px + env(safe-area-inset-left));
+    }
+    :host([modal]) {
+      --mdc-drawer-width: unset;
+      --mdc-top-app-bar-width: unset;
+    }
+    partial-panel-resolver,
+    ha-sidebar {
+      /* allow a light tap highlight on the actual interface elements  */
+      -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+    }
+  `;
 }
 
 declare global {

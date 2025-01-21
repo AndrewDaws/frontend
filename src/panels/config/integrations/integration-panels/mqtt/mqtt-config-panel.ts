@@ -1,5 +1,6 @@
 import "@material/mwc-button";
-import { css, CSSResultGroup, html, LitElement, TemplateResult } from "lit";
+import type { CSSResultGroup, TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
 import { storage } from "../../../../../common/decorators/storage";
 import "../../../../../components/ha-card";
@@ -10,16 +11,16 @@ import { getConfigEntries } from "../../../../../data/config_entries";
 import { showOptionsFlowDialog } from "../../../../../dialogs/config-flow/show-dialog-options-flow";
 import "../../../../../layouts/hass-subpage";
 import { haStyle } from "../../../../../resources/styles";
-import { HomeAssistant } from "../../../../../types";
+import type { HomeAssistant } from "../../../../../types";
 import "./mqtt-subscribe-card";
 
 const qosLevel = ["0", "1", "2"];
 
 @customElement("mqtt-config-panel")
-class HaPanelDevMqtt extends LitElement {
+export class MQTTConfigPanel extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property({ type: Boolean }) public narrow!: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
   @storage({
     key: "panel-dev-mqtt-topic-ls",
@@ -66,7 +67,7 @@ class HaPanelDevMqtt extends LitElement {
             <div class="card-actions">
               <mwc-button @click=${this._openOptionFlow}
                 >${this.hass.localize(
-                  "ui.panel.config.mqtt.reconfigure"
+                  "ui.panel.config.mqtt.option_flow"
                 )}</mwc-button
               >
             </div>
@@ -227,6 +228,8 @@ class HaPanelDevMqtt extends LitElement {
         @media screen and (max-width: 600px) {
           ha-select {
             margin-left: 0px;
+            margin-inline-start: 0px;
+            margin-inline-end: initial;
             margin-top: 8px;
           }
           ha-textfield {
@@ -248,6 +251,6 @@ class HaPanelDevMqtt extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    "developer-tools-mqtt": HaPanelDevMqtt;
+    "mqtt-config-panel": MQTTConfigPanel;
   }
 }

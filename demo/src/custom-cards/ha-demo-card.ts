@@ -1,17 +1,21 @@
-import "@material/mwc-button";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import type { CSSResultGroup } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { until } from "lit/directives/until";
+import { fireEvent } from "../../../src/common/dom/fire_event";
 import "../../../src/components/ha-card";
+import "../../../src/components/ha-button";
 import "../../../src/components/ha-circular-progress";
-import { LovelaceCardConfig } from "../../../src/data/lovelace";
-import { MockHomeAssistant } from "../../../src/fake_data/provide_hass";
-import { Lovelace, LovelaceCard } from "../../../src/panels/lovelace/types";
+import type { LovelaceCardConfig } from "../../../src/data/lovelace/config/card";
+import type { MockHomeAssistant } from "../../../src/fake_data/provide_hass";
+import type {
+  Lovelace,
+  LovelaceCard,
+} from "../../../src/panels/lovelace/types";
 import {
   demoConfigs,
   selectedDemoConfig,
   selectedDemoConfigIndex,
-  setDemoConfig,
 } from "../configs/demo-configs";
 
 @customElement("ha-demo-card")
@@ -22,12 +26,13 @@ export class HADemoCard extends LitElement implements LovelaceCard {
 
   @state() private _switching = false;
 
-  private _hidden = localStorage.hide_demo_card;
+  private _hidden = window.localStorage.getItem("hide_demo_card");
 
   public getCardSize() {
     return this._hidden ? 0 : 2;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   public setConfig(_config: LovelaceCardConfig) {}
 
   protected render() {
@@ -39,37 +44,57 @@ export class HADemoCard extends LitElement implements LovelaceCard {
         <div class="picker">
           <div class="label">
             ${this._switching
-              ? html`<ha-circular-progress active></ha-circular-progress>`
+              ? html`
+                  <ha-circular-progress indeterminate></ha-circular-progress>
+                `
               : until(
                   selectedDemoConfig.then(
                     (conf) => html`
                       ${conf.name}
                       <small>
-                        <a target="_blank" href=${conf.authorUrl}>
-                          ${this.hass.localize(
-                            "ui.panel.page-demo.cards.demo.demo_by",
-                            "name",
-                            conf.authorName
-                          )}
-                        </a>
+                        ${this.hass.localize(
+                          "ui.panel.page-demo.cards.demo.demo_by",
+                          {
+                            name: html`
+                              <a target="_blank" href=${conf.authorUrl}>
+                                ${conf.authorName}
+                              </a>
+                            `,
+                          }
+                        )}
                       </small>
                     `
                   ),
                   ""
                 )}
           </div>
-          <mwc-button @click=${this._nextConfig} .disabled=${this._switching}>
+
+          <ha-button @click=${this._nextConfig} .disabled=${this._switching}>
             ${this.hass.localize("ui.panel.page-demo.cards.demo.next_demo")}
-          </mwc-button>
+          </ha-button>
         </div>
-        <div class="content small-hidden">
-          ${this.hass.localize("ui.panel.page-demo.cards.demo.introduction")}
+        <div class="content">
+          <p class="small-hidden">
+            ${this.hass.localize("ui.panel.page-demo.cards.demo.introduction")}
+          </p>
+          ${until(
+            selectedDemoConfig.then((conf) => {
+              if (typeof conf.description === "function") {
+                return conf.description(this.hass.localize);
+              }
+              if (conf.description) {
+                return html`<p>${conf.description}</p>`;
+              }
+              return nothing;
+            }),
+            nothing
+          )}
         </div>
         <div class="actions small-hidden">
           <a href="https://www.home-assistant.io" target="_blank">
-            <mwc-button>
+            <ha-button>
               ${this.hass.localize("ui.panel.page-demo.cards.demo.learn_more")}
-            </mwc-button>
+            </ha-button>
           </a>
         </div>
       </ha-card>
@@ -93,13 +118,7 @@ export class HADemoCard extends LitElement implements LovelaceCard {
 
   private async _updateConfig(index: number) {
     this._switching = true;
-    try {
-      await setDemoConfig(this.hass, this.lovelace!, index);
-    } catch (err: any) {
-      alert("Failed to switch config :-(");
-    } finally {
-      this._switching = false;
-    }
+    fireEvent(this, "set-demo-config" as any, { index });
   }
 
   static get styles(): CSSResultGroup {
@@ -107,6 +126,7 @@ export class HADemoCard extends LitElement implements LovelaceCard {
       css`
         a {
           color: var(--primary-color);
+          display: inline-block;
         }
 
         .actions a {
@@ -114,7 +134,11 @@ export class HADemoCard extends LitElement implements LovelaceCard {
         }
 
         .content {
-          padding: 16px;
+          padding: 0 16px;
+        }
+
+        .content p {
+          margin: 16px 0;
         }
 
         .picker {
@@ -124,7 +148,7 @@ export class HADemoCard extends LitElement implements LovelaceCard {
           height: 60px;
         }
 
-        .picker mwc-button {
+        .picker ha-button {
           margin-right: 8px;
         }
 
@@ -137,9 +161,8 @@ export class HADemoCard extends LitElement implements LovelaceCard {
         }
 
         .actions {
-          padding-left: 8px;
+          padding: 0px 8px 4px 8px;
         }
-
         @media only screen and (max-width: 500px) {
           .small-hidden {
             display: none;

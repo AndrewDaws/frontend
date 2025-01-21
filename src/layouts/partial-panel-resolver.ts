@@ -1,22 +1,18 @@
-import { PolymerElement } from "@polymer/polymer";
 import {
   STATE_NOT_RUNNING,
   STATE_RUNNING,
   STATE_STARTING,
 } from "home-assistant-js-websocket";
-import { PropertyValues } from "lit";
+import type { PropertyValues } from "lit";
 import { customElement, property } from "lit/decorators";
 import { deepActiveElement } from "../common/dom/deep-active-element";
 import { deepEqual } from "../common/util/deep-equal";
 import { getDefaultPanel } from "../data/panel";
-import { CustomPanelInfo } from "../data/panel_custom";
-import { HomeAssistant, Panels } from "../types";
+import type { CustomPanelInfo } from "../data/panel_custom";
+import type { HomeAssistant, Panels } from "../types";
 import { removeLaunchScreen } from "../util/launch-screen";
-import {
-  HassRouterPage,
-  RouteOptions,
-  RouterOptions,
-} from "./hass-router-page";
+import type { RouteOptions, RouterOptions } from "./hass-router-page";
+import { HassRouterPage } from "./hass-router-page";
 
 const CACHE_URL_PATHS = ["lovelace", "developer-tools"];
 const COMPONENTS = {
@@ -30,12 +26,10 @@ const COMPONENTS = {
   history: () => import("../panels/history/ha-panel-history"),
   iframe: () => import("../panels/iframe/ha-panel-iframe"),
   logbook: () => import("../panels/logbook/ha-panel-logbook"),
-  mailbox: () => import("../panels/mailbox/ha-panel-mailbox"),
   map: () => import("../panels/map/ha-panel-map"),
   my: () => import("../panels/my/ha-panel-my"),
   profile: () => import("../panels/profile/ha-panel-profile"),
-  "shopping-list": () =>
-    import("../panels/shopping-list/ha-panel-shopping-list"),
+  todo: () => import("../panels/todo/ha-panel-todo"),
   "media-browser": () =>
     import("../panels/media-browser/ha-panel-media-browser"),
 };
@@ -100,20 +94,10 @@ class PartialPanelResolver extends HassRouterPage {
   protected updatePageEl(el) {
     const hass = this.hass;
 
-    if ("setProperties" in el) {
-      // As long as we have Polymer panels
-      (el as PolymerElement).setProperties({
-        hass: this.hass,
-        narrow: this.narrow,
-        route: this.routeTail,
-        panel: hass.panels[this._currentPage],
-      });
-    } else {
-      el.hass = hass;
-      el.narrow = this.narrow;
-      el.route = this.routeTail;
-      el.panel = hass.panels[this._currentPage];
-    }
+    el.hass = hass;
+    el.narrow = this.narrow;
+    el.route = this.routeTail;
+    el.panel = hass.panels[this._currentPage];
   }
 
   private _checkVisibility() {
@@ -128,7 +112,7 @@ class PartialPanelResolver extends HassRouterPage {
     }
   }
 
-  private getRoutes(panels: Panels): RouterOptions {
+  private _getRoutes(panels: Panels): RouterOptions {
     const routes: RouterOptions["routes"] = {};
     Object.values(panels).forEach((panel) => {
       const data: RouteOptions = {
@@ -200,7 +184,7 @@ class PartialPanelResolver extends HassRouterPage {
   }
 
   private async _updateRoutes(oldPanels?: HomeAssistant["panels"]) {
-    this.routerOptions = this.getRoutes(this.hass.panels);
+    this.routerOptions = this._getRoutes(this.hass.panels);
 
     if (
       !this._waitForStart &&

@@ -1,19 +1,14 @@
 import "@material/mwc-list/mwc-list-item";
 import "../components/ha-select";
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  TemplateResult,
-  PropertyValues,
-} from "lit";
+import type { TemplateResult, PropertyValues } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property, query } from "lit/decorators";
 import { stopPropagation } from "../common/dom/stop_propagation";
 import { computeStateName } from "../common/entity/compute_state_name";
 import "../components/entity/state-badge";
 import { UNAVAILABLE } from "../data/entity";
-import { InputSelectEntity, setInputSelectOption } from "../data/input_select";
+import type { InputSelectEntity } from "../data/input_select";
+import { setInputSelectOption } from "../data/input_select";
 import type { HomeAssistant } from "../types";
 import type { HaSelect } from "../components/ha-select";
 
@@ -21,7 +16,7 @@ import type { HaSelect } from "../components/ha-select";
 class StateCardInputSelect extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public stateObj!: InputSelectEntity;
+  @property({ attribute: false }) public stateObj!: InputSelectEntity;
 
   @query("ha-select", true) private _haSelect!: HaSelect;
 
@@ -40,7 +35,7 @@ class StateCardInputSelect extends LitElement {
 
   protected render(): TemplateResult {
     return html`
-      <state-badge .stateObj=${this.stateObj}></state-badge>
+      <state-badge .hass=${this.hass} .stateObj=${this.stateObj}></state-badge>
       <ha-select
         .label=${computeStateName(this.stateObj)}
         .value=${this.stateObj.state}
@@ -68,22 +63,20 @@ class StateCardInputSelect extends LitElement {
     await setInputSelectOption(this.hass, this.stateObj.entity_id, option);
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host {
-        display: flex;
-      }
+  static styles = css`
+    :host {
+      display: flex;
+    }
 
-      state-badge {
-        float: left;
-        margin-top: 10px;
-      }
+    state-badge {
+      float: left;
+      margin-top: 10px;
+    }
 
-      ha-select {
-        width: 100%;
-      }
-    `;
-  }
+    ha-select {
+      width: 100%;
+    }
+  `;
 }
 
 declare global {

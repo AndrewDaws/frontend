@@ -1,14 +1,14 @@
-import { css, CSSResultGroup, html, LitElement, PropertyValues } from "lit";
+import type { PropertyValues } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { fireEvent } from "../common/dom/fire_event";
 import { stopPropagation } from "../common/dom/stop_propagation";
 import { formatLanguageCode } from "../common/language/format_language";
 import { caseInsensitiveStringCompare } from "../common/string/compare";
-import { FrontendLocaleData } from "../data/translation";
-import "../resources/intl-polyfill";
+import type { FrontendLocaleData } from "../data/translation";
 import { translationMetadata } from "../resources/translations-metadata";
-import { HomeAssistant } from "../types";
+import type { HomeAssistant } from "../types";
 import "./ha-list-item";
 import "./ha-select";
 import type { HaSelect } from "./ha-select";
@@ -19,7 +19,7 @@ export class HaLanguagePicker extends LitElement {
 
   @property() public label?: string;
 
-  @property() public languages?: string[];
+  @property({ type: Array }) public languages?: string[];
 
   @property({ attribute: false }) public hass?: HomeAssistant;
 
@@ -27,9 +27,13 @@ export class HaLanguagePicker extends LitElement {
 
   @property({ type: Boolean }) public required = false;
 
-  @property({ type: Boolean }) public nativeName = false;
+  @property({ attribute: "native-name", type: Boolean })
+  public nativeName = false;
 
-  @property({ type: Boolean }) public noSort = false;
+  @property({ attribute: "no-sort", type: Boolean }) public noSort = false;
+
+  @property({ attribute: "inline-arrow", type: Boolean })
+  public inlineArrow = false;
 
   @state() _defaultLanguages: string[] = [];
 
@@ -93,7 +97,7 @@ export class HaLanguagePicker extends LitElement {
                 type: "language",
                 fallback: "code",
               }).of(lang)!;
-            } catch (err) {
+            } catch (_err) {
               label = lang;
             }
           }
@@ -144,6 +148,7 @@ export class HaLanguagePicker extends LitElement {
         @closed=${stopPropagation}
         fixedMenuPosition
         naturalMenuWidth
+        .inlineArrow=${this.inlineArrow}
       >
         ${languageOptions.length === 0
           ? html`<ha-list-item value=""
@@ -162,13 +167,11 @@ export class HaLanguagePicker extends LitElement {
     `;
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      ha-select {
-        width: 100%;
-      }
-    `;
-  }
+  static styles = css`
+    ha-select {
+      width: 100%;
+    }
+  `;
 
   private _changed(ev): void {
     const target = ev.target as HaSelect;

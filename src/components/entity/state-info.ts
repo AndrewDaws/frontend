@@ -1,9 +1,8 @@
 import "@lrnwebcomponents/simple-tooltip/simple-tooltip";
 import type { HassEntity } from "home-assistant-js-websocket";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property } from "lit/decorators";
 import { computeStateName } from "../../common/entity/compute_state_name";
-import { computeRTL } from "../../common/util/compute_rtl";
 import type { HomeAssistant } from "../../types";
 import "../ha-relative-time";
 import "./state-badge";
@@ -14,10 +13,7 @@ class StateInfo extends LitElement {
 
   @property({ attribute: false }) public stateObj?: HassEntity;
 
-  @property({ type: Boolean }) public inDialog = false;
-
-  // property used only in CSS
-  @property({ type: Boolean, reflect: true }) public rtl = false;
+  @property({ attribute: "in-dialog", type: Boolean }) public inDialog = false;
 
   @property() public color?: string;
 
@@ -29,23 +25,23 @@ class StateInfo extends LitElement {
     const name = computeStateName(this.stateObj);
 
     return html`<state-badge
+        .hass=${this.hass}
         .stateObj=${this.stateObj}
         .stateColor=${true}
         .color=${this.color}
       ></state-badge>
       <div class="info">
-        <div class="name" .title=${name} .inDialog=${this.inDialog}>
+        <div class="name ${this.inDialog ? "in-dialog" : ""}" .title=${name}>
           ${name}
         </div>
         ${this.inDialog
           ? html`<div class="time-ago">
               <ha-relative-time
-                id="last_changed"
                 .hass=${this.hass}
                 .datetime=${this.stateObj.last_changed}
                 capitalize
               ></ha-relative-time>
-              <simple-tooltip animation-delay="0" for="last_changed">
+              <simple-tooltip animation-delay="0">
                 <div>
                   <div class="row">
                     <span class="column-name">
@@ -78,77 +74,65 @@ class StateInfo extends LitElement {
       </div>`;
   }
 
-  protected updated(changedProps) {
-    super.updated(changedProps);
-    if (!changedProps.has("hass")) {
-      return;
+  static styles = css`
+    :host {
+      min-width: 120px;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
     }
 
-    const oldHass = changedProps.get("hass") as HomeAssistant | undefined;
-    if (!oldHass || oldHass.locale !== this.hass.locale) {
-      this.rtl = computeRTL(this.hass);
+    state-badge {
+      flex: none;
     }
-  }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host {
-        min-width: 120px;
-        white-space: nowrap;
-        display: flex;
-        align-items: center;
-      }
+    .info {
+      margin-left: 8px;
+      margin-inline-start: 8px;
+      margin-inline-end: initial;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      height: 100%;
+      min-width: 0;
+      text-align: var(--float-start);
+      position: relative;
+    }
 
-      .info {
-        margin-left: 8px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        height: 100%;
-        min-width: 0;
-      }
+    .name {
+      color: var(--primary-text-color);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
 
-      :host([rtl]) .info {
-        margin-right: 8px;
-        margin-left: 0;
-        text-align: right;
-      }
+    .name.in-dialog,
+    :host([secondary-line]) .name {
+      line-height: 20px;
+    }
 
-      .name {
-        color: var(--primary-text-color);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
+    .time-ago,
+    .extra-info,
+    .extra-info > * {
+      color: var(--secondary-text-color);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
 
-      .name[in-dialog],
-      :host([secondary-line]) .name {
-        line-height: 20px;
-      }
+    .row {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: no-wrap;
+      width: 100%;
+      justify-content: space-between;
+      margin: 0 2px 4px 0;
+    }
 
-      .time-ago,
-      .extra-info,
-      .extra-info > * {
-        color: var(--secondary-text-color);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      .row {
-        display: flex;
-        flex-direction: row;
-        flex-wrap: no-wrap;
-        width: 100%;
-        justify-content: space-between;
-        margin: 0 2px 4px 0;
-      }
-
-      .row:last-child {
-        margin-bottom: 0px;
-      }
-    `;
-  }
+    .row:last-child {
+      margin-bottom: 0px;
+    }
+  `;
 }
 
 declare global {

@@ -1,4 +1,4 @@
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property } from "lit/decorators";
 import type { HomeAssistant } from "../../types";
 import "./ha-form";
@@ -19,12 +19,50 @@ export class HaFormExpendable extends LitElement implements HaFormElement {
 
   @property({ type: Boolean }) public disabled = false;
 
-  @property() public computeLabel?: (
+  @property({ attribute: false }) public computeLabel?: (
     schema: HaFormSchema,
-    data?: HaFormDataContainer
+    data?: HaFormDataContainer,
+    options?: { path?: string[] }
   ) => string;
 
-  @property() public computeHelper?: (schema: HaFormSchema) => string;
+  @property({ attribute: false }) public computeHelper?: (
+    schema: HaFormSchema,
+    options?: { path?: string[] }
+  ) => string;
+
+  @property({ attribute: false }) public localizeValue?: (
+    key: string
+  ) => string;
+
+  private _renderDescription() {
+    const description = this.computeHelper?.(this.schema);
+    return description ? html`<p>${description}</p>` : nothing;
+  }
+
+  private _computeLabel = (
+    schema: HaFormSchema,
+    data?: HaFormDataContainer,
+    options?: { path?: string[] }
+  ) => {
+    if (!this.computeLabel) return this.computeLabel;
+
+    return this.computeLabel(schema, data, {
+      ...options,
+      path: [...(options?.path || []), this.schema.name],
+    });
+  };
+
+  private _computeHelper = (
+    schema: HaFormSchema,
+    options?: { path?: string[] }
+  ) => {
+    if (!this.computeHelper) return this.computeHelper;
+
+    return this.computeHelper(schema, {
+      ...options,
+      path: [...(options?.path || []), this.schema.name],
+    });
+  };
 
   protected render() {
     return html`
@@ -37,48 +75,53 @@ export class HaFormExpendable extends LitElement implements HaFormElement {
           ${this.schema.icon
             ? html` <ha-icon .icon=${this.schema.icon}></ha-icon> `
             : this.schema.iconPath
-            ? html` <ha-svg-icon .path=${this.schema.iconPath}></ha-svg-icon> `
-            : nothing}
-          ${this.schema.title}
+              ? html`
+                  <ha-svg-icon .path=${this.schema.iconPath}></ha-svg-icon>
+                `
+              : nothing}
+          ${this.schema.title || this.computeLabel?.(this.schema)}
         </div>
         <div class="content">
+          ${this._renderDescription()}
           <ha-form
             .hass=${this.hass}
             .data=${this.data}
             .schema=${this.schema.schema}
             .disabled=${this.disabled}
-            .computeLabel=${this.computeLabel}
-            .computeHelper=${this.computeHelper}
+            .computeLabel=${this._computeLabel}
+            .computeHelper=${this._computeHelper}
+            .localizeValue=${this.localizeValue}
           ></ha-form>
         </div>
       </ha-expansion-panel>
     `;
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host {
-        display: flex !important;
-        flex-direction: column;
-      }
-      :host ha-form {
-        display: block;
-      }
-      .content {
-        padding: 12px;
-      }
-      ha-expansion-panel {
-        display: block;
-        --expansion-panel-content-padding: 0;
-        border-radius: 6px;
-        --ha-card-border-radius: 6px;
-      }
-      ha-svg-icon,
-      ha-icon {
-        color: var(--secondary-text-color);
-      }
-    `;
-  }
+  static styles = css`
+    :host {
+      display: flex !important;
+      flex-direction: column;
+    }
+    :host ha-form {
+      display: block;
+    }
+    .content {
+      padding: 12px;
+    }
+    .content p {
+      margin: 0 0 24px;
+    }
+    ha-expansion-panel {
+      display: block;
+      --expansion-panel-content-padding: 0;
+      border-radius: 6px;
+      --ha-card-border-radius: 6px;
+    }
+    ha-svg-icon,
+    ha-icon {
+      color: var(--secondary-text-color);
+    }
+  `;
 }
 
 declare global {

@@ -1,4 +1,4 @@
-import { Auth } from "home-assistant-js-websocket";
+import type { Auth } from "home-assistant-js-websocket";
 import { fetchWithAuth } from "./fetch-with-auth";
 
 export const handleFetchPromise = async <T>(
@@ -8,8 +8,8 @@ export const handleFetchPromise = async <T>(
 
   try {
     response = await fetchPromise;
-  } catch (err: any) {
-    // eslint-disable-next-line @typescript-eslint/no-throw-literal
+  } catch (_err: any) {
+    // eslint-disable-next-line no-throw-literal
     throw {
       error: "Request error",
       status_code: undefined,
@@ -25,7 +25,7 @@ export const handleFetchPromise = async <T>(
     try {
       body = await response.json();
     } catch (err: any) {
-      // eslint-disable-next-line @typescript-eslint/no-throw-literal
+      // eslint-disable-next-line no-throw-literal
       throw {
         error: "Unable to parse JSON response",
         status_code: err.status,
@@ -37,7 +37,7 @@ export const handleFetchPromise = async <T>(
   }
 
   if (!response.ok) {
-    // eslint-disable-next-line @typescript-eslint/no-throw-literal
+    // eslint-disable-next-line no-throw-literal
     throw {
       error: `Response error: ${response.status}`,
       status_code: response.status,
@@ -69,4 +69,29 @@ export default async function hassCallApi<T>(
   }
 
   return handleFetchPromise<T>(fetchWithAuth(auth, url, init));
+}
+
+export async function hassCallApiRaw(
+  auth: Auth,
+  method: string,
+  path: string,
+  parameters?: Record<string, unknown>,
+  headers?: Record<string, string>,
+  signal?: AbortSignal
+) {
+  const url = `${auth.data.hassUrl}/api/${path}`;
+
+  const init: RequestInit = {
+    method,
+    headers: headers || {},
+    signal: signal,
+  };
+
+  if (parameters) {
+    // @ts-ignore
+    init.headers["Content-Type"] = "application/json;charset=UTF-8";
+    init.body = JSON.stringify(parameters);
+  }
+
+  return fetchWithAuth(auth, url, init);
 }

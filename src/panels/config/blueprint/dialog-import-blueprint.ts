@@ -7,13 +7,11 @@ import "../../../components/ha-circular-progress";
 import { createCloseHeading } from "../../../components/ha-dialog";
 import "../../../components/ha-expansion-panel";
 import "../../../components/ha-markdown";
+import "../../../components/ha-alert";
 import "../../../components/ha-textfield";
 import type { HaTextField } from "../../../components/ha-textfield";
-import {
-  BlueprintImportResult,
-  importBlueprint,
-  saveBlueprint,
-} from "../../../data/blueprint";
+import type { BlueprintImportResult } from "../../../data/blueprint";
+import { importBlueprint, saveBlueprint } from "../../../data/blueprint";
 import { haStyleDialog } from "../../../resources/styles";
 import type { HomeAssistant } from "../../../types";
 
@@ -67,10 +65,10 @@ class DialogImportBlueprint extends LitElement {
           ${this._result
             ? html`${this.hass.localize(
                   "ui.panel.config.blueprint.add.import_header",
-                  "name",
-                  html`<b>${this._result.blueprint.metadata.name}</b>`,
-                  "domain",
-                  this._result.blueprint.metadata.domain
+                  {
+                    name: html`<b>${this._result.blueprint.metadata.name}</b>`,
+                    domain: this._result.blueprint.metadata.domain,
+                  }
                 )}
                 <br />
                 <ha-markdown
@@ -105,7 +103,21 @@ class DialogImportBlueprint extends LitElement {
                   )}
                 >
                   <pre>${this._result.raw_data}</pre>
-                </ha-expansion-panel>`
+                </ha-expansion-panel>
+                ${this._result?.exists
+                  ? html`
+                      <ha-alert
+                        alert-type="warning"
+                        .title=${this.hass.localize(
+                          "ui.panel.config.blueprint.add.override_title"
+                        )}
+                      >
+                        ${this.hass.localize(
+                          "ui.panel.config.blueprint.add.override_description"
+                        )}
+                      </ha-alert>
+                    `
+                  : nothing} `
             : html`
                 <p>
                   ${this.hass.localize(
@@ -148,9 +160,9 @@ class DialogImportBlueprint extends LitElement {
               >
                 ${this._importing
                   ? html`<ha-circular-progress
-                      active
+                      indeterminate
                       size="small"
-                      .title=${this.hass.localize(
+                      .ariaLabel=${this.hass.localize(
                         "ui.panel.config.blueprint.add.importing"
                       )}
                     ></ha-circular-progress>`
@@ -168,14 +180,20 @@ class DialogImportBlueprint extends LitElement {
               >
                 ${this._saving
                   ? html`<ha-circular-progress
-                      active
+                      indeterminate
                       size="small"
-                      .title=${this.hass.localize(
+                      .ariaLabel=${this.hass.localize(
                         "ui.panel.config.blueprint.add.saving"
                       )}
                     ></ha-circular-progress>`
                   : ""}
-                ${this.hass.localize("ui.panel.config.blueprint.add.save_btn")}
+                ${this._result.exists
+                  ? this.hass.localize(
+                      "ui.panel.config.blueprint.add.save_btn_override"
+                    )
+                  : this.hass.localize(
+                      "ui.panel.config.blueprint.add.save_btn"
+                    )}
               </mwc-button>
             `}
       </ha-dialog>
@@ -214,7 +232,8 @@ class DialogImportBlueprint extends LitElement {
         this._result!.blueprint.metadata.domain,
         filename,
         this._result!.raw_data,
-        this._result!.blueprint.metadata.source_url
+        this._result!.blueprint.metadata.source_url,
+        this._result!.exists
       );
       this._params.importedCallback();
       this.closeDialog();

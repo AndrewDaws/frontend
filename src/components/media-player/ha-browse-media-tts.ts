@@ -1,22 +1,22 @@
 import "@material/mwc-list/mwc-list-item";
-import { css, html, LitElement, nothing, PropertyValues } from "lit";
+import "@material/mwc-button/mwc-button";
+import type { PropertyValues } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { storage } from "../../common/decorators/storage";
 import { fireEvent } from "../../common/dom/fire_event";
-import {
+import type {
   MediaPlayerBrowseAction,
   MediaPlayerItem,
 } from "../../data/media-player";
-import {
-  getProviderFromTTSMediaSource,
-  getTTSEngine,
-  TTSEngine,
-} from "../../data/tts";
+import type { TTSEngine } from "../../data/tts";
+import { getProviderFromTTSMediaSource, getTTSEngine } from "../../data/tts";
 import { buttonLinkStyle } from "../../resources/styles";
-import { HomeAssistant } from "../../types";
+import type { HomeAssistant } from "../../types";
 import "../ha-textarea";
 import "../ha-language-picker";
 import "../ha-tts-voice-picker";
+import "../ha-card";
 import { fetchCloudStatus } from "../../data/cloud";
 
 export interface TtsMediaPickedEvent {
@@ -31,9 +31,9 @@ declare global {
 
 @customElement("ha-browse-media-tts")
 class BrowseMediaTTS extends LitElement {
-  @property() public hass!: HomeAssistant;
+  @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public item!: MediaPlayerItem;
+  @property({ attribute: false }) public item!: MediaPlayerItem;
 
   @property() public action!: MediaPlayerBrowseAction;
 
@@ -62,7 +62,7 @@ class BrowseMediaTTS extends LitElement {
           this.hass.localize(
             "ui.components.media-browser.tts.example_message",
             {
-              name: this.hass.user?.name || "",
+              name: this.hass.user?.name || "Alice",
             }
           )}
         >

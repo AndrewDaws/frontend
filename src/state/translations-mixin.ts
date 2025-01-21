@@ -1,31 +1,34 @@
 import { atLeastVersion } from "../common/config/version";
 import { fireEvent } from "../common/dom/fire_event";
-import { computeLocalize, LocalizeFunc } from "../common/translations/localize";
+import type { LocalizeFunc } from "../common/translations/localize";
+import { computeLocalize } from "../common/translations/localize";
 import {
   computeRTLDirection,
   setDirectionStyles,
 } from "../common/util/compute_rtl";
 import { debounce } from "../common/util/debounce";
-import {
+import type {
   FirstWeekday,
-  getHassTranslations,
-  getHassTranslationsPre109,
   NumberFormat,
-  saveTranslationPreferences,
   TimeFormat,
   DateFormat,
   TranslationCategory,
   TimeZone,
 } from "../data/translation";
+import {
+  getHassTranslations,
+  getHassTranslationsPre109,
+  saveTranslationPreferences,
+} from "../data/translation";
 import { translationMetadata } from "../resources/translations-metadata";
-import { Constructor, HomeAssistant } from "../types";
+import type { Constructor, HomeAssistant } from "../types";
 import {
   getLocalLanguage,
   getTranslation,
   getUserLocale,
 } from "../util/common-translation";
 import { storeState } from "../util/ha-pref-storage";
-import { HassBaseEl } from "./hass-base-mixin";
+import type { HassBaseEl } from "./hass-base-mixin";
 
 declare global {
   // for fire event
@@ -72,12 +75,10 @@ export default <T extends Constructor<HassBaseEl>>(superClass: T) =>
     // eslint-disable-next-line: variable-name
     private __coreProgress?: string;
 
-    private __loadedFragmetTranslations: Set<string> = new Set();
+    private __loadedFragmentTranslations = new Set<string>();
 
-    private __loadedTranslations: {
-      // track what things have been loaded
-      [category: string]: LoadedTranslationCategory;
-    } = {};
+    private __loadedTranslations: Record<string, LoadedTranslationCategory> =
+      {};
 
     protected firstUpdated(changedProps) {
       super.firstUpdated(changedProps);
@@ -262,13 +263,12 @@ export default <T extends Constructor<HassBaseEl>>(superClass: T) =>
       document.querySelector("html")!.setAttribute("lang", hass.language);
       this._applyDirection(hass);
       this._loadCoreTranslations(hass.language);
-      this.__loadedFragmetTranslations = new Set();
+      this.__loadedFragmentTranslations = new Set();
       this._loadFragmentTranslations(hass.language, hass.panelUrl);
     }
 
     private _applyDirection(hass: HomeAssistant) {
       const direction = computeRTLDirection(hass);
-      document.dir = direction;
       setDirectionStyles(direction, this);
     }
 
@@ -296,7 +296,7 @@ export default <T extends Constructor<HassBaseEl>>(superClass: T) =>
         }
         const resources = await getHassTranslationsPre109(this.hass!, language);
 
-        // Ignore the repsonse if user switched languages before we got response
+        // Ignore the response if user switched languages before we got response
         if (this.hass!.language !== language) {
           return this.hass!.localize;
         }
@@ -357,7 +357,7 @@ export default <T extends Constructor<HassBaseEl>>(superClass: T) =>
         configFlow
       );
 
-      // Ignore the repsonse if user switched languages before we got response
+      // Ignore the response if user switched languages before we got response
       if (this.hass!.language !== language) {
         return this.hass!.localize;
       }
@@ -386,12 +386,12 @@ export default <T extends Constructor<HassBaseEl>>(superClass: T) =>
         return undefined;
       }
 
-      if (this.__loadedFragmetTranslations.has(fragment)) {
+      if (this.__loadedFragmentTranslations.has(fragment)) {
         return this.hass!.localize;
       }
-      this.__loadedFragmetTranslations.add(fragment);
+      this.__loadedFragmentTranslations.add(fragment);
       const result = await getTranslation(fragment, language);
-      return this._updateResources(result.language, result.data);
+      return this._updateResources(language, result.data);
     }
 
     private async _loadCoreTranslations(language: string) {
@@ -403,7 +403,7 @@ export default <T extends Constructor<HassBaseEl>>(superClass: T) =>
       this.__coreProgress = language;
       try {
         const result = await getTranslation(null, language);
-        await this._updateResources(result.language, result.data);
+        await this._updateResources(language, result.data);
       } finally {
         this.__coreProgress = undefined;
       }

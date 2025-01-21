@@ -1,4 +1,5 @@
-import { html, css, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { html, css, LitElement } from "lit";
 import { customElement } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import "../../../../src/components/ha-bar";
@@ -62,20 +63,18 @@ export class DemoHaBar extends LitElement {
     `;
   }
 
-  static get styles() {
-    return css`
-      ha-card {
-        max-width: 600px;
-        margin: 24px auto;
-      }
-      .warning {
-        --ha-bar-primary-color: var(--warning-color);
-      }
-      .error {
-        --ha-bar-primary-color: var(--error-color);
-      }
-    `;
-  }
+  static styles = css`
+    ha-card {
+      max-width: 600px;
+      margin: 24px auto;
+    }
+    .warning {
+      --ha-bar-primary-color: var(--warning-color);
+    }
+    .error {
+      --ha-bar-primary-color: var(--error-color);
+    }
+  `;
 }
 
 declare global {

@@ -1,4 +1,5 @@
-import { css, CSSResultGroup, html, LitElement, TemplateResult } from "lit";
+import type { CSSResultGroup, TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { atLeastVersion } from "../../../src/common/config/version";
 import { fireEvent } from "../../../src/common/dom/fire_event";
@@ -7,18 +8,18 @@ import "../../../src/components/ha-alert";
 import "../../../src/components/ha-card";
 import "../../../src/components/ha-settings-row";
 import "../../../src/components/ha-switch";
+import type { HassioStats } from "../../../src/data/hassio/common";
 import {
   extractApiErrorMessage,
   fetchHassioStats,
-  HassioStats,
 } from "../../../src/data/hassio/common";
+import type { SupervisorOptions } from "../../../src/data/hassio/supervisor";
 import {
   reloadSupervisor,
   restartSupervisor,
   setSupervisorOption,
-  SupervisorOptions,
 } from "../../../src/data/hassio/supervisor";
-import { Supervisor } from "../../../src/data/supervisor/supervisor";
+import type { Supervisor } from "../../../src/data/supervisor/supervisor";
 import {
   showAlertDialog,
   showConfirmationDialog,
@@ -29,7 +30,7 @@ import {
   UNSUPPORTED_REASON_URL,
 } from "../../../src/panels/config/repairs/dialog-system-information";
 import { haStyle } from "../../../src/resources/styles";
-import { HomeAssistant } from "../../../src/types";
+import type { HomeAssistant } from "../../../src/types";
 import { bytesToString } from "../../../src/util/bytes-to-string";
 import { documentationUrl } from "../../../src/util/documentation-url";
 import "../components/supervisor-metric";
@@ -43,7 +44,7 @@ class HassioSupervisorInfo extends LitElement {
 
   @state() private _metrics?: HassioStats;
 
-  protected render(): TemplateResult | void {
+  protected render(): TemplateResult | undefined {
     const metrics = [
       {
         description: this.supervisor.localize("system.supervisor.cpu_usage"),
@@ -109,19 +110,19 @@ class HassioSupervisorInfo extends LitElement {
                     </ha-progress-button>
                   `
                 : this.supervisor.supervisor.channel === "stable"
-                ? html`
-                    <ha-progress-button
-                      @click=${this._toggleBeta}
-                      .title=${this.supervisor.localize(
-                        "system.supervisor.join_beta_description"
-                      )}
-                    >
-                      ${this.supervisor.localize(
-                        "system.supervisor.join_beta_action"
-                      )}
-                    </ha-progress-button>
-                  `
-                : ""}
+                  ? html`
+                      <ha-progress-button
+                        @click=${this._toggleBeta}
+                        .title=${this.supervisor.localize(
+                          "system.supervisor.join_beta_description"
+                        )}
+                      >
+                        ${this.supervisor.localize(
+                          "system.supervisor.join_beta_action"
+                        )}
+                      </ha-progress-button>
+                    `
+                  : ""}
             </ha-settings-row>
 
             ${this.supervisor.supervisor.supported
@@ -200,17 +201,13 @@ class HassioSupervisorInfo extends LitElement {
           <ha-progress-button
             class="warning"
             @click=${this._supervisorRestart}
-            .title=${this.supervisor.localize(
-              "common.restart_name",
-              "name",
-              "Supervisor"
-            )}
+            .title=${this.supervisor.localize("common.restart_name", {
+              name: "Supervisor",
+            })}
           >
-            ${this.supervisor.localize(
-              "common.restart_name",
-              "name",
-              "Supervisor"
-            )}
+            ${this.supervisor.localize("common.restart_name", {
+              name: "Supervisor",
+            })}
           </ha-progress-button>
         </div>
       </ha-card>
@@ -292,16 +289,12 @@ class HassioSupervisorInfo extends LitElement {
     button.progress = true;
 
     const confirmed = await showConfirmationDialog(this, {
-      title: this.supervisor.localize(
-        "confirm.restart.title",
-        "name",
-        "Supervisor"
-      ),
-      text: this.supervisor.localize(
-        "confirm.restart.text",
-        "name",
-        "Supervisor"
-      ),
+      title: this.supervisor.localize("confirm.restart.title", {
+        name: "Supervisor",
+      }),
+      text: this.supervisor.localize("confirm.restart.text", {
+        name: "Supervisor",
+      }),
       confirmText: this.supervisor.localize("common.restart"),
       dismissText: this.supervisor.localize("common.cancel"),
     });
@@ -315,11 +308,9 @@ class HassioSupervisorInfo extends LitElement {
       await restartSupervisor(this.hass);
     } catch (err: any) {
       showAlertDialog(this, {
-        title: this.supervisor.localize(
-          "common.failed_to_restart_name",
-          "name",
-          "Supervisor"
-        ),
+        title: this.supervisor.localize("common.failed_to_restart_name", {
+          name: "Supervisor",
+        }),
         text: extractApiErrorMessage(err),
       });
     } finally {
@@ -334,8 +325,7 @@ class HassioSupervisorInfo extends LitElement {
       ),
       text: this.supervisor.localize(
         "system.supervisor.share_diagonstics_description",
-        "line_break",
-        html`<br /><br />`
+        { line_break: html`<br /><br />` }
       ),
     });
   }

@@ -1,16 +1,17 @@
-import { css, CSSResultGroup, html, LitElement } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
 import { ensureArray } from "../../../../../common/array/ensure-array";
 import { createDurationData } from "../../../../../common/datetime/create_duration_data";
 import { fireEvent } from "../../../../../common/dom/fire_event";
-import { TimeChangedEvent } from "../../../../../components/ha-base-time-input";
+import type { TimeChangedEvent } from "../../../../../components/ha-base-time-input";
 import "../../../../../components/ha-duration-input";
 import "../../../../../components/ha-formfield";
 import "../../../../../components/ha-textfield";
-import { WaitForTriggerAction } from "../../../../../data/script";
-import { HomeAssistant } from "../../../../../types";
+import type { WaitForTriggerAction } from "../../../../../data/script";
+import type { HomeAssistant } from "../../../../../types";
 import "../../trigger/ha-automation-trigger";
-import { ActionElement, handleChangeEvent } from "../ha-automation-action-row";
+import type { ActionElement } from "../ha-automation-action-row";
+import { handleChangeEvent } from "../ha-automation-action-row";
 
 @customElement("ha-automation-action-wait_for_trigger")
 export class HaWaitForTriggerAction
@@ -23,9 +24,7 @@ export class HaWaitForTriggerAction
 
   @property({ type: Boolean }) public disabled = false;
 
-  @property({ type: Boolean }) public reOrderMode = false;
-
-  public static get defaultConfig() {
+  public static get defaultConfig(): WaitForTriggerAction {
     return { wait_for_trigger: [] };
   }
 
@@ -55,12 +54,10 @@ export class HaWaitForTriggerAction
         ></ha-switch>
       </ha-formfield>
       <ha-automation-trigger
-        nested
         .triggers=${ensureArray(this.action.wait_for_trigger)}
         .hass=${this.hass}
         .disabled=${this.disabled}
         .name=${"wait_for_trigger"}
-        .reOrderMode=${this.reOrderMode}
         @value-changed=${this._valueChanged}
       ></ha-automation-trigger>
     `;
@@ -69,9 +66,6 @@ export class HaWaitForTriggerAction
   private _timeoutChanged(ev: CustomEvent<{ value: TimeChangedEvent }>): void {
     ev.stopPropagation();
     const value = ev.detail.value;
-    if (!value) {
-      return;
-    }
     fireEvent(this, "value-changed", {
       value: { ...this.action, timeout: value },
     });
@@ -87,18 +81,16 @@ export class HaWaitForTriggerAction
     handleChangeEvent(this, ev);
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      ha-duration-input {
-        display: block;
-        margin-bottom: 24px;
-      }
-      ha-automation-trigger {
-        display: block;
-        margin-top: 24px;
-      }
-    `;
-  }
+  static styles = css`
+    ha-duration-input {
+      display: block;
+      margin-bottom: 24px;
+    }
+    ha-automation-trigger {
+      display: block;
+      margin-top: 24px;
+    }
+  `;
 }
 
 declare global {

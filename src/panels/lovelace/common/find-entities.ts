@@ -1,10 +1,10 @@
-import { HassEntity } from "home-assistant-js-websocket";
+import type { HassEntity } from "home-assistant-js-websocket";
 import { computeDomain } from "../../../common/entity/compute_domain";
-import { HomeAssistant } from "../../../types";
+import type { HomeAssistant } from "../../../types";
 
 const arrayFilter = (
   array: any[],
-  conditions: Array<(value: any) => boolean>,
+  conditions: ((value: any) => boolean)[],
   maxSize: number
 ) => {
   if (!maxSize || maxSize > array.length) {
@@ -39,7 +39,7 @@ export const findEntities = (
   includeDomains?: string[],
   entityFilter?: (stateObj: HassEntity) => boolean
 ) => {
-  const conditions: Array<(value: string) => boolean> = [];
+  const conditions: ((value: string) => boolean)[] = [];
 
   if (includeDomains?.length) {
     conditions.push((eid) => includeDomains!.includes(computeDomain(eid)));

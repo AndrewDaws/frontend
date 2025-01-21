@@ -1,15 +1,15 @@
 import "@material/mwc-button";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property } from "lit/decorators";
 import "../../../components/ha-attributes";
-import { TimerEntity } from "../../../data/timer";
-import { HomeAssistant } from "../../../types";
+import type { TimerEntity } from "../../../data/timer";
+import type { HomeAssistant } from "../../../types";
 
 @customElement("more-info-timer")
 class MoreInfoTimer extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public stateObj?: TimerEntity;
+  @property({ attribute: false }) public stateObj?: TimerEntity;
 
   protected render() {
     if (!this.hass || !this.stateObj) {
@@ -58,16 +58,14 @@ class MoreInfoTimer extends LitElement {
     });
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      .actions {
-        margin: 8px 0;
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-      }
-    `;
-  }
+  static styles = css`
+    .actions {
+      margin: 8px 0;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+  `;
 }
 
 declare global {

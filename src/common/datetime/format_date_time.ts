@@ -1,9 +1,9 @@
-import { HassConfig } from "home-assistant-js-websocket";
+import type { HassConfig } from "home-assistant-js-websocket";
 import memoizeOne from "memoize-one";
-import { FrontendLocaleData } from "../../data/translation";
-import "../../resources/intl-polyfill";
+import type { FrontendLocaleData } from "../../data/translation";
 import { formatDateNumeric } from "./format_date";
 import { formatTime } from "./format_time";
+import { resolveTimeZone } from "./resolve-time-zone";
 import { useAmPm } from "./use_am_pm";
 
 // August 9, 2021, 8:23 AM
@@ -22,7 +22,7 @@ const formatDateTimeMem = memoizeOne(
       hour: useAmPm(locale) ? "numeric" : "2-digit",
       minute: "2-digit",
       hourCycle: useAmPm(locale) ? "h12" : "h23",
-      timeZone: locale.time_zone === "server" ? serverTimeZone : undefined,
+      timeZone: resolveTimeZone(locale.time_zone, serverTimeZone),
     })
 );
 
@@ -42,7 +42,7 @@ const formatShortDateTimeWithYearMem = memoizeOne(
       hour: useAmPm(locale) ? "numeric" : "2-digit",
       minute: "2-digit",
       hourCycle: useAmPm(locale) ? "h12" : "h23",
-      timeZone: locale.time_zone === "server" ? serverTimeZone : undefined,
+      timeZone: resolveTimeZone(locale.time_zone, serverTimeZone),
     })
 );
 
@@ -61,7 +61,7 @@ const formatShortDateTimeMem = memoizeOne(
       hour: useAmPm(locale) ? "numeric" : "2-digit",
       minute: "2-digit",
       hourCycle: useAmPm(locale) ? "h12" : "h23",
-      timeZone: locale.time_zone === "server" ? serverTimeZone : undefined,
+      timeZone: resolveTimeZone(locale.time_zone, serverTimeZone),
     })
 );
 
@@ -82,7 +82,7 @@ const formatDateTimeWithSecondsMem = memoizeOne(
       minute: "2-digit",
       second: "2-digit",
       hourCycle: useAmPm(locale) ? "h12" : "h23",
-      timeZone: locale.time_zone === "server" ? serverTimeZone : undefined,
+      timeZone: resolveTimeZone(locale.time_zone, serverTimeZone),
     })
 );
 

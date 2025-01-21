@@ -1,5 +1,5 @@
 import { mdiCheck, mdiClose } from "@mdi/js";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { ifDefined } from "lit/directives/if-defined";
 import { fireEvent } from "../../common/dom/fire_event";
@@ -8,9 +8,9 @@ import "../../components/ha-control-button";
 import { createCloseHeading } from "../../components/ha-dialog";
 import "../../components/ha-textfield";
 import type { HaTextField } from "../../components/ha-textfield";
-import { HomeAssistant } from "../../types";
-import { HassDialog } from "../make-dialog-manager";
-import { EnterCodeDialogParams } from "./show-enter-code-dialog";
+import type { HomeAssistant } from "../../types";
+import type { HassDialog } from "../make-dialog-manager";
+import type { EnterCodeDialogParams } from "./show-enter-code-dialog";
 
 const BUTTONS = [
   "1",
@@ -45,10 +45,11 @@ export class DialogEnterCode
     await this.updateComplete;
   }
 
-  public closeDialog(): void {
+  public closeDialog() {
     this._dialogParams = undefined;
     this._showClearButton = false;
     fireEvent(this, "dialog-closed", { dialog: this.localName });
+    return true;
   }
 
   private _submit(): void {
@@ -99,8 +100,10 @@ export class DialogEnterCode
             id="code"
             .label=${this.hass.localize("ui.dialogs.enter_code.input_label")}
             type="password"
+            autoValidate
+            validateOnInitialRender
             pattern=${ifDefined(this._dialogParams.codePattern)}
-            input-mode="text"
+            inputmode="text"
           ></ha-textfield>
           <ha-button slot="secondaryAction" dialogAction="cancel">
             ${this._dialogParams.cancelText ??
@@ -130,43 +133,43 @@ export class DialogEnterCode
             id="code"
             .label=${this.hass.localize("ui.dialogs.enter_code.input_label")}
             type="password"
-            input-mode="numeric"
+            inputmode="numeric"
           ></ha-textfield>
           <div class="keypad">
             ${BUTTONS.map((value) =>
               value === ""
                 ? html`<span></span>`
                 : value === "clear"
-                ? html`
-                    <ha-control-button
-                      @click=${this._clear}
-                      class="clear"
-                      .disabled=${!this._showClearButton}
-                      .label=${this.hass!.localize("ui.common.clear")}
-                    >
-                      <ha-svg-icon path=${mdiClose}></ha-svg-icon>
-                    </ha-control-button>
-                  `
-                : value === "submit"
-                ? html`
-                    <ha-control-button
-                      @click=${this._submit}
-                      class="submit"
-                      .label=${this._dialogParams!.submitText ??
-                      this.hass!.localize("ui.common.submit")}
-                    >
-                      <ha-svg-icon path=${mdiCheck}></ha-svg-icon>
-                    </ha-control-button>
-                  `
-                : html`
-                    <ha-control-button
-                      .value=${value}
-                      @click=${this._numberClick}
-                      .label=${value}
-                    >
-                      ${value}
-                    </ha-control-button>
-                  `
+                  ? html`
+                      <ha-control-button
+                        @click=${this._clear}
+                        class="clear"
+                        .disabled=${!this._showClearButton}
+                        .label=${this.hass!.localize("ui.common.clear")}
+                      >
+                        <ha-svg-icon path=${mdiClose}></ha-svg-icon>
+                      </ha-control-button>
+                    `
+                  : value === "submit"
+                    ? html`
+                        <ha-control-button
+                          @click=${this._submit}
+                          class="submit"
+                          .label=${this._dialogParams!.submitText ??
+                          this.hass!.localize("ui.common.submit")}
+                        >
+                          <ha-svg-icon path=${mdiCheck}></ha-svg-icon>
+                        </ha-control-button>
+                      `
+                    : html`
+                        <ha-control-button
+                          .value=${value}
+                          @click=${this._numberClick}
+                          .label=${value}
+                        >
+                          ${value}
+                        </ha-control-button>
+                      `
             )}
           </div>
         </div>
@@ -174,70 +177,68 @@ export class DialogEnterCode
     `;
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      ha-dialog {
-        /* Place above other dialogs */
-        --dialog-z-index: 104;
-      }
-      ha-textfield {
-        width: 100%;
-        max-width: 300px;
-        margin: auto;
-      }
-      .container {
-        display: flex;
-        align-items: center;
-        flex-direction: column;
-      }
+  static styles = css`
+    ha-dialog {
+      /* Place above other dialogs */
+      --dialog-z-index: 104;
+    }
+    ha-textfield {
+      width: 100%;
+      max-width: 300px;
+      margin: auto;
+    }
+    .container {
+      display: flex;
+      align-items: center;
+      flex-direction: column;
+    }
+    .keypad {
+      --keypad-columns: 3;
+      margin-top: 12px;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: repeat(var(--keypad-columns), auto);
+      grid-auto-rows: auto;
+      grid-gap: 24px;
+      justify-items: center;
+      align-items: center;
+    }
+    .clear {
+      grid-row-start: 4;
+      grid-column-start: 0;
+    }
+    @media all and (max-height: 450px) {
       .keypad {
-        --keypad-columns: 3;
-        margin-top: 12px;
-        padding: 12px;
-        display: grid;
-        grid-template-columns: repeat(var(--keypad-columns), auto);
-        grid-auto-rows: auto;
-        grid-gap: 24px;
-        justify-items: center;
-        align-items: center;
+        --keypad-columns: 6;
       }
       .clear {
-        grid-row-start: 4;
-        grid-column-start: 0;
+        grid-row-start: 1;
+        grid-column-start: 6;
       }
-      @media all and (max-height: 450px) {
-        .keypad {
-          --keypad-columns: 6;
-        }
-        .clear {
-          grid-row-start: 1;
-          grid-column-start: 6;
-        }
-      }
+    }
 
-      ha-control-button {
-        width: 56px;
-        height: 56px;
-        --control-button-border-radius: 28px;
-        --mdc-icon-size: 24px;
-        font-size: 24px;
-      }
-      .submit {
-        --control-button-background-color: var(--green-color);
-        --control-button-icon-color: var(--green-color);
-      }
-      .clear {
-        --control-button-background-color: var(--red-color);
-        --control-button-icon-color: var(--red-color);
-      }
-      .hidden {
-        display: none;
-      }
-      .buttons {
-        margin-top: 12px;
-      }
-    `;
-  }
+    ha-control-button {
+      width: 56px;
+      height: 56px;
+      --control-button-border-radius: 28px;
+      --mdc-icon-size: 24px;
+      font-size: 24px;
+    }
+    .submit {
+      --control-button-background-color: var(--green-color);
+      --control-button-icon-color: var(--green-color);
+    }
+    .clear {
+      --control-button-background-color: var(--red-color);
+      --control-button-icon-color: var(--red-color);
+    }
+    .hidden {
+      display: none;
+    }
+    .buttons {
+      margin-top: 12px;
+    }
+  `;
 }
 
 declare global {

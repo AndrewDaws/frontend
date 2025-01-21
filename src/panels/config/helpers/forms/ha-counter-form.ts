@@ -1,19 +1,20 @@
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import type { CSSResultGroup } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { fireEvent } from "../../../../common/dom/fire_event";
 import "../../../../components/ha-icon-picker";
 import "../../../../components/ha-switch";
 import type { HaSwitch } from "../../../../components/ha-switch";
 import "../../../../components/ha-textfield";
-import { Counter } from "../../../../data/counter";
+import type { Counter } from "../../../../data/counter";
 import { haStyle } from "../../../../resources/styles";
-import { HomeAssistant } from "../../../../types";
+import type { HomeAssistant } from "../../../../types";
 
 @customElement("ha-counter-form")
 class HaCounterForm extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public new?: boolean;
+  @property({ type: Boolean }) public new = false;
 
   private _item?: Partial<Counter>;
 
@@ -53,11 +54,10 @@ class HaCounterForm extends LitElement {
   }
 
   public focus() {
-    this.updateComplete.then(
-      () =>
-        (
-          this.shadowRoot?.querySelector("[dialogInitialFocus]") as HTMLElement
-        )?.focus()
+    this.updateComplete.then(() =>
+      (
+        this.shadowRoot?.querySelector("[dialogInitialFocus]") as HTMLElement
+      )?.focus()
     );
   }
 
@@ -161,8 +161,8 @@ class HaCounterForm extends LitElement {
           ? Number(target.value)
           : undefined
         : target.localName === "ha-switch"
-        ? (ev.target as HaSwitch).checked
-        : ev.detail?.value || target.value;
+          ? (ev.target as HaSwitch).checked
+          : ev.detail?.value || target.value;
     if (this[`_${configValue}`] === value) {
       return;
     }
@@ -193,6 +193,8 @@ class HaCounterForm extends LitElement {
         }
         .row div {
           margin-left: 16px;
+          margin-inline-start: 16px;
+          margin-inline-end: initial;
         }
         ha-textfield {
           display: block;

@@ -1,14 +1,14 @@
 import { css, html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
-import { ConversationAgentSelector } from "../../data/selector";
-import { HomeAssistant } from "../../types";
+import type { ConversationAgentSelector } from "../../data/selector";
+import type { HomeAssistant } from "../../types";
 import "../ha-conversation-agent-picker";
 
 @customElement("ha-selector-conversation_agent")
 export class HaConversationAgentSelector extends LitElement {
-  @property() public hass!: HomeAssistant;
+  @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public selector!: ConversationAgentSelector;
+  @property({ attribute: false }) public selector!: ConversationAgentSelector;
 
   @property() public value?: any;
 

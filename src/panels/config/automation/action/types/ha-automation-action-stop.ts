@@ -1,20 +1,22 @@
-import { css, CSSResultGroup, html, LitElement } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
 import { fireEvent } from "../../../../../common/dom/fire_event";
 import "../../../../../components/ha-textfield";
-import { StopAction } from "../../../../../data/script";
-import { HomeAssistant } from "../../../../../types";
-import { ActionElement } from "../ha-automation-action-row";
+import "../../../../../components/ha-formfield";
+import "../../../../../components/ha-switch";
+import type { StopAction } from "../../../../../data/script";
+import type { HomeAssistant } from "../../../../../types";
+import type { ActionElement } from "../ha-automation-action-row";
 
 @customElement("ha-automation-action-stop")
 export class HaStopAction extends LitElement implements ActionElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public action!: StopAction;
+  @property({ attribute: false }) public action!: StopAction;
 
   @property({ type: Boolean }) public disabled = false;
 
-  public static get defaultConfig() {
+  public static get defaultConfig(): StopAction {
     return { stop: "" };
   }
 
@@ -74,14 +76,12 @@ export class HaStopAction extends LitElement implements ActionElement {
     });
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      ha-textfield {
-        display: block;
-        margin-bottom: 24px;
-      }
-    `;
-  }
+  static styles = css`
+    ha-textfield {
+      display: block;
+      margin-bottom: 24px;
+    }
+  `;
 }
 
 declare global {

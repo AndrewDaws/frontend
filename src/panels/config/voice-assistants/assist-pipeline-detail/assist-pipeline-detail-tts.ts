@@ -1,18 +1,18 @@
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
-import { LocalizeKeys } from "../../../../common/translations/localize";
+import type { LocalizeKeys } from "../../../../common/translations/localize";
 import "../../../../components/ha-button";
 import "../../../../components/ha-form/ha-form";
-import { AssistPipeline } from "../../../../data/assist_pipeline";
+import type { AssistPipeline } from "../../../../data/assist_pipeline";
 import { showTTSTryDialog } from "../../../../dialogs/tts-try/show-dialog-tts-try";
-import { HomeAssistant } from "../../../../types";
+import type { HomeAssistant } from "../../../../types";
 
 @customElement("assist-pipeline-detail-tts")
 export class AssistPipelineDetailTTS extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public data?: Partial<AssistPipeline>;
+  @property({ attribute: false }) public data?: Partial<AssistPipeline>;
 
   @state() private _supportedLanguages?: string[];
 
@@ -126,37 +126,35 @@ export class AssistPipelineDetailTTS extends LitElement {
     this._supportedLanguages = ev.detail.value;
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      .section {
-        border: 1px solid var(--divider-color);
-        border-radius: 8px;
-      }
-      .content {
-        padding: 16px;
-      }
-      .intro {
-        margin-bottom: 16px;
-      }
-      h3 {
-        font-weight: normal;
-        font-size: 22px;
-        line-height: 28px;
-        margin-top: 0;
-        margin-bottom: 4px;
-      }
-      p {
-        color: var(--secondary-text-color);
-        font-size: var(--mdc-typography-body2-font-size, 0.875rem);
-        margin-top: 0;
-        margin-bottom: 0;
-      }
-      .footer {
-        border-top: 1px solid var(--divider-color);
-        padding: 8px 16px;
-      }
-    `;
-  }
+  static styles = css`
+    .section {
+      border: 1px solid var(--divider-color);
+      border-radius: 8px;
+    }
+    .content {
+      padding: 16px;
+    }
+    .intro {
+      margin-bottom: 16px;
+    }
+    h3 {
+      font-weight: normal;
+      font-size: 22px;
+      line-height: 28px;
+      margin-top: 0;
+      margin-bottom: 4px;
+    }
+    p {
+      color: var(--secondary-text-color);
+      font-size: var(--mdc-typography-body2-font-size, 0.875rem);
+      margin-top: 0;
+      margin-bottom: 0;
+    }
+    .footer {
+      border-top: 1px solid var(--divider-color);
+      padding: 8px 16px;
+    }
+  `;
 }
 
 declare global {

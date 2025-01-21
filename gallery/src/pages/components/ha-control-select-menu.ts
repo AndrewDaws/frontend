@@ -1,5 +1,6 @@
 import { mdiFan, mdiFanSpeed1, mdiFanSpeed2, mdiFanSpeed3 } from "@mdi/js";
-import { LitElement, TemplateResult, css, html, nothing } from "lit";
+import type { TemplateResult } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { customElement } from "lit/decorators";
 import { repeat } from "lit/directives/repeat";
 import "../../../../src/components/ha-card";
@@ -7,19 +8,19 @@ import "../../../../src/components/ha-control-select-menu";
 import "../../../../src/components/ha-list-item";
 import "../../../../src/components/ha-svg-icon";
 
-type SelectMenuOptions = {
+interface SelectMenuOptions {
   label: string;
   value: string;
   icon?: string;
-};
+}
 
-type SelectMenu = {
+interface SelectMenu {
   label: string;
   icon: string;
   class?: string;
   disabled?: boolean;
   options: SelectMenuOptions[];
-};
+}
 
 const selects: SelectMenu[] = [
   {
@@ -111,32 +112,30 @@ export class DemoHaControlSelectMenu extends LitElement {
     `;
   }
 
-  static get styles() {
-    return css`
-      ha-card {
-        max-width: 600px;
-        margin: 24px auto;
-      }
-      pre {
-        margin-top: 0;
-        margin-bottom: 8px;
-      }
-      p {
-        margin: 0;
-      }
-      label {
-        font-weight: 600;
-      }
-      .custom {
-        --control-button-icon-color: var(--primary-color);
-        --control-button-background-color: var(--primary-color);
-        --control-button-background-opacity: 0.2;
-        --control-button-border-radius: 18px;
-        height: 100px;
-        width: 100px;
-      }
-    `;
-  }
+  static styles = css`
+    ha-card {
+      max-width: 600px;
+      margin: 24px auto;
+    }
+    pre {
+      margin-top: 0;
+      margin-bottom: 8px;
+    }
+    p {
+      margin: 0;
+    }
+    label {
+      font-weight: 600;
+    }
+    .custom {
+      --control-button-icon-color: var(--primary-color);
+      --control-button-background-color: var(--primary-color);
+      --control-button-background-opacity: 0.2;
+      --control-button-border-radius: 18px;
+      height: 100px;
+      width: 100px;
+    }
+  `;
 }
 
 declare global {

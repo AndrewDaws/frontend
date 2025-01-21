@@ -1,11 +1,10 @@
-import { PropertyValues } from "lit";
+import type { PropertyValues } from "lit";
 import { customElement, property } from "lit/decorators";
-import { Blueprints, fetchBlueprints } from "../../../data/blueprint";
-import {
-  HassRouterPage,
-  RouterOptions,
-} from "../../../layouts/hass-router-page";
-import { HomeAssistant } from "../../../types";
+import type { Blueprints } from "../../../data/blueprint";
+import { fetchBlueprints } from "../../../data/blueprint";
+import type { RouterOptions } from "../../../layouts/hass-router-page";
+import { HassRouterPage } from "../../../layouts/hass-router-page";
+import type { HomeAssistant } from "../../../types";
 import "./ha-blueprint-overview";
 
 declare global {
@@ -19,13 +18,14 @@ declare global {
 class HaConfigBlueprint extends HassRouterPage {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public narrow!: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
-  @property() public isWide!: boolean;
+  @property({ attribute: "is-wide", type: Boolean }) public isWide = false;
 
-  @property() public showAdvanced!: boolean;
+  @property({ attribute: false }) public showAdvanced = false;
 
-  @property() public blueprints: Record<string, Blueprints> = {};
+  @property({ attribute: false })
+  public blueprints: Record<string, Blueprints> = {};
 
   protected routerOptions: RouterOptions = {
     defaultPage: "dashboard",

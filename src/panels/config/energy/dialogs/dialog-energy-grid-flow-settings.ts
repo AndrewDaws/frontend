@@ -1,6 +1,7 @@
 import "@material/mwc-button/mwc-button";
 import { mdiTransmissionTower } from "@mdi/js";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import type { CSSResultGroup } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { fireEvent } from "../../../../common/dom/fire_event";
 import "../../../../components/entity/ha-entity-picker";
@@ -9,11 +10,13 @@ import "../../../../components/ha-dialog";
 import "../../../../components/ha-formfield";
 import "../../../../components/ha-radio";
 import type { HaRadio } from "../../../../components/ha-radio";
+import type {
+  FlowFromGridSourceEnergyPreference,
+  FlowToGridSourceEnergyPreference,
+} from "../../../../data/energy";
 import {
   emptyFlowFromGridSourceEnergyPreference,
   emptyFlowToGridSourceEnergyPreference,
-  FlowFromGridSourceEnergyPreference,
-  FlowToGridSourceEnergyPreference,
   energyStatisticHelpUrl,
 } from "../../../../data/energy";
 import {
@@ -22,10 +25,10 @@ import {
   isExternalStatistic,
 } from "../../../../data/recorder";
 import { getSensorDeviceClassConvertibleUnits } from "../../../../data/sensor";
-import { HassDialog } from "../../../../dialogs/make-dialog-manager";
+import type { HassDialog } from "../../../../dialogs/make-dialog-manager";
 import { haStyleDialog } from "../../../../resources/styles";
-import { HomeAssistant } from "../../../../types";
-import { EnergySettingsGridFlowDialogParams } from "./show-dialogs-energy";
+import type { HomeAssistant } from "../../../../types";
+import type { EnergySettingsGridFlowDialogParams } from "./show-dialogs-energy";
 
 const energyUnitClasses = ["energy"];
 
@@ -59,17 +62,17 @@ export class DialogEnergyGridFlowSettings
     this._source = params.source
       ? { ...params.source }
       : params.direction === "from"
-      ? emptyFlowFromGridSourceEnergyPreference()
-      : emptyFlowToGridSourceEnergyPreference();
+        ? emptyFlowFromGridSourceEnergyPreference()
+        : emptyFlowToGridSourceEnergyPreference();
     this._costs = this._source.entity_energy_price
       ? "entity"
       : this._source.number_energy_price
-      ? "number"
-      : this._source[
-          params.direction === "from" ? "stat_cost" : "stat_compensation"
-        ]
-      ? "statistic"
-      : "no-costs";
+        ? "number"
+        : this._source[
+              params.direction === "from" ? "stat_cost" : "stat_compensation"
+            ]
+          ? "statistic"
+          : "no-costs";
 
     const initialSourceId =
       this._source[
@@ -97,13 +100,14 @@ export class DialogEnergyGridFlowSettings
     ].filter((id) => id !== initialSourceId);
   }
 
-  public closeDialog(): void {
+  public closeDialog() {
     this._params = undefined;
     this._source = undefined;
     this._pickedDisplayUnit = undefined;
     this._error = undefined;
     this._excludeList = undefined;
     fireEvent(this, "dialog-closed", { dialog: this.localName });
+    return true;
   }
 
   protected render() {
@@ -378,6 +382,8 @@ export class DialogEnergyGridFlowSettings
         .price-options {
           display: block;
           padding-left: 52px;
+          padding-inline-start: 52px;
+          padding-inline-end: initial;
           margin-top: -8px;
         }
       `,

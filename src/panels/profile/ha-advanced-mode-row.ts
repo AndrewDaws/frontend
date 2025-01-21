@@ -1,21 +1,20 @@
-import { css, CSSResultGroup, html, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
 import "../../components/ha-card";
 import "../../components/ha-settings-row";
 import "../../components/ha-switch";
-import {
-  CoreFrontendUserData,
-  getOptimisticFrontendUserDataCollection,
-} from "../../data/frontend";
-import { HomeAssistant } from "../../types";
+import type { CoreFrontendUserData } from "../../data/frontend";
+import { getOptimisticFrontendUserDataCollection } from "../../data/frontend";
+import type { HomeAssistant } from "../../types";
 
 @customElement("ha-advanced-mode-row")
 class AdvancedModeRow extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public narrow!: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
-  @property() public coreUserData?: CoreFrontendUserData;
+  @property({ attribute: false }) public coreUserData?: CoreFrontendUserData;
 
   protected render(): TemplateResult {
     return html`
@@ -48,13 +47,11 @@ class AdvancedModeRow extends LitElement {
     });
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      a {
-        color: var(--primary-color);
-      }
-    `;
-  }
+  static styles = css`
+    a {
+      color: var(--primary-color);
+    }
+  `;
 }
 
 declare global {

@@ -1,5 +1,5 @@
 import type { LitElement } from "lit";
-import { Selector } from "../../data/selector";
+import type { Selector } from "../../data/selector";
 import type { HaDurationData } from "../ha-duration-input";
 
 export type HaFormSchema =
@@ -31,15 +31,15 @@ export interface HaFormBaseSchema {
 
 export interface HaFormGridSchema extends HaFormBaseSchema {
   type: "grid";
-  name: string;
+  flatten?: boolean;
   column_min_width?: string;
   schema: readonly HaFormSchema[];
 }
 
 export interface HaFormExpandableSchema extends HaFormBaseSchema {
   type: "expandable";
-  name: "";
-  title: string;
+  flatten?: boolean;
+  title?: string;
   icon?: string;
   iconPath?: string;
   expanded?: boolean;
@@ -66,7 +66,7 @@ export interface HaFormIntegerSchema extends HaFormBaseSchema {
 
 export interface HaFormSelectSchema extends HaFormBaseSchema {
   type: "select";
-  options: ReadonlyArray<readonly [string, string]>;
+  options: readonly (readonly [string, string])[];
 }
 
 export interface HaFormMultiSelectSchema extends HaFormBaseSchema {
@@ -74,7 +74,7 @@ export interface HaFormMultiSelectSchema extends HaFormBaseSchema {
   options:
     | Record<string, string>
     | readonly string[]
-    | ReadonlyArray<readonly [string, string]>;
+    | readonly (readonly [string, string])[];
 }
 
 export interface HaFormFloatSchema extends HaFormBaseSchema {
@@ -85,6 +85,7 @@ export interface HaFormStringSchema extends HaFormBaseSchema {
   type: "string";
   format?: string;
   autocomplete?: string;
+  autofocus?: boolean;
 }
 
 export interface HaFormBooleanSchema extends HaFormBaseSchema {
@@ -100,12 +101,10 @@ export type SchemaUnion<
   SchemaArray extends readonly HaFormSchema[],
   Schema = SchemaArray[number],
 > = Schema extends HaFormGridSchema | HaFormExpandableSchema
-  ? SchemaUnion<Schema["schema"]>
+  ? SchemaUnion<Schema["schema"]> | Schema
   : Schema;
 
-export interface HaFormDataContainer {
-  [key: string]: HaFormData;
-}
+export type HaFormDataContainer = Record<string, HaFormData>;
 
 export type HaFormData =
   | HaFormStringData

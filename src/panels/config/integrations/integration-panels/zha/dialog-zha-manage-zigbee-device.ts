@@ -1,14 +1,8 @@
 import "@material/mwc-tab-bar/mwc-tab-bar";
 import "@material/mwc-tab/mwc-tab";
 import { mdiClose } from "@mdi/js";
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  nothing,
-  PropertyValues,
-} from "lit";
+import type { CSSResultGroup, PropertyValues } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { cache } from "lit/directives/cache";
 import memoizeOne from "memoize-one";
@@ -16,16 +10,12 @@ import { fireEvent } from "../../../../../common/dom/fire_event";
 import "../../../../../components/ha-code-editor";
 import "../../../../../components/ha-dialog";
 import "../../../../../components/ha-dialog-header";
-import {
-  fetchBindableDevices,
-  fetchGroups,
-  ZHADevice,
-  ZHAGroup,
-} from "../../../../../data/zha";
+import type { ZHADevice, ZHAGroup } from "../../../../../data/zha";
+import { fetchBindableDevices, fetchGroups } from "../../../../../data/zha";
 import { haStyleDialog } from "../../../../../resources/styles";
-import { HomeAssistant } from "../../../../../types";
+import type { HomeAssistant } from "../../../../../types";
 import { sortZHADevices, sortZHAGroups } from "./functions";
-import {
+import type {
   Tab,
   ZHAManageZigbeeDeviceDialogParams,
 } from "./show-dialog-zha-manage-zigbee-device";
@@ -140,40 +130,40 @@ class DialogZHAManageZigbeeDevice extends LitElement {
                   ></zha-manage-clusters>
                 `
               : this._currTab === "bindings"
-              ? html`
-                  ${this._bindableDevices.length > 0
-                    ? html`
-                        <zha-device-binding-control
-                          .hass=${this.hass}
-                          .device=${this._device}
-                          .bindableDevices=${this._bindableDevices}
-                        ></zha-device-binding-control>
-                      `
-                    : ""}
-                  ${this._device && this._groups.length > 0
-                    ? html`
-                        <zha-group-binding-control
-                          .hass=${this.hass}
-                          .device=${this._device}
-                          .groups=${this._groups}
-                        ></zha-group-binding-control>
-                      `
-                    : ""}
-                `
-              : this._currTab === "signature"
-              ? html`
-                  <zha-device-zigbee-info
-                    .hass=${this.hass}
-                    .device=${this._device}
-                  ></zha-device-zigbee-info>
-                `
-              : html`
-                  <zha-device-neighbors
-                    .hass=${this.hass}
-                    .device=${this._device}
-                    .narrow=${!this.large}
-                  ></zha-device-neighbors>
-                `
+                ? html`
+                    ${this._bindableDevices.length > 0
+                      ? html`
+                          <zha-device-binding-control
+                            .hass=${this.hass}
+                            .device=${this._device}
+                            .bindableDevices=${this._bindableDevices}
+                          ></zha-device-binding-control>
+                        `
+                      : ""}
+                    ${this._device && this._groups.length > 0
+                      ? html`
+                          <zha-group-binding-control
+                            .hass=${this.hass}
+                            .device=${this._device}
+                            .groups=${this._groups}
+                          ></zha-group-binding-control>
+                        `
+                      : ""}
+                  `
+                : this._currTab === "signature"
+                  ? html`
+                      <zha-device-zigbee-info
+                        .hass=${this.hass}
+                        .device=${this._device}
+                      ></zha-device-zigbee-info>
+                    `
+                  : html`
+                      <zha-device-neighbors
+                        .hass=${this.hass}
+                        .device=${this._device}
+                        .narrow=${!this.large}
+                      ></zha-device-neighbors>
+                    `
           )}
         </div>
       </ha-dialog>

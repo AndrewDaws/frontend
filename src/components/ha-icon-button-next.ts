@@ -1,7 +1,9 @@
 import { mdiChevronLeft, mdiChevronRight } from "@mdi/js";
-import { html, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators";
-import { HomeAssistant } from "../types";
+import { mainWindow } from "../common/dom/get_main_window";
+import type { HomeAssistant } from "../types";
 import "./ha-icon-button";
 
 @customElement("ha-icon-button-next")
@@ -13,7 +15,7 @@ export class HaIconButtonNext extends LitElement {
   @property() public label?: string;
 
   @state() private _icon =
-    document.dir === "ltr" ? mdiChevronRight : mdiChevronLeft;
+    mainWindow.document.dir === "rtl" ? mdiChevronLeft : mdiChevronRight;
 
   protected render(): TemplateResult {
     return html`

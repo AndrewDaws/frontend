@@ -1,5 +1,5 @@
 import { fireEvent } from "../../../../../common/dom/fire_event";
-import { DeviceRegistryEntry } from "../../../../../data/device_registry";
+import type { DeviceRegistryEntry } from "../../../../../data/device_registry";
 
 export interface ZWaveJSUpdateFirmwareNodeDialogParams {
   device: DeviceRegistryEntry;
@@ -8,7 +8,7 @@ export interface ZWaveJSUpdateFirmwareNodeDialogParams {
 export const loadUpdateFirmwareNodeDialog = () =>
   import("./dialog-zwave_js-update-firmware-node");
 
-export const showZWaveJUpdateFirmwareNodeDialog = (
+export const showZWaveJSUpdateFirmwareNodeDialog = (
   element: HTMLElement,
   updateFirmwareNodeDialogParams: ZWaveJSUpdateFirmwareNodeDialogParams
 ): void => {

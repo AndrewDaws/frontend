@@ -1,8 +1,9 @@
-import { css, CSSResultGroup, html, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
-import { Supervisor } from "../../../src/data/supervisor/supervisor";
+import type { Supervisor } from "../../../src/data/supervisor/supervisor";
 import "../../../src/layouts/hass-subpage";
-import { HomeAssistant, Route } from "../../../src/types";
+import type { HomeAssistant, Route } from "../../../src/types";
 import "./update-available-card";
 
 @customElement("update-available-dashboard")
@@ -11,7 +12,7 @@ class UpdateAvailableDashboard extends LitElement {
 
   @property({ attribute: false }) public supervisor!: Supervisor;
 
-  @property({ type: Boolean }) public narrow!: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
   @property({ attribute: false }) public route!: Route;
 
@@ -37,20 +38,18 @@ class UpdateAvailableDashboard extends LitElement {
     history.back();
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      hass-subpage {
-        --app-header-background-color: var(--primary-background-color);
-        --app-header-text-color: var(--sidebar-text-color);
-      }
-      update-available-card {
-        margin: auto;
-        margin-top: 16px;
-        margin-bottom: 24px;
-        max-width: 600px;
-      }
-    `;
-  }
+  static styles = css`
+    hass-subpage {
+      --app-header-background-color: var(--primary-background-color);
+      --app-header-text-color: var(--sidebar-text-color);
+    }
+    update-available-card {
+      margin: auto;
+      margin-top: 16px;
+      margin-bottom: 24px;
+      max-width: 600px;
+    }
+  `;
 }
 
 declare global {

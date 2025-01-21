@@ -1,28 +1,31 @@
-import { html, LitElement, PropertyValues } from "lit";
+import type { PropertyValues } from "lit";
+import { html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { assert, literal, object, optional, string } from "superstruct";
 import { fireEvent } from "../../../../../common/dom/fire_event";
-import { LocalizeFunc } from "../../../../../common/translations/localize";
+import type { LocalizeFunc } from "../../../../../common/translations/localize";
 import "../../../../../components/ha-form/ha-form";
-import type { SchemaUnion } from "../../../../../components/ha-form/types";
-import { HaFormSchema } from "../../../../../components/ha-form/types";
+import type {
+  SchemaUnion,
+  HaFormSchema,
+} from "../../../../../components/ha-form/types";
 import type { HomeAssistant } from "../../../../../types";
-import { StateCondition } from "../../../common/validate-condition";
+import type { StateCondition } from "../../../common/validate-condition";
 
 const stateConditionStruct = object({
   condition: literal("state"),
-  entity: string(),
+  entity: optional(string()),
   state: optional(string()),
   state_not: optional(string()),
 });
 
-type StateConditionData = {
+interface StateConditionData {
   condition: "state";
-  entity: string;
+  entity?: string;
   invert: "true" | "false";
-  state?: string;
-};
+  state?: string | string[];
+}
 
 @customElement("ha-card-condition-state")
 export class HaCardConditionState extends LitElement {
@@ -34,6 +37,10 @@ export class HaCardConditionState extends LitElement {
 
   public static get defaultConfig(): StateCondition {
     return { condition: "state", entity: "", state: "" };
+  }
+
+  protected static validateUIConfig(condition: StateCondition) {
+    return assert(condition, stateConditionStruct);
   }
 
   protected willUpdate(changedProperties: PropertyValues): void {
@@ -57,19 +64,20 @@ export class HaCardConditionState extends LitElement {
           schema: [
             {
               name: "invert",
+              required: true,
               selector: {
                 select: {
                   mode: "dropdown",
                   options: [
                     {
                       label: localize(
-                        "ui.panel.lovelace.editor.card.conditional.state_equal"
+                        "ui.panel.lovelace.editor.condition-editor.condition.state.state_equal"
                       ),
                       value: "false",
                     },
                     {
                       label: localize(
-                        "ui.panel.lovelace.editor.card.conditional.state_not_equal"
+                        "ui.panel.lovelace.editor.condition-editor.condition.state.state_not_equal"
                       ),
                       value: "true",
                     },
@@ -96,9 +104,9 @@ export class HaCardConditionState extends LitElement {
 
     const data: StateConditionData = {
       ...content,
-      entity: this.condition.entity ?? "",
-      invert: this.condition.state_not ? "true" : "false",
-      state: this.condition.state_not ?? this.condition.state ?? "",
+      entity: this.condition.entity,
+      invert: this.condition.state_not !== undefined ? "true" : "false",
+      state: this.condition.state_not ?? this.condition.state,
     };
 
     return html`
@@ -117,14 +125,13 @@ export class HaCardConditionState extends LitElement {
     ev.stopPropagation();
     const data = ev.detail.value as StateConditionData;
 
-    const { invert, state, entity, condition: _, ...content } = data;
+    const { invert, state, condition: _, ...content } = data;
 
     const condition: StateCondition = {
       condition: "state",
       ...content,
-      entity: entity ?? "",
-      state: invert === "false" ? state ?? "" : undefined,
-      state_not: invert === "true" ? state ?? "" : undefined,
+      state: invert === "false" ? (state ?? "") : undefined,
+      state_not: invert === "true" ? (state ?? "") : undefined,
     };
 
     fireEvent(this, "value-changed", { value: condition });
@@ -133,24 +140,13 @@ export class HaCardConditionState extends LitElement {
   private _computeLabelCallback = (
     schema: SchemaUnion<ReturnType<typeof this._schema>>
   ): string => {
-    const entity = this.condition.entity
-      ? this.hass.states[this.condition.entity]
-      : undefined;
     switch (schema.name) {
       case "entity":
         return this.hass.localize("ui.components.entity.entity-picker.entity");
       case "state":
-        if (entity) {
-          return `${this.hass.localize(
-            "ui.components.entity.entity-state-picker.state"
-          )} (${this.hass.localize(
-            "ui.panel.lovelace.editor.card.conditional.current_state"
-          )}: ${this.hass.formatEntityState(entity)})`;
-        }
-        return `${this.hass.localize(
+        return this.hass.localize(
           "ui.components.entity.entity-state-picker.state"
-        )}`;
-
+        );
       default:
         return "";
     }

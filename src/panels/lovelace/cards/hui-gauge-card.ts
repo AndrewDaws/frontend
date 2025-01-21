@@ -1,24 +1,23 @@
-import { HassEntity } from "home-assistant-js-websocket/dist/types";
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  PropertyValues,
-  nothing,
-} from "lit";
+import type { HassEntity } from "home-assistant-js-websocket/dist/types";
+import type { PropertyValues } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
+import { ifDefined } from "lit/directives/if-defined";
+import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
 import { applyThemesOnElement } from "../../../common/dom/apply_themes_on_element";
-import { fireEvent } from "../../../common/dom/fire_event";
 import { computeStateName } from "../../../common/entity/compute_state_name";
 import { isValidEntityId } from "../../../common/entity/valid_entity_id";
 import { getNumberFormatOptions } from "../../../common/number/format_number";
 import "../../../components/ha-card";
 import "../../../components/ha-gauge";
 import { UNAVAILABLE } from "../../../data/entity";
+import type { ActionHandlerEvent } from "../../../data/lovelace/action_handler";
 import type { HomeAssistant } from "../../../types";
+import { actionHandler } from "../common/directives/action-handler-directive";
 import { findEntities } from "../common/find-entities";
+import { handleAction } from "../common/handle-action";
+import { hasAction, hasAnyAction } from "../common/has-action";
 import { hasConfigOrEntityChanged } from "../common/has-changed";
 import { createEntityNotFoundWarning } from "../components/hui-warning";
 import type { LovelaceCard, LovelaceCardEditor } from "../types";
@@ -104,8 +103,7 @@ class HuiGaugeCard extends LitElement implements LovelaceCard {
         <hui-warning
           >${this.hass.localize(
             "ui.panel.lovelace.warning.entity_unavailable",
-            "entity",
-            this._config.entity
+            { entity: this._config.entity }
           )}</hui-warning
         >
       `;
@@ -116,8 +114,7 @@ class HuiGaugeCard extends LitElement implements LovelaceCard {
         <hui-warning
           >${this.hass.localize(
             "ui.panel.lovelace.warning.entity_non_numeric",
-            "entity",
-            this._config.entity
+            { entity: this._config.entity }
           )}</hui-warning
         >
       `;
@@ -128,7 +125,19 @@ class HuiGaugeCard extends LitElement implements LovelaceCard {
     // Use `stateObj.state` as value to keep formatting (e.g trailing zeros)
     // for consistent value display across gauge, entity, entity-row, etc.
     return html`
-      <ha-card @click=${this._handleClick} tabindex="0">
+      <ha-card
+        class=${classMap({ action: hasAnyAction(this._config) })}
+        @action=${this._handleAction}
+        .actionHandler=${actionHandler({
+          hasHold: hasAction(this._config.hold_action),
+          hasDoubleClick: hasAction(this._config.double_tap_action),
+        })}
+        tabindex=${ifDefined(
+          !this._config.tap_action || hasAction(this._config.tap_action)
+            ? "0"
+            : undefined
+        )}
+      >
         <ha-gauge
           .min=${this._config.min!}
           .max=${this._config.max!}
@@ -258,43 +267,44 @@ class HuiGaugeCard extends LitElement implements LovelaceCard {
     }));
   }
 
-  private _handleClick(): void {
-    fireEvent(this, "hass-more-info", { entityId: this._config!.entity });
+  private _handleAction(ev: ActionHandlerEvent) {
+    handleAction(this, this.hass!, this._config!, ev.detail.action!);
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      ha-card {
-        cursor: pointer;
-        height: 100%;
-        overflow: hidden;
-        padding: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-        box-sizing: border-box;
-      }
+  static styles = css`
+    ha-card {
+      height: 100%;
+      overflow: hidden;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      box-sizing: border-box;
+    }
 
-      ha-card:focus {
-        outline: none;
-      }
+    ha-card.action {
+      cursor: pointer;
+    }
 
-      ha-gauge {
-        width: 100%;
-        max-width: 250px;
-      }
+    ha-card:focus {
+      outline: none;
+    }
 
-      .name {
-        text-align: center;
-        line-height: initial;
-        color: var(--primary-text-color);
-        width: 100%;
-        font-size: 15px;
-        margin-top: 8px;
-      }
-    `;
-  }
+    ha-gauge {
+      width: 100%;
+      max-width: 250px;
+    }
+
+    .name {
+      text-align: center;
+      line-height: initial;
+      color: var(--primary-text-color);
+      width: 100%;
+      font-size: 15px;
+      margin-top: 8px;
+    }
+  `;
 }
 
 declare global {

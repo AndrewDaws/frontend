@@ -1,4 +1,5 @@
-import { css, CSSResultGroup, html, LitElement, PropertyValues } from "lit";
+import type { PropertyValues } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property, query } from "lit/decorators";
 import { fireEvent } from "../../../../../common/dom/fire_event";
 import "../../../../../components/entity/ha-entity-picker";
@@ -8,7 +9,8 @@ import "../../../../../components/ha-yaml-editor";
 import type { HaYamlEditor } from "../../../../../components/ha-yaml-editor";
 import type { EventAction } from "../../../../../data/script";
 import type { HomeAssistant } from "../../../../../types";
-import { ActionElement, handleChangeEvent } from "../ha-automation-action-row";
+import type { ActionElement } from "../ha-automation-action-row";
+import { handleChangeEvent } from "../ha-automation-action-row";
 
 @customElement("ha-automation-action-event")
 export class HaEventAction extends LitElement implements ActionElement {
@@ -16,7 +18,7 @@ export class HaEventAction extends LitElement implements ActionElement {
 
   @property({ type: Boolean }) public disabled = false;
 
-  @property() public action!: EventAction;
+  @property({ attribute: false }) public action!: EventAction;
 
   @query("ha-yaml-editor", true) private _yamlEditor?: HaYamlEditor;
 
@@ -79,13 +81,11 @@ export class HaEventAction extends LitElement implements ActionElement {
     });
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      ha-textfield {
-        display: block;
-      }
-    `;
-  }
+  static styles = css`
+    ha-textfield {
+      display: block;
+    }
+  `;
 }
 
 declare global {

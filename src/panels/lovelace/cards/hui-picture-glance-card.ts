@@ -1,12 +1,5 @@
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  nothing,
-  PropertyValues,
-  TemplateResult,
-} from "lit";
+import type { PropertyValues, TemplateResult } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { ifDefined } from "lit/directives/if-defined";
@@ -17,9 +10,10 @@ import { computeStateName } from "../../../common/entity/compute_state_name";
 import "../../../components/ha-card";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-state-icon";
-import { computeImageUrl, ImageEntity } from "../../../data/image";
-import { ActionHandlerEvent } from "../../../data/lovelace";
-import { HomeAssistant } from "../../../types";
+import type { ImageEntity } from "../../../data/image";
+import { computeImageUrl } from "../../../data/image";
+import type { ActionHandlerEvent } from "../../../data/lovelace/action_handler";
+import type { HomeAssistant } from "../../../types";
 import { actionHandler } from "../common/directives/action-handler-directive";
 import { findEntities } from "../common/find-entities";
 import { handleAction } from "../common/handle-action";
@@ -29,8 +23,12 @@ import { processConfigEntities } from "../common/process-config-entities";
 import "../components/hui-image";
 import { createEntityNotFoundWarning } from "../components/hui-warning";
 import "../components/hui-warning-element";
-import { LovelaceCard, LovelaceCardEditor } from "../types";
-import { PictureGlanceCardConfig, PictureGlanceEntityConfig } from "./types";
+import type { LovelaceCard, LovelaceCardEditor } from "../types";
+import type {
+  PictureGlanceCardConfig,
+  PictureGlanceEntityConfig,
+} from "./types";
+import type { PersonEntity } from "../../../data/person";
 
 const STATES_OFF = new Set(["closed", "locked", "not_home", "off"]);
 
@@ -183,9 +181,21 @@ class HuiPictureGlanceCard extends LitElement implements LovelaceCard {
       return nothing;
     }
 
-    let stateObj: ImageEntity | undefined;
+    let image: string | undefined = this._config.image;
     if (this._config.image_entity) {
-      stateObj = this.hass.states[this._config.image_entity] as ImageEntity;
+      const stateObj: ImageEntity | PersonEntity | undefined =
+        this.hass.states[this._config.image_entity];
+      const domain: string = computeDomain(this._config.image_entity);
+      switch (domain) {
+        case "image":
+          image = computeImageUrl(stateObj as ImageEntity);
+          break;
+        case "person":
+          if ((stateObj as PersonEntity).attributes.entity_picture) {
+            image = (stateObj as PersonEntity).attributes.entity_picture;
+          }
+          break;
+      }
     }
 
     return html`
@@ -209,7 +219,7 @@ class HuiPictureGlanceCard extends LitElement implements LovelaceCard {
           )}
           .config=${this._config}
           .hass=${this.hass}
-          .image=${stateObj ? computeImageUrl(stateObj) : this._config.image}
+          .image=${image}
           .stateImage=${this._config.state_image}
           .stateFilter=${this._config.state_filter}
           .cameraImage=${this._config.camera_image}
@@ -223,12 +233,12 @@ class HuiPictureGlanceCard extends LitElement implements LovelaceCard {
             : ""}
           <div class="row">
             ${this._entitiesDialog!.map((entityConf) =>
-              this.renderEntity(entityConf, true)
+              this._renderEntity(entityConf, true)
             )}
           </div>
           <div class="row">
             ${this._entitiesToggle!.map((entityConf) =>
-              this.renderEntity(entityConf, false)
+              this._renderEntity(entityConf, false)
             )}
           </div>
         </div>
@@ -236,7 +246,7 @@ class HuiPictureGlanceCard extends LitElement implements LovelaceCard {
     `;
   }
 
-  private renderEntity(
+  private _renderEntity(
     entityConf: PictureGlanceEntityConfig,
     dialog: boolean
   ): TemplateResult {
@@ -278,7 +288,8 @@ class HuiPictureGlanceCard extends LitElement implements LovelaceCard {
         >
           <ha-state-icon
             .icon=${entityConf.icon}
-            .state=${stateObj}
+            .stateObj=${stateObj}
+            .hass=${this.hass}
           ></ha-state-icon>
         </ha-icon-button>
 
@@ -304,81 +315,78 @@ class HuiPictureGlanceCard extends LitElement implements LovelaceCard {
     handleAction(this, this.hass!, config, ev.detail.action!);
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      ha-card {
-        position: relative;
-        min-height: 48px;
-        overflow: hidden;
-        height: 100%;
-        box-sizing: border-box;
-      }
-
-      hui-image.clickable {
-        cursor: pointer;
-      }
-
-      .box {
-        /* start paper-font-common-nowrap style */
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        /* end paper-font-common-nowrap style */
-
-        position: absolute;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: var(
-          --ha-picture-card-background-color,
-          rgba(0, 0, 0, 0.3)
-        );
-        padding: 4px 8px;
-        font-size: 16px;
-        line-height: 40px;
-        color: var(--ha-picture-card-text-color, white);
-        display: flex;
-        justify-content: space-between;
-        flex-direction: row;
-      }
-
-      .box .title {
-        font-weight: 500;
-        margin-left: 8px;
-      }
-
-      ha-icon-button {
-        --mdc-icon-button-size: 40px;
-        --disabled-text-color: currentColor;
-        color: var(--ha-picture-icon-button-color, #a9a9a9);
-      }
-
-      ha-icon-button.state-on {
-        color: var(--ha-picture-icon-button-on-color, white);
-      }
-      hui-warning-element {
-        padding: 0 8px;
-      }
-      .state {
-        display: block;
-        font-size: 12px;
-        text-align: center;
-        line-height: 12px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      .row {
-        display: flex;
-        flex-direction: row;
-      }
-      .wrapper {
-        display: flex;
-        flex-direction: column;
-        width: 40px;
-      }
-    `;
-  }
+  static styles = css`
+    ha-card {
+      position: relative;
+      min-height: 48px;
+      overflow: hidden;
+      height: 100%;
+      box-sizing: border-box;
+    }
+    hui-image.clickable {
+      cursor: pointer;
+    }
+    .box {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: var(
+        --ha-picture-card-background-color,
+        rgba(0, 0, 0, 0.3)
+      );
+      padding: 4px 8px;
+      display: flex;
+      justify-content: space-between;
+      flex-direction: row;
+    }
+    .box .title {
+      font-weight: 500;
+      margin-left: 8px;
+      margin-inline-start: 8px;
+      margin-inline-end: initial;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      font-size: 16px;
+      line-height: 40px;
+      color: var(--ha-picture-card-text-color, white);
+      align-self: center;
+    }
+    ha-state-icon {
+      font-size: 0;
+    }
+    ha-icon-button {
+      --mdc-icon-button-size: 40px;
+      --disabled-text-color: currentColor;
+      color: var(--ha-picture-icon-button-color, #a9a9a9);
+    }
+    ha-icon-button.state-on {
+      color: var(--ha-picture-icon-button-on-color, white);
+    }
+    hui-warning-element {
+      padding: 0 8px;
+    }
+    .state {
+      display: block;
+      font-size: 12px;
+      text-align: center;
+      line-height: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--ha-picture-card-text-color, white);
+    }
+    .row {
+      display: flex;
+      flex-direction: row;
+    }
+    .wrapper {
+      display: flex;
+      flex-direction: column;
+      width: 40px;
+    }
+  `;
 }
 
 declare global {

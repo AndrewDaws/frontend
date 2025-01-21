@@ -1,18 +1,16 @@
 import { customElement, property } from "lit/decorators";
 import { navigate } from "../../../../../common/navigate";
-import {
-  HassRouterPage,
-  RouterOptions,
-} from "../../../../../layouts/hass-router-page";
-import { HomeAssistant } from "../../../../../types";
+import type { RouterOptions } from "../../../../../layouts/hass-router-page";
+import { HassRouterPage } from "../../../../../layouts/hass-router-page";
+import type { HomeAssistant } from "../../../../../types";
 
 @customElement("zha-config-dashboard-router")
 class ZHAConfigDashboardRouter extends HassRouterPage {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public isWide!: boolean;
+  @property({ attribute: "is-wide", type: Boolean }) public isWide = false;
 
-  @property() public narrow!: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
   private _configEntry = new URLSearchParams(window.location.search).get(
     "config_entry"

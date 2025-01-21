@@ -1,17 +1,13 @@
 import "@material/mwc-list/mwc-list-item";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { fireEvent } from "../common/dom/fire_event";
 import { stopPropagation } from "../common/dom/stop_propagation";
 import { stringCompare } from "../common/string/compare";
-import {
-  Blueprint,
-  BlueprintDomain,
-  Blueprints,
-  fetchBlueprints,
-} from "../data/blueprint";
-import { HomeAssistant } from "../types";
+import type { Blueprint, BlueprintDomain, Blueprints } from "../data/blueprint";
+import { fetchBlueprints } from "../data/blueprint";
+import type { HomeAssistant } from "../types";
 import "./ha-select";
 
 @customElement("ha-blueprint-picker")
@@ -24,7 +20,7 @@ class HaBluePrintPicker extends LitElement {
 
   @property() public domain: BlueprintDomain = "automation";
 
-  @property() public blueprints?: Blueprints;
+  @property({ attribute: false }) public blueprints?: Blueprints;
 
   @property({ type: Boolean }) public disabled = false;
 
@@ -98,18 +94,16 @@ class HaBluePrintPicker extends LitElement {
     }
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host {
-        display: inline-block;
-      }
-      ha-select {
-        width: 100%;
-        min-width: 200px;
-        display: block;
-      }
-    `;
-  }
+  static styles = css`
+    :host {
+      display: inline-block;
+    }
+    ha-select {
+      width: 100%;
+      min-width: 200px;
+      display: block;
+    }
+  `;
 }
 
 declare global {

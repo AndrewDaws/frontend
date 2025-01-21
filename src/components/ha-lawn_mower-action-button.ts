@@ -1,19 +1,16 @@
 import "@material/mwc-button";
-import { CSSResultGroup, LitElement, css, html } from "lit";
+import { LitElement, css, html } from "lit";
 import { customElement, property } from "lit/decorators";
 import { supportsFeature } from "../common/entity/supports-feature";
-import {
-  LawnMowerEntity,
-  LawnMowerEntityFeature,
-  LawnMowerEntityState,
-} from "../data/lawn_mower";
-import { HomeAssistant } from "../types";
+import type { LawnMowerEntity, LawnMowerEntityState } from "../data/lawn_mower";
+import { LawnMowerEntityFeature } from "../data/lawn_mower";
+import type { HomeAssistant } from "../types";
 
-type LawnMowerAction = {
+interface LawnMowerAction {
   action: string;
   service: string;
   feature: LawnMowerEntityFeature;
-};
+}
 
 const LAWN_MOWER_ACTIONS: Partial<
   Record<LawnMowerEntityState, LawnMowerAction>
@@ -27,6 +24,11 @@ const LAWN_MOWER_ACTIONS: Partial<
     action: "start_mowing",
     service: "start_mowing",
     feature: LawnMowerEntityFeature.START_MOWING,
+  },
+  returning: {
+    action: "pause",
+    service: "pause",
+    feature: LawnMowerEntityFeature.PAUSE,
   },
   paused: {
     action: "resume_mowing",
@@ -69,19 +71,19 @@ class HaLawnMowerActionButton extends LitElement {
     });
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      mwc-button {
-        top: 3px;
-        height: 37px;
-        margin-right: -0.57em;
-      }
-      mwc-button[disabled] {
-        background-color: transparent;
-        color: var(--secondary-text-color);
-      }
-    `;
-  }
+  static styles = css`
+    mwc-button {
+      top: 3px;
+      height: 37px;
+      margin-right: -0.57em;
+      margin-inline-end: -0.57em;
+      margin-inline-start: initial;
+    }
+    mwc-button[disabled] {
+      background-color: transparent;
+      color: var(--secondary-text-color);
+    }
+  `;
 }
 
 declare global {

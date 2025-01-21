@@ -1,11 +1,12 @@
-import { HassConfig } from "home-assistant-js-websocket";
-import { HomeAssistant } from "../types";
+import type { HassConfig } from "home-assistant-js-websocket";
+import type { HomeAssistant } from "../types";
 
 export interface ConfigUpdateValues {
   location_name: string;
   latitude: number;
   longitude: number;
   elevation: number;
+  radius: number;
   unit_system: "metric" | "us_customary";
   time_zone: string;
   external_url?: string | null;
@@ -18,6 +19,7 @@ export interface ConfigUpdateValues {
 export interface CheckConfigResult {
   result: "valid" | "invalid";
   errors: string | null;
+  warnings: string | null;
 }
 
 export const saveCoreConfig = (

@@ -1,28 +1,29 @@
 import { mdiPlus } from "@mdi/js";
-import "@polymer/paper-item/paper-icon-item";
-import "@polymer/paper-item/paper-item-body";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
-import { property, state } from "lit/decorators";
+import "@material/mwc-list/mwc-list";
+import { css, html, LitElement, nothing } from "lit";
+import { customElement, property, state } from "lit/decorators";
 import { stringCompare } from "../../../common/string/compare";
 import "../../../components/ha-card";
 import "../../../components/ha-fab";
 import "../../../components/ha-svg-icon";
+import "../../../components/ha-list-item";
 import "../../../components/user/ha-person-badge";
+import type { Person } from "../../../data/person";
 import {
   createPerson,
   deletePerson,
   fetchPersons,
-  Person,
   updatePerson,
 } from "../../../data/person";
-import { fetchUsers, User } from "../../../data/user";
+import type { User } from "../../../data/user";
+import { fetchUsers } from "../../../data/user";
 import {
   showAlertDialog,
   showConfirmationDialog,
 } from "../../../dialogs/generic/show-dialog-box";
 import "../../../layouts/hass-loading-screen";
 import "../../../layouts/hass-tabs-subpage";
-import { HomeAssistant, Route } from "../../../types";
+import type { HomeAssistant, Route } from "../../../types";
 import { documentationUrl } from "../../../util/documentation-url";
 import "../ha-config-section";
 import { configSections } from "../ha-panel-config";
@@ -31,14 +32,15 @@ import {
   showPersonDetailDialog,
 } from "./show-dialog-person-detail";
 
-class HaConfigPerson extends LitElement {
+@customElement("ha-config-person")
+export class HaConfigPerson extends LitElement {
   @property({ attribute: false }) public hass?: HomeAssistant;
 
-  @property() public isWide?: boolean;
+  @property({ attribute: "is-wide", type: Boolean }) public isWide = false;
 
-  @property() public narrow?: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
-  @property() public route!: Route;
+  @property({ attribute: false }) public route!: Route;
 
   @state() private _storageItems?: Person[];
 
@@ -89,17 +91,24 @@ class HaConfigPerson extends LitElement {
           </span>
 
           <ha-card outlined class="storage">
-            ${this._storageItems.map(
-              (entry) => html`
-                <paper-icon-item @click=${this._openEditEntry} .entry=${entry}>
-                  <ha-person-badge
-                    slot="item-icon"
-                    .person=${entry}
-                  ></ha-person-badge>
-                  <paper-item-body> ${entry.name} </paper-item-body>
-                </paper-icon-item>
-              `
-            )}
+            <mwc-list>
+              ${this._storageItems.map(
+                (entry) => html`
+                  <ha-list-item
+                    graphic="avatar"
+                    @click=${this._openEditEntry}
+                    .entry=${entry}
+                  >
+                    <ha-person-badge
+                      .hass=${this.hass}
+                      .person=${entry}
+                      slot="graphic"
+                    ></ha-person-badge>
+                    <span>${entry.name}</span>
+                  </ha-list-item>
+                `
+              )}
+            </mwc-list>
             ${this._storageItems.length === 0
               ? html`
                   <div class="empty">
@@ -118,20 +127,23 @@ class HaConfigPerson extends LitElement {
           ${this._configItems.length > 0
             ? html`
                 <ha-card outlined header="Configuration.yaml persons">
-                  ${this._configItems.map(
-                    (entry) => html`
-                      <paper-icon-item>
-                        <ha-person-badge
-                          slot="item-icon"
-                          .person=${entry}
-                        ></ha-person-badge>
-                        <paper-item-body> ${entry.name} </paper-item-body>
-                      </paper-icon-item>
-                    `
-                  )}
+                  <mwc-list>
+                    ${this._configItems.map(
+                      (entry) => html`
+                        <ha-list-item graphic="avatar">
+                          <ha-person-badge
+                            .hass=${this.hass}
+                            .person=${entry}
+                            slot="graphic"
+                          ></ha-person-badge>
+                          <span>${entry.name}</span>
+                        </ha-list-item>
+                      `
+                    )}
+                  </mwc-list>
                 </ha-card>
               `
-            : ""}
+            : nothing}
         </ha-config-section>
         <ha-fab
           slot="fab"
@@ -255,7 +267,7 @@ class HaConfigPerson extends LitElement {
             (ent) => ent !== entry
           );
           return true;
-        } catch (err: any) {
+        } catch (_err: any) {
           return false;
         }
       },
@@ -265,31 +277,29 @@ class HaConfigPerson extends LitElement {
     });
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      a {
-        color: var(--primary-color);
-      }
-      ha-card {
-        max-width: 600px;
-        margin: 16px auto;
-        overflow: hidden;
-      }
-      .empty {
-        padding: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: space-around;
-      }
-      paper-icon-item {
-        padding-top: 4px;
-        padding-bottom: 4px;
-      }
-      ha-card.storage paper-icon-item {
-        cursor: pointer;
-      }
-    `;
-  }
+  static styles = css`
+    a {
+      color: var(--primary-color);
+    }
+    ha-card {
+      max-width: 600px;
+      margin: 16px auto;
+      overflow: hidden;
+    }
+    .empty {
+      padding: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+    }
+    mwc-list:has(+ .empty) {
+      display: none;
+    }
+  `;
 }
 
-customElements.define("ha-config-person", HaConfigPerson);
+declare global {
+  interface HTMLElementTagNameMap {
+    "ha-config-person": HaConfigPerson;
+  }
+}

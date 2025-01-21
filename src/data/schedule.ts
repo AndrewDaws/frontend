@@ -1,4 +1,4 @@
-import { HomeAssistant } from "../types";
+import type { HomeAssistant } from "../types";
 
 export const weekdays = [
   "sunday",
@@ -15,7 +15,7 @@ export interface ScheduleDay {
   to: string;
 }
 
-type ScheduleDays = { [K in (typeof weekdays)[number]]?: ScheduleDay[] };
+type ScheduleDays = Partial<Record<(typeof weekdays)[number], ScheduleDay[]>>;
 
 export interface Schedule extends ScheduleDays {
   id: string;

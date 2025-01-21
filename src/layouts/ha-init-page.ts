@@ -1,4 +1,5 @@
-import { css, CSSResultGroup, html, LitElement, PropertyValues } from "lit";
+import type { PropertyValues } from "lit";
+import { css, html, LitElement } from "lit";
 import { property, state } from "lit/decorators";
 
 class HaInitPage extends LitElement {
@@ -35,11 +36,17 @@ class HaInitPage extends LitElement {
         `
       : html`
           <div id="progress-indicator-wrapper">
-            <ha-circular-progress active></ha-circular-progress>
+            <ha-circular-progress indeterminate></ha-circular-progress>
           </div>
           <div id="loading-text">
             ${this.migration
-              ? "Database migration in progress, please wait this might take some time"
+              ? html`
+                  Database upgrade is in progress, Home Assistant will not start
+                  until the upgrade is completed.
+                  <br /><br />
+                  The upgrade may need a long time to complete, please be
+                  patient.
+                `
               : "Loading data"}
           </div>
         `;
@@ -75,37 +82,38 @@ class HaInitPage extends LitElement {
   }
 
   private _retry() {
+    if (this._retryInterval) {
+      clearInterval(this._retryInterval);
+    }
     location.reload();
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host {
-        flex: 0;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-      }
-      #progress-indicator-wrapper {
-        display: flex;
-        align-items: center;
-        margin: 25px 0;
-        height: 50px;
-      }
-      a {
-        color: var(--primary-color);
-      }
-      .retry-text {
-        margin-top: 0;
-      }
-      p,
-      #loading-text {
-        max-width: 350px;
-        color: var(--primary-text-color);
-        text-align: center;
-      }
-    `;
-  }
+  static styles = css`
+    :host {
+      flex: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #progress-indicator-wrapper {
+      display: flex;
+      align-items: center;
+      margin: 25px 0;
+      height: 50px;
+    }
+    a {
+      color: var(--primary-color);
+    }
+    .retry-text {
+      margin-top: 0;
+    }
+    p,
+    #loading-text {
+      max-width: 350px;
+      color: var(--primary-text-color);
+      text-align: center;
+    }
+  `;
 }
 
 customElements.define("ha-init-page", HaInitPage);

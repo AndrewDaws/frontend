@@ -1,6 +1,7 @@
 import { DrawerBase } from "@material/mwc-drawer/mwc-drawer-base";
 import { styles } from "@material/mwc-drawer/mwc-drawer.css";
-import { css, PropertyValues } from "lit";
+import type { PropertyValues } from "lit";
+import { css } from "lit";
 import { customElement, property } from "lit/decorators";
 import { fireEvent } from "../common/dom/fire_event";
 
@@ -11,6 +12,8 @@ export class HaDrawer extends DrawerBase {
   @property() public direction: "ltr" | "rtl" = "ltr";
 
   private _mc?: HammerManager;
+
+  private _rtlStyle?: HTMLElement;
 
   protected createAdapter() {
     return {
@@ -32,7 +35,26 @@ export class HaDrawer extends DrawerBase {
     super.updated(changedProps);
     if (changedProps.has("direction")) {
       this.mdcRoot.dir = this.direction;
+      if (this.direction === "rtl") {
+        this._rtlStyle = document.createElement("style");
+        this._rtlStyle.innerHTML = `
+          .mdc-drawer--animate {
+            transform: translateX(100%);
+          }
+          .mdc-drawer--opening {
+            transform: translateX(0);
+          }
+          .mdc-drawer--closing {
+            transform: translateX(100%);
+          }
+        `;
+
+        this.shadowRoot!.appendChild(this._rtlStyle);
+      } else if (this._rtlStyle) {
+        this.shadowRoot!.removeChild(this._rtlStyle);
+      }
     }
+
     if (changedProps.has("open") && this.open && this.type === "modal") {
       this._setupSwipe();
     } else if (this._mc) {
@@ -66,6 +88,8 @@ export class HaDrawer extends DrawerBase {
         position: fixed;
         top: 0;
         border-color: var(--divider-color, rgba(0, 0, 0, 0.12));
+        inset-inline-start: 0 !important;
+        inset-inline-end: initial !important;
       }
       .mdc-drawer.mdc-drawer--modal.mdc-drawer--open {
         z-index: 200;

@@ -1,26 +1,28 @@
 import "@material/mwc-list/mwc-list-item";
-import { css, html, LitElement, PropertyValues, nothing } from "lit";
+import type { PropertyValues } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { fireEvent } from "../../../../../common/dom/fire_event";
 import { caseInsensitiveStringCompare } from "../../../../../common/string/compare";
 import "../../../../../components/ha-select";
-import { TagTrigger } from "../../../../../data/automation";
-import { fetchTags, Tag } from "../../../../../data/tag";
-import { HomeAssistant } from "../../../../../types";
-import { TriggerElement } from "../ha-automation-trigger-row";
+import type { TagTrigger } from "../../../../../data/automation";
+import type { Tag } from "../../../../../data/tag";
+import { fetchTags } from "../../../../../data/tag";
+import type { HomeAssistant } from "../../../../../types";
+import type { TriggerElement } from "../ha-automation-trigger-row";
 
 @customElement("ha-automation-trigger-tag")
 export class HaTagTrigger extends LitElement implements TriggerElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public trigger!: TagTrigger;
+  @property({ attribute: false }) public trigger!: TagTrigger;
 
   @property({ type: Boolean }) public disabled = false;
 
   @state() private _tags?: Tag[];
 
-  public static get defaultConfig() {
-    return { tag_id: "" };
+  public static get defaultConfig(): TagTrigger {
+    return { trigger: "tag", tag_id: "" };
   }
 
   protected firstUpdated(changedProperties: PropertyValues) {
@@ -78,13 +80,11 @@ export class HaTagTrigger extends LitElement implements TriggerElement {
     });
   }
 
-  static get styles() {
-    return css`
-      ha-select {
-        display: block;
-      }
-    `;
-  }
+  static styles = css`
+    ha-select {
+      display: block;
+    }
+  `;
 }
 
 declare global {

@@ -1,13 +1,8 @@
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  nothing,
-  TemplateResult,
-} from "lit";
+import type { TemplateResult } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property } from "lit/decorators";
-import { CLIMATE_PRESET_NONE, ClimateEntity } from "../data/climate";
+import type { ClimateEntity } from "../data/climate";
+import { CLIMATE_PRESET_NONE } from "../data/climate";
 import { isUnavailableState, OFF } from "../data/entity";
 import type { HomeAssistant } from "../types";
 
@@ -141,33 +136,32 @@ class HaClimateState extends LitElement {
     return stateString;
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        white-space: nowrap;
-      }
+  static styles = css`
+    :host {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      white-space: nowrap;
+    }
 
-      .target {
-        color: var(--primary-text-color);
-      }
+    .target {
+      color: var(--primary-text-color);
+    }
 
-      .current {
-        color: var(--secondary-text-color);
-      }
+    .current {
+      color: var(--secondary-text-color);
+      direction: var(--direction);
+    }
 
-      .state-label {
-        font-weight: bold;
-      }
+    .state-label {
+      font-weight: bold;
+    }
 
-      .unit {
-        display: inline-block;
-        direction: ltr;
-      }
-    `;
-  }
+    .unit {
+      display: inline-block;
+      direction: ltr;
+    }
+  `;
 }
 
 declare global {

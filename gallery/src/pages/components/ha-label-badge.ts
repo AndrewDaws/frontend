@@ -1,4 +1,5 @@
-import { html, css, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { html, css, LitElement } from "lit";
 import { customElement } from "lit/decorators";
 import "../../../../src/components/ha-label-badge";
 import "../../../../src/components/ha-card";
@@ -94,25 +95,23 @@ export class DemoHaLabelBadge extends LitElement {
     `;
   }
 
-  static get styles() {
-    return css`
-      ha-card {
-        max-width: 600px;
-        margin: 24px auto;
-      }
-      pre {
-        margin-left: 16px;
-        background-color: var(--markdown-code-background-color);
-        padding: 8px;
-      }
-      .badge {
-        display: flex;
-        flex-direction: row;
-        margin-bottom: 16px;
-        align-items: center;
-      }
-    `;
-  }
+  static styles = css`
+    ha-card {
+      max-width: 600px;
+      margin: 24px auto;
+    }
+    pre {
+      margin-left: 16px;
+      background-color: var(--markdown-code-background-color);
+      padding: 8px;
+    }
+    .badge {
+      display: flex;
+      flex-direction: row;
+      margin-bottom: 16px;
+      align-items: center;
+    }
+  `;
 }
 
 declare global {

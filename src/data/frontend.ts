@@ -1,4 +1,4 @@
-import { Connection } from "home-assistant-js-websocket";
+import type { Connection } from "home-assistant-js-websocket";
 import { getOptimisticCollection } from "./collection";
 
 export interface CoreFrontendUserData {
@@ -35,7 +35,7 @@ export const saveFrontendUserData = async <
   key: UserDataKey,
   value: FrontendUserData[UserDataKey]
 ): Promise<void> =>
-  conn.sendMessagePromise<void>({
+  conn.sendMessagePromise<undefined>({
     type: "frontend/set_user_data",
     key,
     value,

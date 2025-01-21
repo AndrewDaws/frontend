@@ -1,4 +1,5 @@
-import { css, CSSResultGroup, html, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
 import "../../../src/components/ha-svg-icon";
 
@@ -6,9 +7,9 @@ import "../../../src/components/ha-svg-icon";
 class SupervisorFormfieldLabel extends LitElement {
   @property({ type: String }) public label!: string;
 
-  @property({ type: String }) public imageUrl?: string;
+  @property({ attribute: false }) public imageUrl?: string;
 
-  @property({ type: String }) public iconPath?: string;
+  @property({ attribute: false }) public iconPath?: string;
 
   @property({ type: String }) public version?: string;
 
@@ -17,8 +18,11 @@ class SupervisorFormfieldLabel extends LitElement {
       ${this.imageUrl
         ? html`<img loading="lazy" alt="" src=${this.imageUrl} class="icon" />`
         : this.iconPath
-        ? html`<ha-svg-icon .path=${this.iconPath} class="icon"></ha-svg-icon>`
-        : ""}
+          ? html`<ha-svg-icon
+              .path=${this.iconPath}
+              class="icon"
+            ></ha-svg-icon>`
+          : ""}
       <span class="label">${this.label}</span>
       ${this.version
         ? html`<span class="version">(${this.version})</span>`
@@ -26,25 +30,27 @@ class SupervisorFormfieldLabel extends LitElement {
     `;
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host {
-        display: flex;
-        align-items: center;
-      }
-      .label {
-        margin-right: 4px;
-      }
-      .version {
-        color: var(--secondary-text-color);
-      }
-      .icon {
-        max-height: 22px;
-        max-width: 22px;
-        margin-right: 8px;
-      }
-    `;
-  }
+  static styles = css`
+    :host {
+      display: flex;
+      align-items: center;
+    }
+    .label {
+      margin-right: 4px;
+      margin-inline-end: 4px;
+      margin-inline-start: initial;
+    }
+    .version {
+      color: var(--secondary-text-color);
+    }
+    .icon {
+      max-height: 22px;
+      max-width: 22px;
+      margin-right: 8px;
+      margin-inline-end: 8px;
+      margin-inline-start: initial;
+    }
+  `;
 }
 
 declare global {

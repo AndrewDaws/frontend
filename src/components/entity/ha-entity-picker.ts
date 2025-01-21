@@ -1,23 +1,26 @@
 import "../ha-list-item";
-import { HassEntity } from "home-assistant-js-websocket";
-import { html, LitElement, PropertyValues, TemplateResult } from "lit";
-import { ComboBoxLitRenderer } from "@vaadin/combo-box/lit";
+import type { HassEntity } from "home-assistant-js-websocket";
+import type { PropertyValues, TemplateResult } from "lit";
+import { html, LitElement } from "lit";
+import type { ComboBoxLitRenderer } from "@vaadin/combo-box/lit";
 import { customElement, property, query, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { fireEvent } from "../../common/dom/fire_event";
 import { computeDomain } from "../../common/entity/compute_domain";
 import { computeStateName } from "../../common/entity/compute_state_name";
-import {
-  fuzzyFilterSort,
-  ScorableTextItem,
-} from "../../common/string/filter/sequence-matching";
-import { ValueChangedEvent, HomeAssistant } from "../../types";
+import type { ScorableTextItem } from "../../common/string/filter/sequence-matching";
+import { fuzzyFilterSort } from "../../common/string/filter/sequence-matching";
+import type { ValueChangedEvent, HomeAssistant } from "../../types";
 import "../ha-combo-box";
 import type { HaComboBox } from "../ha-combo-box";
 import "../ha-icon-button";
 import "../ha-svg-icon";
 import "./state-badge";
 import { caseInsensitiveStringCompare } from "../../common/string/compare";
+import { showHelperDetailDialog } from "../../panels/config/helpers/show-dialog-helper-detail";
+import { domainToName } from "../../data/integration";
+import type { HelperDomain } from "../../panels/config/helpers/const";
+import { isHelperDomain } from "../../panels/config/helpers/const";
 
 interface HassEntityWithCachedName extends HassEntity, ScorableTextItem {
   friendly_name: string;
@@ -25,25 +28,18 @@ interface HassEntityWithCachedName extends HassEntity, ScorableTextItem {
 
 export type HaEntityPickerEntityFilterFunc = (entity: HassEntity) => boolean;
 
-// eslint-disable-next-line lit/prefer-static-styles
-const rowRenderer: ComboBoxLitRenderer<HassEntityWithCachedName> = (item) =>
-  html`<ha-list-item graphic="avatar" .twoline=${!!item.entity_id}>
-    ${item.state
-      ? html`<state-badge slot="graphic" .stateObj=${item}></state-badge>`
-      : ""}
-    <span>${item.friendly_name}</span>
-    <span slot="secondary">${item.entity_id}</span>
-  </ha-list-item>`;
+const CREATE_ID = "___create-new-entity___";
 
 @customElement("ha-entity-picker")
 export class HaEntityPicker extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
+  // eslint-disable-next-line lit/no-native-attributes
   @property({ type: Boolean }) public autofocus = false;
 
-  @property({ type: Boolean }) public disabled?: boolean;
+  @property({ type: Boolean }) public disabled = false;
 
-  @property({ type: Boolean }) public required?: boolean;
+  @property({ type: Boolean }) public required = false;
 
   @property({ type: Boolean, attribute: "allow-custom-entity" })
   public allowCustomEntity;
@@ -53,6 +49,8 @@ export class HaEntityPicker extends LitElement {
   @property() public value?: string;
 
   @property() public helper?: string;
+
+  @property({ attribute: false, type: Array }) public createDomains?: string[];
 
   /**
    * Show entities from specific domains.
@@ -87,7 +85,7 @@ export class HaEntityPicker extends LitElement {
   public includeUnitOfMeasurement?: string[];
 
   /**
-   * List of allowed entities to show. Will ignore all other filters.
+   * List of allowed entities to show.
    * @type {Array}
    * @attr include-entities
    */
@@ -102,9 +100,11 @@ export class HaEntityPicker extends LitElement {
   @property({ type: Array, attribute: "exclude-entities" })
   public excludeEntities?: string[];
 
-  @property() public entityFilter?: HaEntityPickerEntityFilterFunc;
+  @property({ attribute: false })
+  public entityFilter?: HaEntityPickerEntityFilterFunc;
 
-  @property({ type: Boolean }) public hideClearIcon = false;
+  @property({ attribute: "hide-clear-icon", type: Boolean })
+  public hideClearIcon = false;
 
   @property({ attribute: "item-label-path" }) public itemLabelPath =
     "friendly_name";
@@ -127,6 +127,25 @@ export class HaEntityPicker extends LitElement {
 
   private _states: HassEntityWithCachedName[] = [];
 
+  private _rowRenderer: ComboBoxLitRenderer<HassEntityWithCachedName> = (
+    item
+  ) =>
+    html`<ha-list-item graphic="avatar" .twoline=${!!item.entity_id}>
+      ${item.state
+        ? html`<state-badge
+            slot="graphic"
+            .stateObj=${item}
+            .hass=${this.hass}
+          ></state-badge>`
+        : ""}
+      <span>${item.friendly_name}</span>
+      <span slot="secondary"
+        >${item.entity_id.startsWith(CREATE_ID)
+          ? this.hass.localize("ui.components.entity.entity-picker.new_entity")
+          : item.entity_id}</span
+      >
+    </ha-list-item>`;
+
   private _getStates = memoizeOne(
     (
       _opened: boolean,
@@ -137,7 +156,8 @@ export class HaEntityPicker extends LitElement {
       includeDeviceClasses: this["includeDeviceClasses"],
       includeUnitOfMeasurement: this["includeUnitOfMeasurement"],
       includeEntities: this["includeEntities"],
-      excludeEntities: this["excludeEntities"]
+      excludeEntities: this["excludeEntities"],
+      createDomains: this["createDomains"]
     ): HassEntityWithCachedName[] => {
       let states: HassEntityWithCachedName[] = [];
 
@@ -145,6 +165,34 @@ export class HaEntityPicker extends LitElement {
         return [];
       }
       let entityIds = Object.keys(hass.states);
+
+      const createItems = createDomains?.length
+        ? createDomains.map((domain) => {
+            const newFriendlyName = hass.localize(
+              "ui.components.entity.entity-picker.create_helper",
+              {
+                domain: isHelperDomain(domain)
+                  ? hass.localize(
+                      `ui.panel.config.helpers.types.${domain as HelperDomain}`
+                    )
+                  : domainToName(hass.localize, domain),
+              }
+            );
+
+            return {
+              entity_id: CREATE_ID + domain,
+              state: "on",
+              last_changed: "",
+              last_updated: "",
+              context: { id: "", user_id: null, parent_id: null },
+              friendly_name: newFriendlyName,
+              attributes: {
+                icon: "mdi:plus",
+              },
+              strings: [domain, newFriendlyName],
+            };
+          })
+        : [];
 
       if (!entityIds.length) {
         return [
@@ -165,35 +213,19 @@ export class HaEntityPicker extends LitElement {
             },
             strings: [],
           },
+          ...createItems,
         ];
       }
 
       if (includeEntities) {
         entityIds = entityIds.filter((entityId) =>
-          this.includeEntities!.includes(entityId)
+          includeEntities.includes(entityId)
         );
-
-        return entityIds
-          .map((key) => {
-            const friendly_name = computeStateName(hass!.states[key]) || key;
-            return {
-              ...hass!.states[key],
-              friendly_name,
-              strings: [key, friendly_name],
-            };
-          })
-          .sort((entityA, entityB) =>
-            caseInsensitiveStringCompare(
-              entityA.friendly_name,
-              entityB.friendly_name,
-              this.hass.locale.language
-            )
-          );
       }
 
       if (excludeEntities) {
         entityIds = entityIds.filter(
-          (entityId) => !excludeEntities!.includes(entityId)
+          (entityId) => !excludeEntities.includes(entityId)
         );
       }
 
@@ -275,7 +307,12 @@ export class HaEntityPicker extends LitElement {
             },
             strings: [],
           },
+          ...createItems,
         ];
+      }
+
+      if (createItems?.length) {
+        states.push(...createItems);
       }
 
       return states;
@@ -304,12 +341,17 @@ export class HaEntityPicker extends LitElement {
         this.includeDeviceClasses,
         this.includeUnitOfMeasurement,
         this.includeEntities,
-        this.excludeEntities
+        this.excludeEntities,
+        this.createDomains
       );
       if (this._initedStates) {
         this.comboBox.filteredItems = this._states;
       }
       this._initedStates = true;
+    }
+
+    if (changedProps.has("createDomains") && this.createDomains?.length) {
+      this.hass.loadFragmentTranslation("config");
     }
   }
 
@@ -326,7 +368,7 @@ export class HaEntityPicker extends LitElement {
         .helper=${this.helper}
         .allowCustomValue=${this.allowCustomEntity}
         .filteredItems=${this._states}
-        .renderer=${rowRenderer}
+        .renderer=${this._rowRenderer}
         .required=${this.required}
         .disabled=${this.disabled}
         @opened-changed=${this._openedChanged}
@@ -345,9 +387,21 @@ export class HaEntityPicker extends LitElement {
     this._opened = ev.detail.value;
   }
 
-  private _valueChanged(ev: ValueChangedEvent<string>) {
+  private _valueChanged(ev: ValueChangedEvent<string | undefined>) {
     ev.stopPropagation();
-    const newValue = ev.detail.value;
+    const newValue = ev.detail.value?.trim();
+
+    if (newValue && newValue.startsWith(CREATE_ID)) {
+      const domain = newValue.substring(CREATE_ID.length);
+      showHelperDetailDialog(this, {
+        domain,
+        dialogClosedCallback: (item) => {
+          if (item.entityId) this._setValue(item.entityId);
+        },
+      });
+      return;
+    }
+
     if (newValue !== this._value) {
       this._setValue(newValue);
     }
@@ -355,13 +409,13 @@ export class HaEntityPicker extends LitElement {
 
   private _filterChanged(ev: CustomEvent): void {
     const target = ev.target as HaComboBox;
-    const filterString = ev.detail.value.toLowerCase();
+    const filterString = ev.detail.value.trim().toLowerCase();
     target.filteredItems = filterString.length
       ? fuzzyFilterSort<HassEntityWithCachedName>(filterString, this._states)
       : this._states;
   }
 
-  private _setValue(value: string) {
+  private _setValue(value: string | undefined) {
     this.value = value;
     setTimeout(() => {
       fireEvent(this, "value-changed", { value });

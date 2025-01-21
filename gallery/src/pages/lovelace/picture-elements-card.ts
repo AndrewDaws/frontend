@@ -1,8 +1,10 @@
-import { html, LitElement, PropertyValues, TemplateResult } from "lit";
+import type { PropertyValues, TemplateResult } from "lit";
+import { html, LitElement } from "lit";
 import { customElement, query } from "lit/decorators";
 import { getEntity } from "../../../../src/fake_data/entity";
 import { provideHass } from "../../../../src/fake_data/provide_hass";
 import "../../components/demo-cards";
+import { mockIcons } from "../../../../demo/src/stubs/icons";
 
 const ENTITIES = [
   getEntity("light", "bed_light", "on", {
@@ -23,6 +25,15 @@ const ENTITIES = [
   getEntity("binary_sensor", "movement_backyard", "on", {
     friendly_name: "Movement Backyard",
     device_class: "motion",
+  }),
+  getEntity("person", "paulus", "home", {
+    friendly_name: "Paulus",
+    entity_picture: "/images/paulus.jpg",
+  }),
+  getEntity("sensor", "battery", 35, {
+    device_class: "battery",
+    friendly_name: "Battery",
+    unit_of_measurement: "%",
   }),
 ];
 
@@ -122,6 +133,19 @@ const CONFIGS = [
         left: 35%
     `,
   },
+  {
+    heading: "Person entity",
+    config: `
+- type: picture-elements
+  image_entity: person.paulus
+  elements:
+  - type: state-icon
+    entity: sensor.battery
+    style:
+      top: 8%
+      left: 8%
+    `,
+  },
 ];
 
 @customElement("demo-lovelace-picture-elements-card")
@@ -138,6 +162,7 @@ class DemoPictureElements extends LitElement {
     hass.updateTranslations(null, "en");
     hass.updateTranslations("lovelace", "en");
     hass.addEntities(ENTITIES);
+    mockIcons(hass);
   }
 }
 

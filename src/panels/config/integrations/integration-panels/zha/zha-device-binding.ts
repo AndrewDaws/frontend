@@ -1,27 +1,22 @@
 import "@material/mwc-list/mwc-list-item";
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  PropertyValues,
-  TemplateResult,
-} from "lit";
+import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { stopPropagation } from "../../../../../common/dom/stop_propagation";
 import "../../../../../components/buttons/ha-progress-button";
 import "../../../../../components/ha-card";
 import "../../../../../components/ha-select";
-import { bindDevices, unbindDevices, ZHADevice } from "../../../../../data/zha";
+import type { ZHADevice } from "../../../../../data/zha";
+import { bindDevices, unbindDevices } from "../../../../../data/zha";
 import { haStyle } from "../../../../../resources/styles";
-import { HomeAssistant } from "../../../../../types";
-import { ItemSelectedEvent } from "./types";
+import type { HomeAssistant } from "../../../../../types";
+import type { ItemSelectedEvent } from "./types";
 
 @customElement("zha-device-binding-control")
 export class ZHADeviceBindingControl extends LitElement {
   @property({ attribute: false }) public hass?: HomeAssistant;
 
-  @property() public device?: ZHADevice;
+  @property({ attribute: false }) public device?: ZHADevice;
 
   @state() private _bindTargetIndex = -1;
 
@@ -100,7 +95,7 @@ export class ZHADeviceBindingControl extends LitElement {
       try {
         await bindDevices(this.hass, this.device.ieee, this._deviceToBind.ieee);
         button.actionSuccess();
-      } catch (err: any) {
+      } catch (_err: any) {
         button.actionError();
       } finally {
         this._bindingOperationInProgress = false;
@@ -121,7 +116,7 @@ export class ZHADeviceBindingControl extends LitElement {
           this._deviceToBind.ieee
         );
         button.actionSuccess();
-      } catch (err: any) {
+      } catch (_err: any) {
         button.actionError();
       } finally {
         this._bindingOperationInProgress = false;
@@ -142,6 +137,8 @@ export class ZHADeviceBindingControl extends LitElement {
           align-items: center;
           padding-left: 28px;
           padding-right: 28px;
+          padding-inline-start: 28px;
+          padding-inline-end: 28px;
           padding-bottom: 10px;
         }
 

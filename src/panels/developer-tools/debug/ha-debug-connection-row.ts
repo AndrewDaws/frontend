@@ -1,4 +1,5 @@
-import { html, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
 import "../../../components/ha-settings-row";
 import "../../../components/ha-switch";
@@ -10,7 +11,7 @@ import { storeState } from "../../../util/ha-pref-storage";
 class HaDebugConnectionRow extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public narrow!: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
   protected render(): TemplateResult {
     return html`

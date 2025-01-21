@@ -2,14 +2,8 @@ import { undoDepth } from "@codemirror/commands";
 import "@material/mwc-button";
 import { mdiClose } from "@mdi/js";
 import { dump, load } from "js-yaml";
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  PropertyValues,
-  TemplateResult,
-} from "lit";
+import type { CSSResultGroup, PropertyValues, TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { array, assert, object, optional, string, type } from "superstruct";
@@ -18,7 +12,6 @@ import "../../components/ha-circular-progress";
 import "../../components/ha-code-editor";
 import type { HaCodeEditor } from "../../components/ha-code-editor";
 import "../../components/ha-icon-button";
-import type { LovelaceConfig } from "../../data/lovelace";
 import {
   showAlertDialog,
   showConfirmationDialog,
@@ -28,10 +21,18 @@ import type { HomeAssistant } from "../../types";
 import { showToast } from "../../util/toast";
 import type { Lovelace } from "./types";
 import "../../components/ha-top-app-bar-fixed";
+import type { LovelaceRawConfig } from "../../data/lovelace/config/types";
+import { isStrategyDashboard } from "../../data/lovelace/config/types";
 
 const lovelaceStruct = type({
   title: optional(string()),
   views: array(object()),
+});
+
+const strategyStruct = type({
+  strategy: type({
+    type: string(),
+  }),
 });
 
 @customElement("hui-editor")
@@ -40,13 +41,13 @@ class LovelaceFullConfigEditor extends LitElement {
 
   @property({ attribute: false }) public lovelace?: Lovelace;
 
-  @property() public closeEditor?: () => void;
+  @property({ attribute: false }) public closeEditor?: () => void;
 
   @state() private _saving?: boolean;
 
   @state() private _changed?: boolean;
 
-  protected render(): TemplateResult | void {
+  protected render(): TemplateResult | undefined {
     return html`
       <ha-top-app-bar-fixed>
         <ha-icon-button
@@ -62,7 +63,7 @@ class LovelaceFullConfigEditor extends LitElement {
           slot="actionItems"
           class="save-button
               ${classMap({
-            saved: this._saving! === false || this._changed === true,
+            saved: this._saving === false || this._changed === true,
           })}"
         >
           ${this._changed
@@ -123,7 +124,7 @@ class LovelaceFullConfigEditor extends LitElement {
             "ui.panel.lovelace.editor.raw_editor.reload"
           ),
         },
-        duration: 0,
+        duration: -1,
         dismissable: false,
       });
     }
@@ -204,8 +205,7 @@ class LovelaceFullConfigEditor extends LitElement {
       showAlertDialog(this, {
         text: this.hass.localize(
           "ui.panel.lovelace.editor.raw_editor.error_remove",
-          "error",
-          err
+          { error: err }
         ),
       });
     }
@@ -223,14 +223,15 @@ class LovelaceFullConfigEditor extends LitElement {
     if (!value) {
       showConfirmationDialog(this, {
         title: this.hass.localize(
-          "ui.panel.lovelace.editor.raw_editor.confirm_remove_config_title"
+          "ui.panel.lovelace.editor.raw_editor.confirm_delete_config_title"
         ),
         text: this.hass.localize(
-          "ui.panel.lovelace.editor.raw_editor.confirm_remove_config_text"
+          "ui.panel.lovelace.editor.raw_editor.confirm_delete_config_text"
         ),
-        confirmText: this.hass.localize("ui.common.remove"),
+        confirmText: this.hass.localize("ui.common.delete"),
         dismissText: this.hass.localize("ui.common.cancel"),
         confirm: () => this._removeConfig(),
+        destructive: true,
       });
       return;
     }
@@ -247,28 +248,30 @@ class LovelaceFullConfigEditor extends LitElement {
       }
     }
 
-    let config: LovelaceConfig;
+    let config: LovelaceRawConfig;
     try {
-      config = load(value) as LovelaceConfig;
+      config = load(value) as LovelaceRawConfig;
     } catch (err: any) {
       showAlertDialog(this, {
         text: this.hass.localize(
           "ui.panel.lovelace.editor.raw_editor.error_parse_yaml",
-          "error",
-          err
+          { error: err }
         ),
       });
       this._saving = false;
       return;
     }
     try {
-      assert(config, lovelaceStruct);
+      if (isStrategyDashboard(config)) {
+        assert(config, strategyStruct);
+      } else {
+        assert(config, lovelaceStruct);
+      }
     } catch (err: any) {
       showAlertDialog(this, {
         text: this.hass.localize(
           "ui.panel.lovelace.editor.raw_editor.error_invalid_config",
-          "error",
-          err
+          { error: err }
         ),
       });
       return;
@@ -287,8 +290,7 @@ class LovelaceFullConfigEditor extends LitElement {
       showAlertDialog(this, {
         text: this.hass.localize(
           "ui.panel.lovelace.editor.raw_editor.error_save_yaml",
-          "error",
-          err
+          { error: err }
         ),
       });
     }

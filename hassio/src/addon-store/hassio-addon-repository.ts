@@ -1,15 +1,16 @@
 import { mdiArrowUpBoldCircle, mdiPuzzle } from "@mdi/js";
-import { css, CSSResultGroup, html, LitElement, TemplateResult } from "lit";
+import type { CSSResultGroup, TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { atLeastVersion } from "../../../src/common/config/version";
 import { navigate } from "../../../src/common/navigate";
 import { caseInsensitiveStringCompare } from "../../../src/common/string/compare";
 import "../../../src/components/ha-card";
-import { HassioAddonRepository } from "../../../src/data/hassio/addon";
-import { StoreAddon } from "../../../src/data/supervisor/store";
-import { Supervisor } from "../../../src/data/supervisor/supervisor";
-import { HomeAssistant } from "../../../src/types";
+import type { HassioAddonRepository } from "../../../src/data/hassio/addon";
+import type { StoreAddon } from "../../../src/data/supervisor/store";
+import type { Supervisor } from "../../../src/data/supervisor/supervisor";
+import type { HomeAssistant } from "../../../src/types";
 import "../components/hassio-card-content";
 import { filterAndSort } from "../components/hassio-filter-addons";
 import { hassioStyle } from "../resources/hassio-style";
@@ -49,11 +50,9 @@ export class HassioAddonRepositoryEl extends LitElement {
       return html`
         <div class="content">
           <p class="description">
-            ${this.supervisor.localize(
-              "store.no_results_found",
-              "repository",
-              repo.name
-            )}
+            ${this.supervisor.localize("store.no_results_found", {
+              repository: repo.name,
+            })}
           </p>
         </div>
       `;
@@ -86,15 +85,15 @@ export class HassioAddonRepositoryEl extends LitElement {
                           )
                         : this.supervisor.localize("addon.state.installed")
                       : addon.available
-                      ? this.supervisor.localize("addon.state.not_installed")
-                      : this.supervisor.localize("addon.state.not_available")}
+                        ? this.supervisor.localize("addon.state.not_installed")
+                        : this.supervisor.localize("addon.state.not_available")}
                     .iconClass=${addon.installed
                       ? addon.update_available
                         ? "update"
                         : "installed"
                       : !addon.available
-                      ? "not_available"
-                      : ""}
+                        ? "not_available"
+                        : ""}
                     .iconImage=${atLeastVersion(
                       this.hass.config.version,
                       0,
@@ -108,8 +107,8 @@ export class HassioAddonRepositoryEl extends LitElement {
                         ? "update"
                         : "installed"
                       : !addon.available
-                      ? "unavailable"
-                      : ""}
+                        ? "unavailable"
+                        : ""}
                   ></hassio-card-content>
                 </div>
               </ha-card>
@@ -140,5 +139,11 @@ export class HassioAddonRepositoryEl extends LitElement {
         }
       `,
     ];
+  }
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    "hassio-addon-repository": HassioAddonRepositoryEl;
   }
 }

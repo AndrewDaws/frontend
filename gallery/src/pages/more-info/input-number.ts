@@ -1,12 +1,11 @@
-import { html, LitElement, PropertyValues, TemplateResult } from "lit";
+import type { PropertyValues, TemplateResult } from "lit";
+import { html, LitElement } from "lit";
 import { customElement, property, query } from "lit/decorators";
 import "../../../../src/components/ha-card";
 import "../../../../src/dialogs/more-info/more-info-content";
 import { getEntity } from "../../../../src/fake_data/entity";
-import {
-  MockHomeAssistant,
-  provideHass,
-} from "../../../../src/fake_data/provide_hass";
+import type { MockHomeAssistant } from "../../../../src/fake_data/provide_hass";
+import { provideHass } from "../../../../src/fake_data/provide_hass";
 import "../../components/demo-more-infos";
 
 const ENTITIES = [
@@ -32,7 +31,7 @@ const ENTITIES = [
 
 @customElement("demo-more-info-input-number")
 class DemoMoreInfoInputNumber extends LitElement {
-  @property() public hass!: MockHomeAssistant;
+  @property({ attribute: false }) public hass!: MockHomeAssistant;
 
   @query("demo-more-infos") private _demoRoot!: HTMLElement;
 

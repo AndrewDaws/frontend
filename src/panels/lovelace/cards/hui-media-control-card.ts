@@ -1,14 +1,8 @@
 import "@material/mwc-linear-progress/mwc-linear-progress";
 import type { LinearProgress } from "@material/mwc-linear-progress/mwc-linear-progress";
 import { mdiDotsVertical, mdiPlayBoxMultiple } from "@mdi/js";
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  PropertyValues,
-  nothing,
-} from "lit";
+import type { PropertyValues } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
@@ -24,25 +18,26 @@ import "../../../components/ha-icon-button";
 import "../../../components/ha-state-icon";
 import { showMediaBrowserDialog } from "../../../components/media-player/show-media-browser-dialog";
 import { isUnavailableState } from "../../../data/entity";
+import type {
+  MediaPickedEvent,
+  MediaPlayerEntity,
+} from "../../../data/media-player";
 import {
   cleanupMediaTitle,
   computeMediaControls,
   computeMediaDescription,
   getCurrentProgress,
   handleMediaControlClick,
-  MediaPickedEvent,
-  MediaPlayerEntity,
   MediaPlayerEntityFeature,
   mediaPlayerPlayMedia,
 } from "../../../data/media-player";
 import type { HomeAssistant } from "../../../types";
 import { findEntities } from "../common/find-entities";
 import { hasConfigOrEntityChanged } from "../common/has-changed";
-import { loadPolyfillIfNeeded } from "../../../resources/resize-observer.polyfill";
 import "../components/hui-marquee";
 import { createEntityNotFoundWarning } from "../components/hui-warning";
 import type { LovelaceCard, LovelaceCardEditor } from "../types";
-import { MediaControlCardConfig } from "./types";
+import type { MediaControlCardConfig } from "./types";
 
 @customElement("hui-media-control-card")
 export class HuiMediaControlCard extends LitElement implements LovelaceCard {
@@ -101,6 +96,8 @@ export class HuiMediaControlCard extends LitElement implements LovelaceCard {
     }
 
     this._config = config;
+
+    this.updateComplete.then(() => this._measureCard());
   }
 
   public connectedCallback(): void {
@@ -232,7 +229,11 @@ export class HuiMediaControlCard extends LitElement implements LovelaceCard {
         >
           <div class="top-info">
             <div class="icon-name">
-              <ha-state-icon class="icon" .state=${stateObj}></ha-state-icon>
+              <ha-state-icon
+                class="icon"
+                .stateObj=${stateObj}
+                .hass=${this.hass}
+              ></ha-state-icon>
               <div>
                 ${this._config!.name ||
                 computeStateName(this.hass!.states[this._config!.entity])}
@@ -330,19 +331,20 @@ export class HuiMediaControlCard extends LitElement implements LovelaceCard {
   }
 
   protected shouldUpdate(changedProps: PropertyValues): boolean {
-    return hasConfigOrEntityChanged(this, changedProps);
+    return (
+      hasConfigOrEntityChanged(this, changedProps) ||
+      changedProps.size > 1 ||
+      !changedProps.has("hass")
+    );
   }
 
   protected firstUpdated(): void {
     this._attachObserver();
+    this._measureCard();
   }
 
   public willUpdate(changedProps: PropertyValues): void {
     super.willUpdate(changedProps);
-
-    if (!this.hasUpdated) {
-      this._measureCard();
-    }
 
     if (
       !this._config ||
@@ -464,6 +466,7 @@ export class HuiMediaControlCard extends LitElement implements LovelaceCard {
 
   private _measureCard() {
     const card = this.shadowRoot!.querySelector("ha-card");
+
     if (!card) {
       return;
     }
@@ -474,7 +477,6 @@ export class HuiMediaControlCard extends LitElement implements LovelaceCard {
 
   private async _attachObserver(): Promise<void> {
     if (!this._resizeObserver) {
-      await loadPolyfillIfNeeded();
       this._resizeObserver = new ResizeObserver(
         debounce(() => this._measureCard(), 250, false)
       );
@@ -576,233 +578,233 @@ export class HuiMediaControlCard extends LitElement implements LovelaceCard {
     }
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      ha-card {
-        overflow: hidden;
-        height: 100%;
-      }
+  static styles = css`
+    ha-card {
+      overflow: hidden;
+      height: 100%;
+    }
 
-      .background {
-        display: flex;
-        position: absolute;
-        top: 0;
-        left: 0;
-        height: 100%;
-        width: 100%;
-        transition: filter 0.8s;
-      }
+    .background {
+      display: flex;
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 100%;
+      transition: filter 0.8s;
+    }
 
-      .color-block {
-        background-color: var(--primary-color);
-        transition: background-color 0.8s;
-        width: 100%;
-      }
+    .color-block {
+      background-color: var(--primary-color);
+      transition: background-color 0.8s;
+      width: 100%;
+    }
 
-      .color-gradient {
-        position: absolute;
-        background-image: linear-gradient(
-          to right,
-          var(--primary-color),
-          transparent
-        );
-        height: 100%;
-        right: 0;
+    .color-gradient {
+      position: absolute;
+      background-image: linear-gradient(
+        to right,
+        var(--primary-color),
+        transparent
+      );
+      height: 100%;
+      right: 0;
 
-        opacity: 1;
-        transition:
-          width 0.8s,
-          opacity 0.8s linear 0.8s;
-      }
+      opacity: 1;
+      transition:
+        width 0.8s,
+        opacity 0.8s linear 0.8s;
+    }
 
-      .image {
-        background-color: var(--primary-color);
-        background-position: center;
-        background-size: cover;
-        background-repeat: no-repeat;
-        position: absolute;
-        right: 0;
-        height: 100%;
-        opacity: 1;
-        transition:
-          width 0.8s,
-          background-image 0.8s,
-          background-color 0.8s,
-          background-size 0.8s,
-          opacity 0.8s linear 0.8s;
-      }
+    .image {
+      background-color: var(--primary-color);
+      background-position: center;
+      background-size: cover;
+      background-repeat: no-repeat;
+      position: absolute;
+      right: 0;
+      height: 100%;
+      opacity: 1;
+      transition:
+        width 0.8s,
+        background-image 0.8s,
+        background-color 0.8s,
+        background-size 0.8s,
+        opacity 0.8s linear 0.8s;
+    }
 
-      .no-image .image {
-        opacity: 0;
-      }
+    .no-image .image {
+      opacity: 0;
+    }
 
-      .no-img {
-        background-color: var(--primary-color);
-        background-size: initial;
-        background-repeat: no-repeat;
-        background-position: center center;
-        padding-bottom: 0;
-        position: absolute;
-        right: 0;
-        height: 100%;
-        background-image: url("/static/images/card_media_player_bg.png");
-        width: 50%;
-        transition:
-          opacity 0.8s,
-          background-color 0.8s;
-      }
+    .no-img {
+      background-color: var(--primary-color);
+      background-size: initial;
+      background-repeat: no-repeat;
+      background-position: center center;
+      padding-bottom: 0;
+      position: absolute;
+      right: 0;
+      height: 100%;
+      background-image: url("/static/images/card_media_player_bg.png");
+      width: 50%;
+      transition:
+        opacity 0.8s,
+        background-color 0.8s;
+    }
 
-      .off .image,
-      .off .color-gradient {
-        opacity: 0;
-        transition:
-          opacity 0s,
-          width 0.8s;
-        width: 0;
-      }
+    .off .image,
+    .off .color-gradient {
+      opacity: 0;
+      transition:
+        opacity 0s,
+        width 0.8s;
+      width: 0;
+    }
 
-      .unavailable .no-img,
-      .background:not(.off):not(.no-image) .no-img {
-        opacity: 0;
-      }
+    .unavailable .no-img,
+    .background:not(.off):not(.no-image) .no-img {
+      opacity: 0;
+    }
 
-      .player {
-        position: relative;
-        padding: 16px;
-        height: 100%;
-        box-sizing: border-box;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        color: var(--text-primary-color);
-        transition-property: color, padding;
-        transition-duration: 0.4s;
-      }
+    .player {
+      position: relative;
+      padding: 16px;
+      height: 100%;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      color: var(--text-primary-color);
+      transition-property: color, padding;
+      transition-duration: 0.4s;
+    }
 
-      .controls {
-        padding: 8px 8px 8px 0;
-        display: flex;
-        justify-content: flex-start;
-        align-items: center;
-        transition: padding, color;
-        transition-duration: 0.4s;
-        margin-left: -12px;
-        margin-inline-start: -12px;
-        margin-inline-end: initial;
-        padding-inline-start: 0;
-        padding-inline-end: 8px;
-        direction: ltr;
-      }
+    .controls {
+      padding: 8px 8px 8px 0;
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      transition: padding, color;
+      transition-duration: 0.4s;
+      margin-left: -12px;
+      margin-inline-start: -12px;
+      margin-inline-end: initial;
+      padding-inline-start: 0;
+      padding-inline-end: 8px;
+      direction: ltr;
+    }
 
-      .controls > div {
-        display: flex;
-        align-items: center;
-      }
+    .controls > div {
+      display: flex;
+      align-items: center;
+    }
 
-      .controls ha-icon-button {
-        --mdc-icon-button-size: 44px;
-        --mdc-icon-size: 30px;
-      }
+    .controls ha-icon-button {
+      --mdc-icon-button-size: 44px;
+      --mdc-icon-size: 30px;
+    }
 
-      ha-icon-button[action="media_play"],
-      ha-icon-button[action="media_play_pause"],
-      ha-icon-button[action="media_pause"],
-      ha-icon-button[action="media_stop"],
-      ha-icon-button[action="turn_on"],
-      ha-icon-button[action="turn_off"] {
-        --mdc-icon-button-size: 56px;
-        --mdc-icon-size: 40px;
-      }
+    ha-icon-button[action="media_play"],
+    ha-icon-button[action="media_play_pause"],
+    ha-icon-button[action="media_pause"],
+    ha-icon-button[action="media_stop"],
+    ha-icon-button[action="turn_on"],
+    ha-icon-button[action="turn_off"] {
+      --mdc-icon-button-size: 56px;
+      --mdc-icon-size: 40px;
+    }
 
-      ha-icon-button.browse-media {
-        position: absolute;
-        right: 4px;
-        --mdc-icon-size: 24px;
-      }
+    ha-icon-button.browse-media {
+      position: absolute;
+      right: 4px;
+      --mdc-icon-size: 24px;
+      inset-inline-end: 4px;
+      inset-inline-start: initial;
+    }
 
-      .top-info {
-        display: flex;
-        justify-content: space-between;
-      }
+    .top-info {
+      display: flex;
+      justify-content: space-between;
+    }
 
-      .icon-name {
-        display: flex;
-        height: fit-content;
-        align-items: center;
-      }
+    .icon-name {
+      display: flex;
+      height: fit-content;
+      align-items: center;
+    }
 
-      .icon-name ha-state-icon {
-        padding-right: 8px;
-        padding-inline-start: initial;
-        padding-inline-end: 8px;
-        direction: var(--direction);
-      }
+    .icon-name ha-state-icon {
+      padding-right: 8px;
+      padding-inline-start: initial;
+      padding-inline-end: 8px;
+      direction: var(--direction);
+    }
 
-      .more-info {
-        position: absolute;
-        top: 4px;
-        right: 4px;
-        inset-inline-start: initial;
-        inset-inline-end: 4px;
-        direction: var(--direction);
-      }
+    .more-info {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      inset-inline-start: initial;
+      inset-inline-end: 4px;
+      direction: var(--direction);
+    }
 
-      .media-info {
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        overflow: hidden;
-      }
+    .media-info {
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      overflow: hidden;
+    }
 
-      hui-marquee {
-        font-size: 1.2em;
-        margin: 0px 0 4px;
-      }
+    hui-marquee {
+      font-size: 1.2em;
+      margin: 0px 0 4px;
+    }
 
-      .title-controls {
-        padding-top: 16px;
-      }
+    .title-controls {
+      padding-top: 16px;
+    }
 
-      mwc-linear-progress {
-        width: 100%;
-        margin-top: 4px;
-        --mdc-linear-progress-buffer-color: rgba(200, 200, 200, 0.5);
-      }
+    mwc-linear-progress {
+      width: 100%;
+      margin-top: 4px;
+      --mdc-linear-progress-buffer-color: rgba(200, 200, 200, 0.5);
+    }
 
-      .no-image .controls {
-        padding: 0;
-      }
+    .no-image .controls {
+      padding: 0;
+    }
 
-      .off.background {
-        filter: grayscale(1);
-      }
+    .off.background {
+      filter: grayscale(1);
+    }
 
-      .narrow .controls,
-      .no-progress .controls {
-        padding-bottom: 0;
-      }
+    .narrow .controls,
+    .no-progress .controls {
+      padding-bottom: 0;
+    }
 
-      .narrow ha-icon-button {
-        --mdc-icon-button-size: 40px;
-        --mdc-icon-size: 28px;
-      }
+    .narrow ha-icon-button {
+      --mdc-icon-button-size: 40px;
+      --mdc-icon-size: 28px;
+    }
 
-      .narrow ha-icon-button[action="media_play"],
-      .narrow ha-icon-button[action="media_play_pause"],
-      .narrow ha-icon-button[action="media_pause"],
-      .narrow ha-icon-button[action="turn_on"] {
-        --mdc-icon-button-size: 50px;
-        --mdc-icon-size: 36px;
-      }
+    .narrow ha-icon-button[action="media_play"],
+    .narrow ha-icon-button[action="media_play_pause"],
+    .narrow ha-icon-button[action="media_pause"],
+    .narrow ha-icon-button[action="turn_on"] {
+      --mdc-icon-button-size: 50px;
+      --mdc-icon-size: 36px;
+    }
 
-      .narrow ha-icon-button.browse-media {
-        --mdc-icon-size: 24px;
-      }
+    .narrow ha-icon-button.browse-media {
+      --mdc-icon-size: 24px;
+    }
 
-      .no-progress.player:not(.no-controls) {
-        padding-bottom: 0px;
-      }
-    `;
-  }
+    .no-progress.player:not(.no-controls) {
+      padding-bottom: 0px;
+    }
+  `;
 }
 
 declare global {

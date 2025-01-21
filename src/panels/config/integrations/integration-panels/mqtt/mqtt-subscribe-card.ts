@@ -1,12 +1,14 @@
 import "@material/mwc-button";
-import { css, CSSResultGroup, html, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import "../../../../../components/ha-card";
 import "../../../../../components/ha-select";
 import "../../../../../components/ha-textfield";
 import { formatTime } from "../../../../../common/datetime/format_time";
-import { MQTTMessage, subscribeMQTTTopic } from "../../../../../data/mqtt";
-import { HomeAssistant } from "../../../../../types";
+import type { MQTTMessage } from "../../../../../data/mqtt";
+import { subscribeMQTTTopic } from "../../../../../data/mqtt";
+import type { HomeAssistant } from "../../../../../types";
 import "@material/mwc-list/mwc-list-item";
 import { storage } from "../../../../../common/decorators/storage";
 import "../../../../../components/ha-formfield";
@@ -41,12 +43,12 @@ class MqttSubscribeCard extends LitElement {
 
   @state() private _subscribed?: () => void;
 
-  @state() private _messages: Array<{
+  @state() private _messages: {
     id: number;
     message: MQTTMessage;
     payload: string;
     time: Date;
-  }> = [];
+  }[] = [];
 
   private _messageCount = 0;
 
@@ -110,15 +112,15 @@ class MqttSubscribeCard extends LitElement {
           ${this._messages.map(
             (msg) => html`
               <div class="event">
-                ${this.hass.localize(
-                  "ui.panel.config.mqtt.message_received",
-                  "id",
-                  msg.id,
-                  "topic",
-                  msg.message.topic,
-                  "time",
-                  formatTime(msg.time, this.hass!.locale, this.hass!.config)
-                )}
+                ${this.hass.localize("ui.panel.config.mqtt.message_received", {
+                  id: msg.id,
+                  topic: msg.message.topic,
+                  time: formatTime(
+                    msg.time,
+                    this.hass!.locale,
+                    this.hass!.config
+                  ),
+                })}
                 <pre>${msg.payload}</pre>
                 <div class="bottom">
                   QoS: ${msg.message.qos} - Retain:
@@ -168,7 +170,7 @@ class MqttSubscribeCard extends LitElement {
     if (this._json_format) {
       try {
         payload = JSON.stringify(JSON.parse(message.payload), null, 4);
-      } catch (err: any) {
+      } catch (_err: any) {
         payload = message.payload;
       }
     } else {
@@ -185,55 +187,55 @@ class MqttSubscribeCard extends LitElement {
     ];
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      form {
-        display: block;
-        padding: 16px;
-      }
-      .events {
-        margin: -16px 0;
-        padding: 0 16px;
-      }
-      .event {
-        border-bottom: 1px solid var(--divider-color);
-        padding-bottom: 16px;
-        margin: 16px 0;
-      }
-      .event:last-child {
-        border-bottom: 0;
-      }
-      .bottom {
-        font-size: 80%;
-        color: var(--secondary-text-color);
-      }
-      pre {
-        font-family: var(--code-font-family, monospace);
-      }
-      .panel-dev-mqtt-subscribe-fields {
-        display: flex;
-        justify-content: space-between;
-        flex-wrap: wrap;
-      }
+  static styles = css`
+    form {
+      display: block;
+      padding: 16px;
+    }
+    .events {
+      margin: -16px 0;
+      padding: 0 16px;
+    }
+    .event {
+      border-bottom: 1px solid var(--divider-color);
+      padding-bottom: 16px;
+      margin: 16px 0;
+    }
+    .event:last-child {
+      border-bottom: 0;
+    }
+    .bottom {
+      font-size: 80%;
+      color: var(--secondary-text-color);
+    }
+    pre {
+      font-family: var(--code-font-family, monospace);
+    }
+    .panel-dev-mqtt-subscribe-fields {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+    ha-select {
+      width: 96px;
+      margin: 0 8px;
+    }
+    ha-textfield {
+      flex: 1;
+    }
+    @media screen and (max-width: 600px) {
       ha-select {
-        width: 96px;
-        margin: 0 8px;
+        margin-left: 0px;
+        margin-top: 8px;
+        margin-inline-start: 0px;
+        margin-inline-end: initial;
       }
       ha-textfield {
-        flex: 1;
+        flex: auto;
+        width: 100%;
       }
-      @media screen and (max-width: 600px) {
-        ha-select {
-          margin-left: 0px;
-          margin-top: 8px;
-        }
-        ha-textfield {
-          flex: auto;
-          width: 100%;
-        }
-      }
-    `;
-  }
+    }
+  `;
 }
 
 declare global {

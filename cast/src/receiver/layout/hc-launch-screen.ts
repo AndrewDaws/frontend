@@ -1,6 +1,7 @@
-import { css, CSSResultGroup, html, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
-import { HomeAssistant } from "../../../../src/types";
+import type { HomeAssistant } from "../../../../src/types";
 
 @customElement("hc-launch-screen")
 class HcLaunchScreen extends LitElement {
@@ -12,8 +13,8 @@ class HcLaunchScreen extends LitElement {
     return html`
       <div class="container">
         <img
-          alt="Home Assistant logo on left, Nabu Casa logo on right, and red heart in center"
-          src="https://www.home-assistant.io/images/blog/2018-09-thinking-big/social.png"
+          alt="Nabu Casa logo on left, Home Assistant logo on right, and red heart in center"
+          src="https://cast.home-assistant.io/images/nabu-loves-hass.png"
         />
         <div class="status">
           ${this.hass ? "Connected" : "Not Connected"}
@@ -23,31 +24,29 @@ class HcLaunchScreen extends LitElement {
     `;
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host {
-        display: block;
-        height: 100vh;
-        padding-top: 64px;
-        background-color: white;
-        font-size: 24px;
-      }
-      .container {
-        display: flex;
-        flex-direction: column;
-        text-align: center;
-      }
-      img {
-        width: 717px;
-        height: 376px;
-        display: block;
-        margin: 0 auto;
-      }
-      .status {
-        padding-right: 54px;
-      }
-    `;
-  }
+  static styles = css`
+    :host {
+      display: block;
+      height: 100vh;
+      background-color: #f2f4f9;
+      font-size: 24px;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      text-align: center;
+      align-items: center;
+      height: 100%;
+      justify-content: space-evenly;
+    }
+    img {
+      max-width: 80%;
+      object-fit: cover;
+    }
+    .status {
+      color: #1d2126;
+    }
+  `;
 }
 
 declare global {

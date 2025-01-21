@@ -1,4 +1,4 @@
-import { DemoConfig } from "../types";
+import type { DemoConfig } from "../types";
 
 export const demoLovelaceTeachingbirds: DemoConfig["lovelace"] = () => ({
   title: "Home",
@@ -220,7 +220,8 @@ export const demoLovelaceTeachingbirds: DemoConfig["lovelace"] = () => ({
           state_filter: ["on"],
         },
         {
-          type: "shopping-list",
+          type: "todo-list",
+          entity: "todo.shopping_list",
         },
         {
           entities: [

@@ -1,4 +1,4 @@
-import { Card } from "./types";
+import type { Card } from "./types";
 
 export const coreCards: Card[] = [
   {
@@ -123,6 +123,10 @@ export const coreCards: Card[] = [
     type: "vertical-stack",
   },
   {
-    type: "shopping-list",
+    type: "todo-list",
+  },
+  {
+    type: "heading",
+    showElement: true,
   },
 ];

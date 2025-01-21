@@ -1,12 +1,6 @@
 import { mdiChevronDown } from "@mdi/js";
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  PropertyValues,
-  TemplateResult,
-} from "lit";
+import type { PropertyValues, TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { fireEvent } from "../common/dom/fire_event";
@@ -19,7 +13,11 @@ export class HaExpansionPanel extends LitElement {
 
   @property({ type: Boolean, reflect: true }) outlined = false;
 
-  @property({ type: Boolean, reflect: true }) leftChevron = false;
+  @property({ attribute: false, type: Boolean, reflect: true }) leftChevron =
+    false;
+
+  @property({ attribute: false, type: Boolean, reflect: true }) noCollapse =
+    false;
 
   @property() header?: string;
 
@@ -34,16 +32,17 @@ export class HaExpansionPanel extends LitElement {
       <div class="top ${classMap({ expanded: this.expanded })}">
         <div
           id="summary"
+          class=${classMap({ noCollapse: this.noCollapse })}
           @click=${this._toggleContainer}
           @keydown=${this._toggleContainer}
           @focus=${this._focusChanged}
           @blur=${this._focusChanged}
           role="button"
-          tabindex="0"
+          tabindex=${this.noCollapse ? -1 : 0}
           aria-expanded=${this.expanded}
           aria-controls="sect1"
         >
-          ${this.leftChevron
+          ${this.leftChevron && !this.noCollapse
             ? html`
                 <ha-svg-icon
                   .path=${mdiChevronDown}
@@ -57,7 +56,7 @@ export class HaExpansionPanel extends LitElement {
               <slot class="secondary" name="secondary">${this.secondary}</slot>
             </div>
           </slot>
-          ${!this.leftChevron
+          ${!this.leftChevron && !this.noCollapse
             ? html`
                 <ha-svg-icon
                   .path=${mdiChevronDown}
@@ -65,8 +64,8 @@ export class HaExpansionPanel extends LitElement {
                 ></ha-svg-icon>
               `
             : ""}
+          <slot name="icons"></slot>
         </div>
-        <slot name="icons"></slot>
       </div>
       <div
         class="container ${classMap({ expanded: this.expanded })}"
@@ -83,13 +82,11 @@ export class HaExpansionPanel extends LitElement {
 
   protected willUpdate(changedProps: PropertyValues) {
     super.willUpdate(changedProps);
-    if (changedProps.has("expanded") && this.expanded) {
+    if (changedProps.has("expanded")) {
       this._showContent = this.expanded;
       setTimeout(() => {
         // Verify we're still expanded
-        if (this.expanded) {
-          this._container.style.overflow = "initial";
-        }
+        this._container.style.overflow = this.expanded ? "initial" : "hidden";
       }, 300);
     }
   }
@@ -108,6 +105,9 @@ export class HaExpansionPanel extends LitElement {
       return;
     }
     ev.preventDefault();
+    if (this.noCollapse) {
+      return;
+    }
     const newExpanded = !this.expanded;
     fireEvent(this, "expanded-will-change", { expanded: newExpanded });
     this._container.style.overflow = "hidden";
@@ -132,94 +132,99 @@ export class HaExpansionPanel extends LitElement {
   }
 
   private _focusChanged(ev) {
+    if (this.noCollapse) {
+      return;
+    }
     this.shadowRoot!.querySelector(".top")!.classList.toggle(
       "focused",
       ev.type === "focus"
     );
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host {
-        display: block;
-      }
+  static styles = css`
+    :host {
+      display: block;
+    }
 
-      .top {
-        display: flex;
-        align-items: center;
-        border-radius: var(--ha-card-border-radius, 12px);
-      }
+    .top {
+      display: flex;
+      align-items: center;
+      border-radius: var(--ha-card-border-radius, 12px);
+    }
 
-      .top.expanded {
-        border-bottom-left-radius: 0px;
-        border-bottom-right-radius: 0px;
-      }
+    .top.expanded {
+      border-bottom-left-radius: 0px;
+      border-bottom-right-radius: 0px;
+    }
 
-      .top.focused {
-        background: var(--input-fill-color);
-      }
+    .top.focused {
+      background: var(--input-fill-color);
+    }
 
-      :host([outlined]) {
-        box-shadow: none;
-        border-width: 1px;
-        border-style: solid;
-        border-color: var(--outline-color);
-        border-radius: var(--ha-card-border-radius, 12px);
-      }
+    :host([outlined]) {
+      box-shadow: none;
+      border-width: 1px;
+      border-style: solid;
+      border-color: var(--outline-color);
+      border-radius: var(--ha-card-border-radius, 12px);
+    }
 
-      .summary-icon {
-        margin-left: 8px;
-      }
+    .summary-icon {
+      transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1);
+      direction: var(--direction);
+      margin-left: 8px;
+      margin-inline-start: 8px;
+      margin-inline-end: initial;
+    }
 
-      :host([leftchevron]) .summary-icon {
-        margin-left: 0;
-        margin-right: 8px;
-      }
+    :host([leftchevron]) .summary-icon {
+      margin-left: 0;
+      margin-right: 8px;
+      margin-inline-start: 0;
+      margin-inline-end: 8px;
+    }
 
-      #summary {
-        flex: 1;
-        display: flex;
-        padding: var(--expansion-panel-summary-padding, 0 8px);
-        min-height: 48px;
-        align-items: center;
-        cursor: pointer;
-        overflow: hidden;
-        font-weight: 500;
-        outline: none;
-      }
+    #summary {
+      flex: 1;
+      display: flex;
+      padding: var(--expansion-panel-summary-padding, 0 8px);
+      min-height: 48px;
+      align-items: center;
+      cursor: pointer;
+      overflow: hidden;
+      font-weight: 500;
+      outline: none;
+    }
+    #summary.noCollapse {
+      cursor: default;
+    }
 
-      .summary-icon {
-        transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1);
-        direction: var(--direction);
-      }
+    .summary-icon.expanded {
+      transform: rotate(180deg);
+    }
 
-      .summary-icon.expanded {
-        transform: rotate(180deg);
-      }
+    .header,
+    ::slotted([slot="header"]) {
+      flex: 1;
+    }
 
-      .header,
-      ::slotted([slot="header"]) {
-        flex: 1;
-      }
+    .container {
+      padding: var(--expansion-panel-content-padding, 0 8px);
+      overflow: hidden;
+      transition: height 300ms cubic-bezier(0.4, 0, 0.2, 1);
+      height: 0px;
+    }
 
-      .container {
-        padding: var(--expansion-panel-content-padding, 0 8px);
-        overflow: hidden;
-        transition: height 300ms cubic-bezier(0.4, 0, 0.2, 1);
-        height: 0px;
-      }
+    .container.expanded {
+      height: auto;
+    }
 
-      .container.expanded {
-        height: auto;
-      }
-
-      .secondary {
-        display: block;
-        color: var(--secondary-text-color);
-        font-size: 12px;
-      }
-    `;
-  }
+    .secondary {
+      display: block;
+      color: var(--secondary-text-color);
+      font-size: 12px;
+    }
+  `;
 }
 
 declare global {

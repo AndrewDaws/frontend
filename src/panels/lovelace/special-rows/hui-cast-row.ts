@@ -1,22 +1,16 @@
 import "@material/mwc-button/mwc-button";
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  PropertyValues,
-  nothing,
-} from "lit";
+import type { PropertyValues } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
-import { CastManager } from "../../../cast/cast_manager";
+import type { CastManager } from "../../../cast/cast_manager";
 import {
   castSendShowLovelaceView,
   ensureConnectedCastSession,
 } from "../../../cast/receiver_messages";
 import "../../../components/ha-icon";
-import { HomeAssistant } from "../../../types";
-import { CastConfig, LovelaceRow } from "../entity-rows/types";
+import type { HomeAssistant } from "../../../types";
+import type { CastConfig, LovelaceRow } from "../entity-rows/types";
 
 @customElement("hui-cast-row")
 class HuiCastRow extends LitElement implements LovelaceRow {
@@ -59,24 +53,24 @@ class HuiCastRow extends LitElement implements LovelaceRow {
         ${this._noHTTPS
           ? html` Cast requires HTTPS `
           : this._castManager === undefined
-          ? nothing
-          : this._castManager === null
-          ? html` Cast API unavailable `
-          : this._castManager.castState === "NO_DEVICES_AVAILABLE"
-          ? html` No devices found `
-          : html`
-              <div class="controls">
-                <google-cast-launcher></google-cast-launcher>
-                <mwc-button
-                  @click=${this._sendLovelace}
-                  class=${classMap({ inactive: !active })}
-                  .unelevated=${active}
-                  .disabled=${!this._castManager.status}
-                >
-                  SHOW
-                </mwc-button>
-              </div>
-            `}
+            ? nothing
+            : this._castManager === null
+              ? html` Cast API unavailable `
+              : this._castManager.castState === "NO_DEVICES_AVAILABLE"
+                ? html` No devices found `
+                : html`
+                    <div class="controls">
+                      <google-cast-launcher></google-cast-launcher>
+                      <mwc-button
+                        @click=${this._sendLovelace}
+                        class=${classMap({ inactive: !active })}
+                        .unelevated=${active}
+                        .disabled=${!this._castManager.status}
+                      >
+                        SHOW
+                      </mwc-button>
+                    </div>
+                  `}
       </div>
     `;
   }
@@ -125,44 +119,46 @@ class HuiCastRow extends LitElement implements LovelaceRow {
     );
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host {
-        display: flex;
-        align-items: center;
-      }
-      ha-icon {
-        padding: 8px;
-        color: var(--paper-item-icon-color);
-      }
-      .flex {
-        flex: 1;
-        margin-left: 16px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      .name {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      .controls {
-        display: flex;
-        align-items: center;
-      }
-      google-cast-launcher {
-        margin-right: 0.57em;
-        cursor: pointer;
-        display: inline-block;
-        height: 24px;
-        width: 24px;
-      }
-      .inactive {
-        padding: 0 4px;
-      }
-    `;
-  }
+  static styles = css`
+    :host {
+      display: flex;
+      align-items: center;
+    }
+    ha-icon {
+      padding: 8px;
+      color: var(--paper-item-icon-color);
+    }
+    .flex {
+      flex: 1;
+      margin-left: 16px;
+      margin-inline-start: 16px;
+      margin-inline-end: initial;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .controls {
+      display: flex;
+      align-items: center;
+    }
+    google-cast-launcher {
+      margin-right: 0.57em;
+      margin-inline-end: -0.57em;
+      margin-inline-start: initial;
+      cursor: pointer;
+      display: inline-block;
+      height: 24px;
+      width: 24px;
+    }
+    .inactive {
+      padding: 0 4px;
+    }
+  `;
 }
 
 declare global {

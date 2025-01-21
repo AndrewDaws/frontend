@@ -1,8 +1,8 @@
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, state } from "lit/decorators";
 import { styleMap } from "lit/directives/style-map";
-import { HomeAssistant } from "../../../types";
-import { DividerConfig, LovelaceRow } from "../entity-rows/types";
+import type { HomeAssistant } from "../../../types";
+import type { DividerConfig, LovelaceRow } from "../entity-rows/types";
 
 @customElement("hui-divider-row")
 class HuiDividerRow extends LitElement implements LovelaceRow {
@@ -28,14 +28,12 @@ class HuiDividerRow extends LitElement implements LovelaceRow {
     ></div>`;
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      div {
-        height: 1px;
-        background-color: var(--entities-divider-color, var(--divider-color));
-      }
-    `;
-  }
+  static styles = css`
+    div {
+      height: 1px;
+      background-color: var(--entities-divider-color, var(--divider-color));
+    }
+  `;
 }
 
 declare global {

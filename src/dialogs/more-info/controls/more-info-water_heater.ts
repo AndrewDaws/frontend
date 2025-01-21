@@ -1,27 +1,28 @@
 import { mdiAccount, mdiAccountArrowRight, mdiWaterBoiler } from "@mdi/js";
-import { CSSResultGroup, LitElement, css, html, nothing } from "lit";
+import type { CSSResultGroup } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { customElement, property } from "lit/decorators";
 import { stopPropagation } from "../../../common/dom/stop_propagation";
 import { supportsFeature } from "../../../common/entity/supports-feature";
 import "../../../components/ha-control-select-menu";
 import "../../../components/ha-list-item";
 import { UNAVAILABLE } from "../../../data/entity";
+import type { WaterHeaterEntity } from "../../../data/water_heater";
 import {
-  WaterHeaterEntity,
   WaterHeaterEntityFeature,
   compareWaterHeaterOperationMode,
   computeOperationModeIcon,
 } from "../../../data/water_heater";
-import { HomeAssistant } from "../../../types";
+import "../../../state-control/water_heater/ha-state-control-water_heater-temperature";
+import type { HomeAssistant } from "../../../types";
 import "../components/ha-more-info-control-select-container";
-import { moreInfoControlStyle } from "../components/ha-more-info-control-style";
-import "../components/water_heater/ha-more-info-water_heater-temperature";
+import { moreInfoControlStyle } from "../components/more-info-control-style";
 
 @customElement("more-info-water_heater")
 class MoreInfoWaterHeater extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public stateObj?: WaterHeaterEntity;
+  @property({ attribute: false }) public stateObj?: WaterHeaterEntity;
 
   protected render() {
     if (!this.stateObj) {
@@ -64,10 +65,10 @@ class MoreInfoWaterHeater extends LitElement {
           : nothing}
       </div>
       <div class="controls">
-        <ha-more-info-water_heater-temperature
+        <ha-state-control-water_heater-temperature
           .hass=${this.hass}
           .stateObj=${this.stateObj}
-        ></ha-more-info-water_heater-temperature>
+        ></ha-state-control-water_heater-temperature>
       </div>
       <ha-more-info-control-select-container>
         ${supportOperationMode && stateObj.attributes.operation_list
@@ -243,6 +244,7 @@ class MoreInfoWaterHeater extends LitElement {
           font-size: 22px;
           font-weight: 500;
           line-height: 28px;
+          direction: ltr;
         }
       `,
     ];

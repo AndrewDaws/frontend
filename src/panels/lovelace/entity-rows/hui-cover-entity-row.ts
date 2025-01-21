@@ -1,20 +1,15 @@
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  PropertyValues,
-  nothing,
-} from "lit";
+import type { PropertyValues } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import "../../../components/ha-cover-controls";
 import "../../../components/ha-cover-tilt-controls";
-import { CoverEntity, isTiltOnly } from "../../../data/cover";
-import { HomeAssistant } from "../../../types";
+import type { CoverEntity } from "../../../data/cover";
+import { isTiltOnly } from "../../../data/cover";
+import type { HomeAssistant } from "../../../types";
 import { hasConfigOrEntityChanged } from "../common/has-changed";
 import "../components/hui-generic-entity-row";
 import { createEntityNotFoundWarning } from "../components/hui-warning";
-import { EntityConfig, LovelaceRow } from "./types";
+import type { EntityConfig, LovelaceRow } from "./types";
 
 @customElement("hui-cover-entity-row")
 class HuiCoverEntityRow extends LitElement implements LovelaceRow {
@@ -67,14 +62,14 @@ class HuiCoverEntityRow extends LitElement implements LovelaceRow {
     `;
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      ha-cover-controls,
-      ha-cover-tilt-controls {
-        margin-right: -0.57em;
-      }
-    `;
-  }
+  static styles = css`
+    ha-cover-controls,
+    ha-cover-tilt-controls {
+      margin-right: -0.57em;
+      margin-inline-end: -0.57em;
+      margin-inline-start: initial;
+    }
+  `;
 }
 
 declare global {

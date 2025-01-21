@@ -1,22 +1,15 @@
-import { UnsubscribeFunc } from "home-assistant-js-websocket";
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  PropertyValues,
-  nothing,
-} from "lit";
+import type { UnsubscribeFunc } from "home-assistant-js-websocket";
+import type { PropertyValues } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
+import { fireEvent } from "../../../common/dom/fire_event";
 import { applyThemesOnElement } from "../../../common/dom/apply_themes_on_element";
 import "../../../components/ha-card";
 import "../../../components/ha-markdown";
 import "../../../components/ha-alert";
-import {
-  RenderTemplateResult,
-  subscribeRenderTemplate,
-} from "../../../data/ws-templates";
+import type { RenderTemplateResult } from "../../../data/ws-templates";
+import { subscribeRenderTemplate } from "../../../data/ws-templates";
 import type { HomeAssistant } from "../../../types";
 import type { LovelaceCard, LovelaceCardEditor } from "../types";
 import type { MarkdownCardConfig } from "./types";
@@ -38,7 +31,7 @@ export class HuiMarkdownCard extends LitElement implements LovelaceCard {
 
   @property({ attribute: false }) public hass?: HomeAssistant;
 
-  @property({ type: Boolean }) public editMode?: boolean;
+  @property({ type: Boolean }) public preview = false;
 
   @state() private _config?: MarkdownCardConfig;
 
@@ -54,9 +47,9 @@ export class HuiMarkdownCard extends LitElement implements LovelaceCard {
     return this._config === undefined
       ? 3
       : this._config.card_size === undefined
-      ? Math.round(this._config.content.split("\n").length / 2) +
-        (this._config.title ? 1 : 0)
-      : this._config.card_size;
+        ? Math.round(this._config.content.split("\n").length / 2) +
+          (this._config.title ? 1 : 0)
+        : this._config.card_size;
   }
 
   public setConfig(config: MarkdownCardConfig): void {
@@ -113,7 +106,15 @@ export class HuiMarkdownCard extends LitElement implements LovelaceCard {
     if (changedProps.has("_config")) {
       this._tryConnect();
     }
-
+    const shouldBeHidden =
+      this._templateResult &&
+      this._config.show_empty === false &&
+      this._templateResult.result.length === 0;
+    if (shouldBeHidden !== this.hidden) {
+      this.style.display = shouldBeHidden ? "none" : "";
+      this.toggleAttribute("hidden", shouldBeHidden);
+      fireEvent(this, "card-visibility-changed", { value: !shouldBeHidden });
+    }
     const oldHass = changedProps.get("hass") as HomeAssistant | undefined;
     const oldConfig = changedProps.get("_config") as
       | MarkdownCardConfig
@@ -163,12 +164,12 @@ export class HuiMarkdownCard extends LitElement implements LovelaceCard {
             user: this.hass.user!.name,
           },
           strict: true,
-          report_errors: this.editMode,
+          report_errors: this.preview,
         }
       );
       await this._unsubRenderTemplate;
     } catch (e: any) {
-      if (this.editMode) {
+      if (this.preview) {
         this._error = e.message;
         this._errorLevel = undefined;
       }
@@ -185,29 +186,27 @@ export class HuiMarkdownCard extends LitElement implements LovelaceCard {
       return;
     }
 
-    this._unsubRenderTemplate.then((unsub) => unsub()).catch(() => {});
+    this._unsubRenderTemplate.then((unsub) => unsub()).catch(/* ignore */);
     this._unsubRenderTemplate = undefined;
     this._error = undefined;
     this._errorLevel = undefined;
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      ha-card {
-        height: 100%;
-      }
-      ha-alert {
-        margin-bottom: 8px;
-      }
-      ha-markdown {
-        padding: 0 16px 16px;
-        word-wrap: break-word;
-      }
-      ha-markdown.no-header {
-        padding-top: 16px;
-      }
-    `;
-  }
+  static styles = css`
+    ha-card {
+      height: 100%;
+    }
+    ha-alert {
+      margin-bottom: 8px;
+    }
+    ha-markdown {
+      padding: 0 16px 16px;
+      word-wrap: break-word;
+    }
+    ha-markdown.no-header {
+      padding-top: 16px;
+    }
+  `;
 }
 
 declare global {

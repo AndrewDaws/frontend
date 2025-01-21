@@ -4,8 +4,8 @@ import {
   mdiHomeCircleOutline,
   mdiCancel,
 } from "@mdi/js";
-import { HomeAssistant, TranslationDict } from "../types";
-import { Credential } from "./auth";
+import type { HomeAssistant, TranslationDict } from "../types";
+import type { Credential } from "./auth";
 
 export const SYSTEM_GROUP_ID_ADMIN = "system-admin";
 export const SYSTEM_GROUP_ID_USER = "system-users";
@@ -63,7 +63,7 @@ export const updateUser = async (
   });
 
 export const deleteUser = async (hass: HomeAssistant, userId: string) =>
-  hass.callWS<void>({
+  hass.callWS<undefined>({
     type: "config/auth/delete",
     user_id: userId,
   });

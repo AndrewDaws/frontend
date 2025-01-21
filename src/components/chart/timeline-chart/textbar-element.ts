@@ -1,4 +1,5 @@
-import { BarElement, BarOptions, BarProps } from "chart.js";
+import type { BarOptions, BarProps } from "chart.js";
+import { BarElement } from "chart.js";
 import { hex2rgb } from "../../../common/color/convert-color";
 import { luminosity } from "../../../common/color/rgb";
 
@@ -40,8 +41,8 @@ export class TextBarElement extends BarElement {
       (options?.backgroundColor === "transparent"
         ? "transparent"
         : luminosity(hex2rgb(options.backgroundColor)) > 0.5
-        ? "#000"
-        : "#fff");
+          ? "#000"
+          : "#fff");
 
     // ctx.font = "12px arial";
     ctx.fillStyle = textColor;

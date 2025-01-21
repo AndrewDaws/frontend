@@ -10,9 +10,12 @@ import "./ha-icon-button";
 @customElement("ha-select")
 export class HaSelect extends SelectBase {
   // @ts-ignore
-  @property({ type: Boolean }) public icon?: boolean;
+  @property({ type: Boolean }) public icon = false;
 
-  @property({ type: Boolean, reflect: true }) public clearable?: boolean;
+  @property({ type: Boolean, reflect: true }) public clearable = false;
+
+  @property({ attribute: "inline-arrow", type: Boolean })
+  public inlineArrow = false;
 
   protected override render() {
     return html`
@@ -40,6 +43,31 @@ export class HaSelect extends SelectBase {
   connectedCallback() {
     super.connectedCallback();
     window.addEventListener("translations-updated", this._translationsUpdated);
+  }
+
+  protected async firstUpdated() {
+    super.firstUpdated();
+
+    if (this.inlineArrow) {
+      this.shadowRoot
+        ?.querySelector(".mdc-select__selected-text-container")
+        ?.classList.add("inline-arrow");
+    }
+  }
+
+  protected updated(changedProperties) {
+    super.updated(changedProperties);
+
+    if (changedProperties.has("inlineArrow")) {
+      const textContainerElement = this.shadowRoot?.querySelector(
+        ".mdc-select__selected-text-container"
+      );
+      if (this.inlineArrow) {
+        textContainerElement?.classList.add("inline-arrow");
+      } else {
+        textContainerElement?.classList.remove("inline-arrow");
+      }
+    }
   }
 
   disconnectedCallback() {
@@ -113,6 +141,9 @@ export class HaSelect extends SelectBase {
         inset-inline-start: initial;
         inset-inline-end: 28px;
         direction: var(--direction);
+      }
+      .inline-arrow {
+        flex-grow: 0;
       }
     `,
   ];

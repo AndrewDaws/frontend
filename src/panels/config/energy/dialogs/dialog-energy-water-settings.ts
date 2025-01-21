@@ -1,6 +1,7 @@
 import "@material/mwc-button/mwc-button";
 import { mdiWater } from "@mdi/js";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import type { CSSResultGroup } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { fireEvent } from "../../../../common/dom/fire_event";
 import "../../../../components/entity/ha-entity-picker";
@@ -10,9 +11,9 @@ import "../../../../components/ha-formfield";
 import "../../../../components/ha-radio";
 import type { HaRadio } from "../../../../components/ha-radio";
 import "../../../../components/ha-textfield";
+import type { WaterSourceTypeEnergyPreference } from "../../../../data/energy";
 import {
   emptyWaterEnergyPreference,
-  WaterSourceTypeEnergyPreference,
   energyStatisticHelpUrl,
 } from "../../../../data/energy";
 import {
@@ -21,10 +22,10 @@ import {
   isExternalStatistic,
 } from "../../../../data/recorder";
 import { getSensorDeviceClassConvertibleUnits } from "../../../../data/sensor";
-import { HassDialog } from "../../../../dialogs/make-dialog-manager";
+import type { HassDialog } from "../../../../dialogs/make-dialog-manager";
 import { haStyle, haStyleDialog } from "../../../../resources/styles";
-import { HomeAssistant } from "../../../../types";
-import { EnergySettingsWaterDialogParams } from "./show-dialogs-energy";
+import type { HomeAssistant } from "../../../../types";
+import type { EnergySettingsWaterDialogParams } from "./show-dialogs-energy";
 
 @customElement("dialog-energy-water-settings")
 export class DialogEnergyWaterSettings
@@ -62,10 +63,10 @@ export class DialogEnergyWaterSettings
     this._costs = this._source.entity_energy_price
       ? "entity"
       : this._source.number_energy_price
-      ? "number"
-      : this._source.stat_cost
-      ? "statistic"
-      : "no-costs";
+        ? "number"
+        : this._source.stat_cost
+          ? "statistic"
+          : "no-costs";
     this._water_units = (
       await getSensorDeviceClassConvertibleUnits(this.hass, "water")
     ).units;
@@ -74,13 +75,14 @@ export class DialogEnergyWaterSettings
       .filter((id) => id !== this._source?.stat_energy_from);
   }
 
-  public closeDialog(): void {
+  public closeDialog() {
     this._params = undefined;
     this._source = undefined;
     this._error = undefined;
     this._pickedDisplayUnit = undefined;
     this._excludeList = undefined;
     fireEvent(this, "dialog-closed", { dialog: this.localName });
+    return true;
   }
 
   protected render() {
@@ -328,6 +330,8 @@ export class DialogEnergyWaterSettings
         .price-options {
           display: block;
           padding-left: 52px;
+          padding-inline-start: 52px;
+          padding-inline-end: initial;
           margin-top: -8px;
         }
       `,

@@ -1,8 +1,9 @@
-import { css, CSSResultGroup, html, LitElement } from "lit";
+import type { CSSResultGroup } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { fireEvent } from "../../../../../common/dom/fire_event";
 import "../../../../../components/ha-textfield";
-import { Action, IfAction } from "../../../../../data/script";
+import type { Action, IfAction } from "../../../../../data/script";
 import { haStyle } from "../../../../../resources/styles";
 import type { HomeAssistant } from "../../../../../types";
 import type { Condition } from "../../../../lovelace/common/validate-condition";
@@ -17,11 +18,9 @@ export class HaIfAction extends LitElement implements ActionElement {
 
   @property({ attribute: false }) public action!: IfAction;
 
-  @property({ type: Boolean }) public reOrderMode = false;
-
   @state() private _showElse = false;
 
-  public static get defaultConfig() {
+  public static get defaultConfig(): IfAction {
     return {
       if: [],
       then: [],
@@ -38,9 +37,7 @@ export class HaIfAction extends LitElement implements ActionElement {
         )}*:
       </h3>
       <ha-automation-condition
-        nested
         .conditions=${action.if}
-        .reOrderMode=${this.reOrderMode}
         .disabled=${this.disabled}
         @value-changed=${this._ifChanged}
         .hass=${this.hass}
@@ -52,9 +49,7 @@ export class HaIfAction extends LitElement implements ActionElement {
         )}*:
       </h3>
       <ha-automation-action
-        nested
         .actions=${action.then}
-        .reOrderMode=${this.reOrderMode}
         .disabled=${this.disabled}
         @value-changed=${this._thenChanged}
         .hass=${this.hass}
@@ -67,9 +62,7 @@ export class HaIfAction extends LitElement implements ActionElement {
               )}:
             </h3>
             <ha-automation-action
-              nested
               .actions=${action.else || []}
-              .reOrderMode=${this.reOrderMode}
               .disabled=${this.disabled}
               @value-changed=${this._elseChanged}
               .hass=${this.hass}
@@ -117,14 +110,16 @@ export class HaIfAction extends LitElement implements ActionElement {
 
   private _elseChanged(ev: CustomEvent) {
     ev.stopPropagation();
-    const value = ev.detail.value as Action[];
-
-    fireEvent(this, "value-changed", {
-      value: {
-        ...this.action,
-        else: value,
-      },
-    });
+    this._showElse = true;
+    const elseAction = ev.detail.value as Action[];
+    const newValue: IfAction = {
+      ...this.action,
+      else: elseAction,
+    };
+    if (elseAction.length === 0) {
+      delete newValue.else;
+    }
+    fireEvent(this, "value-changed", { value: newValue });
   }
 
   static get styles(): CSSResultGroup {

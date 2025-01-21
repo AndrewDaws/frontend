@@ -1,7 +1,7 @@
-import { html, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { html, LitElement } from "lit";
 import { customElement, property, query } from "lit/decorators";
 import memoizeOne from "memoize-one";
-import { computeRTLDirection } from "../../../../../common/util/compute_rtl";
 import "../../../../../components/data-table/ha-data-table";
 import type {
   DataTableColumnContainer,
@@ -20,9 +20,9 @@ export interface ClusterRowData extends Cluster {
 export class ZHAClustersDataTable extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public narrow = false;
+  @property({ type: Boolean }) public narrow = false;
 
-  @property() public clusters: Cluster[] = [];
+  @property({ attribute: false }) public clusters: Cluster[] = [];
 
   @query("ha-data-table", true) private _dataTable!: HaDataTable;
 
@@ -45,7 +45,7 @@ export class ZHAClustersDataTable extends LitElement {
               title: "Name",
               sortable: true,
               direction: "asc",
-              grows: true,
+              flex: 2,
             },
           }
         : {
@@ -53,18 +53,16 @@ export class ZHAClustersDataTable extends LitElement {
               title: "Name",
               sortable: true,
               direction: "asc",
-              grows: true,
+              flex: 2,
             },
             id: {
               title: "ID",
               template: (cluster) => html` ${formatAsPaddedHex(cluster.id)} `,
               sortable: true,
-              width: "25%",
             },
             endpoint_id: {
               title: "Endpoint ID",
               sortable: true,
-              width: "15%",
             },
           }
   );
@@ -82,7 +80,6 @@ export class ZHAClustersDataTable extends LitElement {
         .id=${"cluster_id"}
         selectable
         auto-height
-        .dir=${computeRTLDirection(this.hass)}
         .searchLabel=${this.hass.localize("ui.components.data-table.search")}
         .noDataText=${this.hass.localize("ui.components.data-table.no-data")}
       ></ha-data-table>

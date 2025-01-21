@@ -1,13 +1,13 @@
-import { PolymerElement } from "@polymer/polymer";
 import { customElement, property } from "lit/decorators";
-import { HassRouterPage, RouterOptions } from "../../layouts/hass-router-page";
-import { HomeAssistant } from "../../types";
+import type { RouterOptions } from "../../layouts/hass-router-page";
+import { HassRouterPage } from "../../layouts/hass-router-page";
+import type { HomeAssistant } from "../../types";
 
 @customElement("developer-tools-router")
 class DeveloperToolsRouter extends HassRouterPage {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public narrow!: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
   protected routerOptions: RouterOptions = {
     // defaultPage: "info",
@@ -25,9 +25,10 @@ class DeveloperToolsRouter extends HassRouterPage {
         tag: "developer-tools-event",
         load: () => import("./event/developer-tools-event"),
       },
-      service: {
-        tag: "developer-tools-service",
-        load: () => import("./service/developer-tools-service"),
+      service: "action",
+      action: {
+        tag: "developer-tools-action",
+        load: () => import("./action/developer-tools-action"),
       },
       state: {
         tag: "developer-tools-state",
@@ -69,16 +70,8 @@ class DeveloperToolsRouter extends HassRouterPage {
   }
 
   protected updatePageEl(el) {
-    if ("setProperties" in el) {
-      // As long as we have Polymer pages
-      (el as PolymerElement).setProperties({
-        hass: this.hass,
-        narrow: this.narrow,
-      });
-    } else {
-      el.hass = this.hass;
-      el.narrow = this.narrow;
-    }
+    el.hass = this.hass;
+    el.narrow = this.narrow;
   }
 }
 

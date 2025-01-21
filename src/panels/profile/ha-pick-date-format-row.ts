@@ -1,5 +1,6 @@
 import "@material/mwc-list/mwc-list-item";
-import { html, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
 import { formatDateNumeric } from "../../common/datetime/format_date";
 import { fireEvent } from "../../common/dom/fire_event";
@@ -7,13 +8,13 @@ import "../../components/ha-card";
 import "../../components/ha-select";
 import "../../components/ha-settings-row";
 import { DateFormat } from "../../data/translation";
-import { HomeAssistant } from "../../types";
+import type { HomeAssistant } from "../../types";
 
 @customElement("ha-pick-date-format-row")
 class DateFormatRow extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public narrow!: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
   protected render(): TemplateResult {
     const date = new Date();

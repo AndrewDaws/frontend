@@ -1,15 +1,13 @@
-import { HassEntities } from "home-assistant-js-websocket";
-import { PropertyValues } from "lit";
+import type { HassEntities } from "home-assistant-js-websocket";
+import type { PropertyValues } from "lit";
 import { customElement, property } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { computeStateDomain } from "../../../common/entity/compute_state_domain";
 import { debounce } from "../../../common/util/debounce";
-import { AutomationEntity } from "../../../data/automation";
-import {
-  HassRouterPage,
-  RouterOptions,
-} from "../../../layouts/hass-router-page";
-import { HomeAssistant } from "../../../types";
+import type { AutomationEntity } from "../../../data/automation";
+import type { RouterOptions } from "../../../layouts/hass-router-page";
+import { HassRouterPage } from "../../../layouts/hass-router-page";
+import type { HomeAssistant } from "../../../types";
 import "./ha-automation-editor";
 import "./ha-automation-picker";
 
@@ -24,13 +22,13 @@ const equal = (a: AutomationEntity[], b: AutomationEntity[]): boolean => {
 class HaConfigAutomation extends HassRouterPage {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public narrow!: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
-  @property() public isWide!: boolean;
+  @property({ attribute: "is-wide", type: Boolean }) public isWide = false;
 
-  @property() public showAdvanced!: boolean;
+  @property({ attribute: false }) public showAdvanced = false;
 
-  @property() public automations: AutomationEntity[] = [];
+  @property({ attribute: false }) public automations: AutomationEntity[] = [];
 
   private _debouncedUpdateAutomations = debounce((pageEl) => {
     const newAutomations = this._getAutomations(this.hass.states);

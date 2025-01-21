@@ -1,22 +1,21 @@
 import "@material/mwc-button/mwc-button";
 import { mdiCheckCircle, mdiCloseCircle, mdiStethoscope } from "@mdi/js";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import type { CSSResultGroup } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { fireEvent } from "../../../../../common/dom/fire_event";
 import "../../../../../components/ha-circular-progress";
 import { createCloseHeading } from "../../../../../components/ha-dialog";
-import {
-  computeDeviceName,
-  DeviceRegistryEntry,
-} from "../../../../../data/device_registry";
+import type { DeviceRegistryEntry } from "../../../../../data/device_registry";
+import { computeDeviceName } from "../../../../../data/device_registry";
+import type { ZWaveJSNetwork } from "../../../../../data/zwave_js";
 import {
   fetchZwaveNetworkStatus,
   rebuildZwaveNodeRoutes,
-  ZWaveJSNetwork,
 } from "../../../../../data/zwave_js";
 import { haStyleDialog } from "../../../../../resources/styles";
-import { HomeAssistant } from "../../../../../types";
-import { ZWaveJSRebuildNodeRoutesDialogParams } from "./show-dialog-zwave_js-rebuild-node-routes";
+import type { HomeAssistant } from "../../../../../types";
+import type { ZWaveJSRebuildNodeRoutesDialogParams } from "./show-dialog-zwave_js-rebuild-node-routes";
 
 @customElement("dialog-zwave_js-rebuild-node-routes")
 class DialogZWaveJSRebuildNodeRoutes extends LitElement {
@@ -97,7 +96,7 @@ class DialogZWaveJSRebuildNodeRoutes extends LitElement {
         ${this._status === "started"
           ? html`
               <div class="flex-container">
-                <ha-circular-progress active></ha-circular-progress>
+                <ha-circular-progress indeterminate></ha-circular-progress>
                 <div class="status">
                   <p>
                     ${this.hass.localize(
@@ -255,6 +254,8 @@ class DialogZWaveJSRebuildNodeRoutes extends LitElement {
         .flex-container ha-svg-icon,
         .flex-container ha-circular-progress {
           margin-right: 20px;
+          margin-inline-end: 20px;
+          margin-inline-start: initial;
         }
       `,
     ];

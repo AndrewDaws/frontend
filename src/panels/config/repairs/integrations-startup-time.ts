@@ -1,21 +1,17 @@
 import "@material/mwc-list/mwc-list";
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  PropertyValues,
-  nothing,
-} from "lit";
+import type { PropertyValues } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import "../../../components/ha-card";
 import "../../../components/ha-clickable-list-item";
+import type {
+  IntegrationManifest,
+  IntegrationSetup,
+} from "../../../data/integration";
 import {
   domainToName,
   fetchIntegrationManifests,
   fetchIntegrationSetups,
-  IntegrationManifest,
-  IntegrationSetup,
 } from "../../../data/integration";
 import type { HomeAssistant } from "../../../types";
 import { brandsUrl } from "../../../util/brands-url";
@@ -27,9 +23,7 @@ class IntegrationsStartupTime extends LitElement {
 
   @property({ type: Boolean }) public narrow = false;
 
-  @state() private _manifests?: {
-    [domain: string]: IntegrationManifest;
-  };
+  @state() private _manifests?: Record<string, IntegrationManifest>;
 
   @state() private _setups?: IntegrationSetup[];
 
@@ -60,7 +54,7 @@ class IntegrationsStartupTime extends LitElement {
               graphic="avatar"
               twoline
               hasMeta
-              openNewTab
+              open-new-tab
               href=${docLink}
             >
               <img
@@ -72,6 +66,7 @@ class IntegrationsStartupTime extends LitElement {
                   useFallback: true,
                   darkOptimized: this.hass.themes?.darkMode,
                 })}
+                crossorigin="anonymous"
                 referrerpolicy="no-referrer"
                 slot="graphic"
               />
@@ -113,24 +108,22 @@ class IntegrationsStartupTime extends LitElement {
     });
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      ha-clickable-list-item {
-        --mdc-list-item-meta-size: 64px;
-        --mdc-typography-caption-font-size: 12px;
-      }
-      img {
-        display: block;
-        max-height: 40px;
-        max-width: 40px;
-      }
-      div[slot="meta"] {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-      }
-    `;
-  }
+  static styles = css`
+    ha-clickable-list-item {
+      --mdc-list-item-meta-size: 64px;
+      --mdc-typography-caption-font-size: 12px;
+    }
+    img {
+      display: block;
+      max-height: 40px;
+      max-width: 40px;
+    }
+    div[slot="meta"] {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+  `;
 }
 
 declare global {

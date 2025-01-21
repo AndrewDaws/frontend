@@ -1,34 +1,48 @@
-import "@polymer/paper-toast/paper-toast";
-import type { PaperToastElement } from "@polymer/paper-toast/paper-toast";
+import { Snackbar } from "@material/mwc-snackbar/mwc-snackbar";
+import { styles } from "@material/mwc-snackbar/mwc-snackbar.css";
+import { css } from "lit";
 import { customElement } from "lit/decorators";
-import type { Constructor } from "../types";
-
-const PaperToast = customElements.get(
-  "paper-toast"
-) as Constructor<PaperToastElement>;
 
 @customElement("ha-toast")
-export class HaToast extends PaperToast {
-  private _resizeListener?: (obj: { matches: boolean }) => unknown;
+export class HaToast extends Snackbar {
+  static override styles = [
+    styles,
+    css`
+      .mdc-snackbar--leading {
+        justify-content: center;
+      }
 
-  private _mediaq?: MediaQueryList;
+      .mdc-snackbar {
+        margin: 8px;
+        right: calc(8px + env(safe-area-inset-right));
+        bottom: calc(8px + env(safe-area-inset-bottom));
+        left: calc(8px + env(safe-area-inset-left));
+      }
 
-  public connectedCallback() {
-    super.connectedCallback();
+      .mdc-snackbar__surface {
+        min-width: 350px;
+        max-width: 650px;
+      }
 
-    if (!this._resizeListener) {
-      this._resizeListener = (ev) =>
-        this.classList.toggle("fit-bottom", ev.matches);
-      this._mediaq = window.matchMedia("(max-width: 599px");
-    }
-    this._mediaq!.addListener(this._resizeListener);
-    this._resizeListener(this._mediaq!);
-  }
+      /* Revert the default styles set by mwc-snackbar */
+      @media (max-width: 480px), (max-width: 344px) {
+        .mdc-snackbar__surface {
+          min-width: inherit;
+        }
+      }
 
-  public disconnectedCallback() {
-    super.disconnectedCallback();
-    this._mediaq!.removeListener(this._resizeListener!);
-  }
+      @media all and (max-width: 450px), all and (max-height: 500px) {
+        .mdc-snackbar {
+          right: env(safe-area-inset-right);
+          bottom: env(safe-area-inset-bottom);
+          left: env(safe-area-inset-left);
+        }
+        .mdc-snackbar__surface {
+          min-width: 100%;
+        }
+      }
+    `,
+  ];
 }
 
 declare global {

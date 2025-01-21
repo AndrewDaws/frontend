@@ -1,5 +1,6 @@
 import { mdiPower } from "@mdi/js";
-import { css, CSSResultGroup, html, LitElement, TemplateResult } from "lit";
+import type { CSSResultGroup, TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { canShowPage } from "../../../common/config/can_show_page";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
@@ -8,15 +9,21 @@ import { blankBeforePercent } from "../../../common/translations/blank_before_pe
 import "../../../components/ha-card";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-navigation-list";
-import { BackupContent, fetchBackupInfo } from "../../../data/backup";
-import { CloudStatus, fetchCloudStatus } from "../../../data/cloud";
-import { BOARD_NAMES, HardwareInfo } from "../../../data/hardware";
-import { fetchHassioBackups, HassioBackup } from "../../../data/hassio/backup";
+import type { BackupContent } from "../../../data/backup";
+import { fetchBackupInfo } from "../../../data/backup";
+import type { CloudStatus } from "../../../data/cloud";
+import { fetchCloudStatus } from "../../../data/cloud";
+import type { HardwareInfo } from "../../../data/hardware";
+import { BOARD_NAMES } from "../../../data/hardware";
+import type { HassioBackup } from "../../../data/hassio/backup";
+import { fetchHassioBackups } from "../../../data/hassio/backup";
+import type {
+  HassioHassOSInfo,
+  HassioHostInfo,
+} from "../../../data/hassio/host";
 import {
   fetchHassioHassOsInfo,
   fetchHassioHostInfo,
-  HassioHassOSInfo,
-  HassioHostInfo,
 } from "../../../data/hassio/host";
 import { showRestartDialog } from "../../../dialogs/restart/show-dialog-restart";
 import "../../../layouts/hass-subpage";
@@ -29,14 +36,13 @@ import { configSections } from "../ha-panel-config";
 class HaConfigSystemNavigation extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property({ type: Boolean, reflect: true })
-  public narrow!: boolean;
+  @property({ type: Boolean, reflect: true }) public narrow = false;
 
-  @property({ type: Boolean }) public isWide!: boolean;
+  @property({ attribute: "is-wide", type: Boolean }) public isWide = false;
 
   @property({ attribute: false }) public cloudStatus?: CloudStatus;
 
-  @property({ type: Boolean }) public showAdvanced!: boolean;
+  @property({ attribute: false }) public showAdvanced = false;
 
   @state() private _latestBackupDate?: string;
 
@@ -55,14 +61,12 @@ class HaConfigSystemNavigation extends LitElement {
         switch (page.translationKey) {
           case "backup":
             description = this._latestBackupDate
-              ? this.hass.localize(
-                  "ui.panel.config.backup.description",
-                  "relative_time",
-                  relativeTime(
+              ? this.hass.localize("ui.panel.config.backup.description", {
+                  relative_time: relativeTime(
                     new Date(this._latestBackupDate),
                     this.hass.locale
-                  )
-                )
+                  ),
+                })
               : this.hass.localize(
                   "ui.panel.config.backup.description_no_backup"
                 );
@@ -70,23 +74,21 @@ class HaConfigSystemNavigation extends LitElement {
           case "network":
             description = this.hass.localize(
               "ui.panel.config.network.description",
-              "state",
-              this._externalAccess
-                ? this.hass.localize("ui.panel.config.network.enabled")
-                : this.hass.localize("ui.panel.config.network.disabled")
+              {
+                state: this._externalAccess
+                  ? this.hass.localize("ui.panel.config.network.enabled")
+                  : this.hass.localize("ui.panel.config.network.disabled"),
+              }
             );
             break;
           case "storage":
             description = this._storageInfo
-              ? this.hass.localize(
-                  "ui.panel.config.storage.description",
-                  "percent_used",
-                  `${Math.round(
+              ? this.hass.localize("ui.panel.config.storage.description", {
+                  percent_used: `${Math.round(
                     (this._storageInfo.used / this._storageInfo.total) * 100
                   )}${blankBeforePercent(this.hass.locale)}%`,
-                  "free_space",
-                  `${this._storageInfo.free} GB`
-                )
+                  free_space: `${this._storageInfo.free} GB`,
+                })
               : "";
             break;
           case "hardware":
@@ -137,7 +139,7 @@ class HaConfigSystemNavigation extends LitElement {
               .hass=${this.hass}
               .narrow=${this.narrow}
               .pages=${pages}
-              hasSecondary
+              has-secondary
               .label=${this.hass.localize(
                 "ui.panel.config.dashboard.system.main"
               )}
@@ -164,10 +166,10 @@ class HaConfigSystemNavigation extends LitElement {
     const backups: BackupContent[] | HassioBackup[] = isHassioLoaded
       ? await fetchHassioBackups(this.hass)
       : isComponentLoaded(this.hass, "backup")
-      ? await fetchBackupInfo(this.hass).then(
-          (backupData) => backupData.backups
-        )
-      : [];
+        ? await fetchBackupInfo(this.hass).then(
+            (backupData) => backupData.backups
+          )
+        : [];
 
     if (backups.length > 0) {
       this._latestBackupDate = (backups as any[]).reduce((a, b) =>
@@ -181,8 +183,9 @@ class HaConfigSystemNavigation extends LitElement {
       const hardwareInfo: HardwareInfo = await this.hass.callWS({
         type: "hardware/info",
       });
-      this._boardName = hardwareInfo?.hardware.find((hw) => hw.board !== null)
-        ?.name;
+      this._boardName = hardwareInfo?.hardware.find(
+        (hw) => hw.board !== null
+      )?.name;
     } else if (isHassioLoaded) {
       const osData: HassioHassOSInfo = await fetchHassioHassOsInfo(this.hass);
       if (osData.board) {

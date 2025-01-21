@@ -4,22 +4,31 @@ import {
   addMilliseconds,
   addMonths,
   differenceInDays,
+  differenceInMonths,
   endOfDay,
   startOfDay,
-} from "date-fns/esm";
-import { Collection, getCollection } from "home-assistant-js-websocket";
-import { calcDate } from "../common/datetime/calc_date";
+  isFirstDayOfMonth,
+  isLastDayOfMonth,
+} from "date-fns";
+import type { Collection } from "home-assistant-js-websocket";
+import { getCollection } from "home-assistant-js-websocket";
+import memoizeOne from "memoize-one";
+import {
+  calcDate,
+  calcDateProperty,
+  calcDateDifferenceProperty,
+} from "../common/datetime/calc_date";
 import { formatTime24h } from "../common/datetime/format_time";
 import { groupBy } from "../common/util/group-by";
-import { HomeAssistant } from "../types";
-import { ConfigEntry, getConfigEntries } from "./config_entries";
-import {
-  fetchStatistics,
-  getStatisticMetadata,
+import type { HomeAssistant } from "../types";
+import type { ConfigEntry } from "./config_entries";
+import { getConfigEntries } from "./config_entries";
+import type {
   Statistics,
   StatisticsMetaData,
   StatisticsUnitConfiguration,
 } from "./recorder";
+import { fetchStatistics, getStatisticMetadata } from "./recorder";
 
 const energyCollectionKeys: (string | undefined)[] = [];
 
@@ -81,13 +90,12 @@ export const emptyWaterEnergyPreference =
 interface EnergySolarForecast {
   wh_hours: Record<string, number>;
 }
-export type EnergySolarForecasts = {
-  [config_entry_id: string]: EnergySolarForecast;
-};
+export type EnergySolarForecasts = Record<string, EnergySolarForecast>;
 
 export interface DeviceConsumptionEnergyPreference {
   // This is an ever increasing value
   stat_consumption: string;
+  name?: string;
 }
 
 export interface FlowFromGridSourceEnergyPreference {
@@ -165,7 +173,7 @@ export interface WaterSourceTypeEnergyPreference {
   unit_of_measurement?: string | null;
 }
 
-type EnergySource =
+export type EnergySource =
   | SolarSourceTypeEnergyPreference
   | GridSourceTypeEnergyPreference
   | BatterySourceTypeEnergyPreference
@@ -222,9 +230,7 @@ export const saveEnergyPreferences = async (
   return newPrefs;
 };
 
-export interface FossilEnergyConsumption {
-  [date: string]: number;
-}
+export type FossilEnergyConsumption = Record<string, number>;
 
 export const getFossilEnergyConsumption = async (
   hass: HomeAssistant,
@@ -328,6 +334,9 @@ export const getReferencedStatisticIds = (
       }
     }
   }
+  if (!(includeTypes && !includeTypes.includes("device"))) {
+    statIDs.push(...prefs.device_consumption.map((d) => d.stat_consumption));
+  }
 
   return statIDs;
 };
@@ -380,6 +389,7 @@ const getEnergyData = async (
     "solar",
     "battery",
     "gas",
+    "device",
   ]);
   const waterStatIds = getReferencedStatisticIds(prefs, info, ["water"]);
 
@@ -387,7 +397,13 @@ const getEnergyData = async (
 
   const dayDifference = differenceInDays(end || new Date(), start);
   const period =
-    dayDifference > 35 ? "month" : dayDifference > 2 ? "day" : "hour";
+    isFirstDayOfMonth(start) &&
+    (!end || isLastDayOfMonth(end)) &&
+    dayDifference > 35
+      ? "month"
+      : dayDifference > 2
+        ? "day"
+        : "hour";
 
   const lengthUnit = hass.config.unit_system.length || "";
   const energyUnits: StatisticsUnitConfiguration = {
@@ -416,11 +432,42 @@ const getEnergyData = async (
   let _waterStatsCompare: Statistics | Promise<Statistics> = {};
 
   if (compare) {
-    if (dayDifference > 27 && dayDifference < 32) {
-      // When comparing a month, we want to start at the begining of the month
-      startCompare = addMonths(start, -1);
+    if (
+      (calcDateProperty(
+        start,
+        isFirstDayOfMonth,
+        hass.locale,
+        hass.config
+      ) as boolean) &&
+      (calcDateProperty(
+        end || new Date(),
+        isLastDayOfMonth,
+        hass.locale,
+        hass.config
+      ) as boolean)
+    ) {
+      // When comparing a month (or multiple), we want to start at the beginning of the month
+      startCompare = calcDate(
+        start,
+        addMonths,
+        hass.locale,
+        hass.config,
+        -(calcDateDifferenceProperty(
+          end || new Date(),
+          start,
+          differenceInMonths,
+          hass.locale,
+          hass.config
+        ) as number) - 1
+      );
     } else {
-      startCompare = addDays(start, (dayDifference + 1) * -1);
+      startCompare = calcDate(
+        start,
+        addDays,
+        hass.locale,
+        hass.config,
+        (dayDifference + 1) * -1
+      );
     }
     endCompare = addMilliseconds(start, -1);
     if (energyStatIds.length) {
@@ -547,6 +594,28 @@ const clearEnergyCollectionPreferences = (hass: HomeAssistant) => {
   });
 };
 
+const scheduleHourlyRefresh = (collection: EnergyCollection) => {
+  if (collection._refreshTimeout) {
+    clearTimeout(collection._refreshTimeout);
+  }
+
+  if (collection._active && (!collection.end || collection.end > new Date())) {
+    // The stats are created every hour
+    // Schedule a refresh for 20 minutes past the hour
+    // If the end is larger than the current time.
+    const nextFetch = new Date();
+    if (nextFetch.getMinutes() >= 20) {
+      nextFetch.setHours(nextFetch.getHours() + 1);
+    }
+    nextFetch.setMinutes(20, 0, 0);
+
+    collection._refreshTimeout = window.setTimeout(
+      () => collection.refresh(),
+      nextFetch.getTime() - Date.now()
+    );
+  }
+};
+
 export const getEnergyDataCollection = (
   hass: HomeAssistant,
   options: { prefs?: EnergyPreferences; key?: string } = {}
@@ -575,28 +644,7 @@ export const getEnergyDataCollection = (
         collection.prefs = await getEnergyPreferences(hass);
       }
 
-      if (collection._refreshTimeout) {
-        clearTimeout(collection._refreshTimeout);
-      }
-
-      if (
-        collection._active &&
-        (!collection.end || collection.end > new Date())
-      ) {
-        // The stats are created every hour
-        // Schedule a refresh for 20 minutes past the hour
-        // If the end is larger than the current time.
-        const nextFetch = new Date();
-        if (nextFetch.getMinutes() >= 20) {
-          nextFetch.setHours(nextFetch.getHours() + 1);
-        }
-        nextFetch.setMinutes(20, 0, 0);
-
-        collection._refreshTimeout = window.setTimeout(
-          () => collection.refresh(),
-          nextFetch.getTime() - Date.now()
-        );
-      }
+      scheduleHourlyRefresh(collection);
 
       return getEnergyData(
         hass,
@@ -613,6 +661,11 @@ export const getEnergyDataCollection = (
   collection.subscribe = (subscriber: (data: EnergyData) => void) => {
     const unsub = origSubscribe(subscriber);
     collection._active++;
+
+    if (collection._refreshTimeout === undefined) {
+      scheduleHourlyRefresh(collection);
+    }
+
     return () => {
       collection._active--;
       if (collection._active < 1) {
@@ -699,8 +752,8 @@ export type EnergyGasUnitClass = (typeof energyGasUnitClass)[number];
 
 export const getEnergyGasUnitClass = (
   prefs: EnergyPreferences,
-  statisticsMetaData: Record<string, StatisticsMetaData> = {},
-  excludeSource?: string
+  excludeSource?: string,
+  statisticsMetaData: Record<string, StatisticsMetaData> = {}
 ): EnergyGasUnitClass | undefined => {
   for (const source of prefs.energy_sources) {
     if (source.type !== "gas") {
@@ -726,19 +779,163 @@ export const getEnergyGasUnit = (
   prefs: EnergyPreferences,
   statisticsMetaData: Record<string, StatisticsMetaData> = {}
 ): string | undefined => {
-  const unitClass = getEnergyGasUnitClass(prefs, statisticsMetaData);
+  const unitClass = getEnergyGasUnitClass(prefs, undefined, statisticsMetaData);
   if (unitClass === undefined) {
     return undefined;
   }
   return unitClass === "energy"
     ? "kWh"
     : hass.config.unit_system.length === "km"
-    ? "m³"
-    : "ft³";
+      ? "m³"
+      : "ft³";
 };
 
-export const getEnergyWaterUnit = (hass: HomeAssistant): string | undefined =>
+export const getEnergyWaterUnit = (hass: HomeAssistant): string =>
   hass.config.unit_system.length === "km" ? "L" : "gal";
 
 export const energyStatisticHelpUrl =
   "/docs/energy/faq/#troubleshooting-missing-entities";
+
+interface EnergySumData {
+  to_grid?: Record<number, number>;
+  from_grid?: Record<number, number>;
+  to_battery?: Record<number, number>;
+  from_battery?: Record<number, number>;
+  solar?: Record<number, number>;
+}
+
+interface EnergyConsumptionData {
+  total: Record<number, number>;
+}
+
+export const getSummedData = memoizeOne(
+  (
+    data: EnergyData
+  ): { summedData: EnergySumData; compareSummedData?: EnergySumData } => {
+    const summedData = getSummedDataPartial(data);
+    const compareSummedData = data.statsCompare
+      ? getSummedDataPartial(data, true)
+      : undefined;
+    return { summedData, compareSummedData };
+  }
+);
+
+const getSummedDataPartial = (
+  data: EnergyData,
+  compare?: boolean
+): EnergySumData => {
+  const statIds: {
+    to_grid?: string[];
+    from_grid?: string[];
+    solar?: string[];
+    to_battery?: string[];
+    from_battery?: string[];
+  } = {};
+
+  for (const source of data.prefs.energy_sources) {
+    if (source.type === "solar") {
+      if (statIds.solar) {
+        statIds.solar.push(source.stat_energy_from);
+      } else {
+        statIds.solar = [source.stat_energy_from];
+      }
+      continue;
+    }
+
+    if (source.type === "battery") {
+      if (statIds.to_battery) {
+        statIds.to_battery.push(source.stat_energy_to);
+        statIds.from_battery!.push(source.stat_energy_from);
+      } else {
+        statIds.to_battery = [source.stat_energy_to];
+        statIds.from_battery = [source.stat_energy_from];
+      }
+      continue;
+    }
+
+    if (source.type !== "grid") {
+      continue;
+    }
+
+    // grid source
+    for (const flowFrom of source.flow_from) {
+      if (statIds.from_grid) {
+        statIds.from_grid.push(flowFrom.stat_energy_from);
+      } else {
+        statIds.from_grid = [flowFrom.stat_energy_from];
+      }
+    }
+    for (const flowTo of source.flow_to) {
+      if (statIds.to_grid) {
+        statIds.to_grid.push(flowTo.stat_energy_to);
+      } else {
+        statIds.to_grid = [flowTo.stat_energy_to];
+      }
+    }
+  }
+
+  const summedData: EnergySumData = {};
+  Object.entries(statIds).forEach(([key, subStatIds]) => {
+    const totalStats: Record<number, number> = {};
+    const sets: Record<string, Record<number, number>> = {};
+    subStatIds!.forEach((id) => {
+      const stats = compare ? data.statsCompare[id] : data.stats[id];
+      if (!stats) {
+        return;
+      }
+
+      const set = {};
+      stats.forEach((stat) => {
+        if (stat.change === null || stat.change === undefined) {
+          return;
+        }
+        const val = stat.change;
+        // Get total of solar and to grid to calculate the solar energy used
+        totalStats[stat.start] =
+          stat.start in totalStats ? totalStats[stat.start] + val : val;
+      });
+      sets[id] = set;
+    });
+    summedData[key] = totalStats;
+  });
+
+  return summedData;
+};
+
+export const computeConsumptionData = memoizeOne(
+  (
+    data: EnergySumData,
+    compareData?: EnergySumData
+  ): {
+    consumption: EnergyConsumptionData;
+    compareConsumption?: EnergyConsumptionData;
+  } => {
+    const consumption = computeConsumptionDataPartial(data);
+    const compareConsumption = compareData
+      ? computeConsumptionDataPartial(compareData)
+      : undefined;
+    return { consumption, compareConsumption };
+  }
+);
+
+const computeConsumptionDataPartial = (
+  data: EnergySumData
+): EnergyConsumptionData => {
+  const outData: EnergyConsumptionData = { total: {} };
+
+  Object.keys(data).forEach((type) => {
+    Object.keys(data[type]).forEach((start) => {
+      if (outData.total[start] === undefined) {
+        const consumption =
+          (data.from_grid?.[start] || 0) +
+          (data.solar?.[start] || 0) +
+          (data.from_battery?.[start] || 0) -
+          (data.to_grid?.[start] || 0) -
+          (data.to_battery?.[start] || 0);
+        outData.total[start] = consumption;
+      }
+    });
+  });
+
+  return outData;
+};

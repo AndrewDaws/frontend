@@ -1,5 +1,13 @@
-import { LovelaceConfig, LovelaceViewConfig } from "../../../data/lovelace";
-import { HomeAssistant } from "../../../types";
+import type { LovelaceStrategyConfig } from "../../../data/lovelace/config/strategy";
+import type {
+  LovelaceConfig,
+  LovelaceRawConfig,
+} from "../../../data/lovelace/config/types";
+import type {
+  LovelaceViewConfig,
+  LovelaceViewRawConfig,
+} from "../../../data/lovelace/config/view";
+import type { HomeAssistant } from "../../../types";
 
 export const isLegacyStrategy = (
   strategy: any
@@ -8,17 +16,34 @@ export const isLegacyStrategy = (
 
 export interface LovelaceDashboardStrategy {
   generateDashboard(info: {
-    config?: LovelaceConfig;
+    config?: LovelaceRawConfig;
     hass: HomeAssistant;
-    narrow: boolean | undefined;
   }): Promise<LovelaceConfig>;
 }
 
 export interface LovelaceViewStrategy {
   generateView(info: {
-    view: LovelaceViewConfig;
+    view: LovelaceViewRawConfig;
     config: LovelaceConfig;
     hass: HomeAssistant;
-    narrow: boolean | undefined;
   }): Promise<LovelaceViewConfig>;
 }
+
+// We assume that if a strategy config has only "type" and "options" parameters, it's a legacy strategy config
+export const isLegacyStrategyConfig = (config: LovelaceStrategyConfig) =>
+  Object.keys(config).length === 2 &&
+  "options" in config &&
+  typeof config.options === "object";
+
+export const cleanLegacyStrategyConfig = (config: LovelaceStrategyConfig) => {
+  if (!isLegacyStrategyConfig(config)) {
+    return config;
+  }
+  const cleanedConfig = {
+    ...config,
+    ...config.options,
+  };
+
+  delete cleanedConfig.options;
+  return cleanedConfig;
+};

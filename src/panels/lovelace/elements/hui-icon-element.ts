@@ -1,17 +1,27 @@
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, state } from "lit/decorators";
 import { ifDefined } from "lit/directives/if-defined";
 import "../../../components/ha-icon";
-import { ActionHandlerEvent } from "../../../data/lovelace";
-import { HomeAssistant } from "../../../types";
+import type { HomeAssistant } from "../../../types";
 import { computeTooltip } from "../common/compute-tooltip";
 import { actionHandler } from "../common/directives/action-handler-directive";
 import { handleAction } from "../common/handle-action";
 import { hasAction } from "../common/has-action";
-import { IconElementConfig, LovelaceElement } from "./types";
+import type { IconElementConfig, LovelaceElement } from "./types";
+import type { LovelacePictureElementEditor } from "../types";
+import type { ActionHandlerEvent } from "../../../data/lovelace/action_handler";
 
 @customElement("hui-icon-element")
 export class HuiIconElement extends LitElement implements LovelaceElement {
+  public static async getConfigElement(): Promise<LovelacePictureElementEditor> {
+    await import("../editor/config-elements/elements/hui-icon-element-editor");
+    return document.createElement("hui-icon-element-editor");
+  }
+
+  public static getStubConfig(): IconElementConfig {
+    return { type: "icon", icon: "mdi:alert-circle" };
+  }
+
   public hass?: HomeAssistant;
 
   @state() private _config?: IconElementConfig;
@@ -49,18 +59,16 @@ export class HuiIconElement extends LitElement implements LovelaceElement {
     handleAction(this, this.hass!, this._config!, ev.detail.action!);
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host {
-        cursor: pointer;
-      }
-      ha-icon:focus {
-        outline: none;
-        background: var(--divider-color);
-        border-radius: 100%;
-      }
-    `;
-  }
+  static styles = css`
+    :host {
+      cursor: pointer;
+    }
+    ha-icon:focus {
+      outline: none;
+      background: var(--divider-color);
+      border-radius: 100%;
+    }
+  `;
 }
 
 declare global {

@@ -1,30 +1,37 @@
-import { PropertyValues, ReactiveElement } from "lit";
-import { customElement, property } from "lit/decorators";
-import { HomeAssistant } from "../../../types";
-import { ConditionalCardConfig } from "../cards/types";
+import type { PropertyValues } from "lit";
+import { ReactiveElement } from "lit";
+import { customElement, property, state } from "lit/decorators";
+import type { MediaQueriesListener } from "../../../common/dom/media_query";
+import { deepEqual } from "../../../common/util/deep-equal";
+import type { HomeAssistant } from "../../../types";
+import type { HuiCard } from "../cards/hui-card";
+import type { ConditionalCardConfig } from "../cards/types";
+import type { Condition } from "../common/validate-condition";
 import {
-  ScreenCondition,
+  attachConditionMediaQueriesListeners,
   checkConditionsMet,
+  extractMediaQueries,
   validateConditionalConfig,
 } from "../common/validate-condition";
-import { ConditionalRowConfig, LovelaceRow } from "../entity-rows/types";
-import { LovelaceCard } from "../types";
-import { listenMediaQuery } from "../../../common/dom/media_query";
-import { deepEqual } from "../../../common/util/deep-equal";
+import type { ConditionalRowConfig, LovelaceRow } from "../entity-rows/types";
+
+declare global {
+  interface HASSDomEvents {
+    "visibility-changed": { value: boolean };
+  }
+}
 
 @customElement("hui-conditional-base")
 export class HuiConditionalBase extends ReactiveElement {
   @property({ attribute: false }) public hass?: HomeAssistant;
 
-  @property() public editMode?: boolean;
+  @property({ type: Boolean }) public preview = false;
 
-  @property() protected _config?: ConditionalCardConfig | ConditionalRowConfig;
+  @state() protected _config?: ConditionalCardConfig | ConditionalRowConfig;
 
-  @property({ type: Boolean, reflect: true }) public hidden = false;
+  protected _element?: HuiCard | LovelaceRow;
 
-  protected _element?: LovelaceCard | LovelaceRow;
-
-  private _mediaQueriesListeners: Array<() => void> = [];
+  private _listeners: MediaQueriesListener[] = [];
 
   private _mediaQueries: string[] = [];
 
@@ -66,42 +73,41 @@ export class HuiConditionalBase extends ReactiveElement {
   }
 
   private _clearMediaQueries() {
-    this._mediaQueries = [];
-    while (this._mediaQueriesListeners.length) {
-      this._mediaQueriesListeners.pop()!();
-    }
+    this._listeners.forEach((unsub) => unsub());
+    this._listeners = [];
   }
 
   private _listenMediaQueries() {
-    if (!this._config) {
+    if (!this._config || !this.hass) {
       return;
     }
 
-    const conditions = this._config.conditions.filter(
-      (c) => c.condition === "screen"
-    ) as ScreenCondition[];
-
-    const mediaQueries = conditions
-      .filter((c) => c.media_query)
-      .map((c) => c.media_query as string);
+    const supportedConditions = this._config.conditions.filter(
+      (c) => "condition" in c
+    ) as Condition[];
+    const mediaQueries = extractMediaQueries(supportedConditions);
 
     if (deepEqual(mediaQueries, this._mediaQueries)) return;
 
-    this._mediaQueries = mediaQueries;
-    while (this._mediaQueriesListeners.length) {
-      this._mediaQueriesListeners.pop()!();
-    }
-    mediaQueries.forEach((query) => {
-      const listener = listenMediaQuery(query, (matches) => {
-        // For performance, if there is only one condition, set the visibility directly
-        if (this._config!.conditions.length === 1) {
-          this._setVisibility(matches);
+    this._clearMediaQueries();
+
+    const conditions = this._config.conditions;
+    const hasOnlyMediaQuery =
+      conditions.length === 1 &&
+      "condition" in conditions[0] &&
+      conditions[0].condition === "screen" &&
+      !!conditions[0].media_query;
+
+    this._listeners = attachConditionMediaQueriesListeners(
+      supportedConditions,
+      (matches) => {
+        if (hasOnlyMediaQuery) {
+          this.setVisibility(matches);
           return;
         }
         this._updateVisibility();
-      });
-      this._mediaQueriesListeners.push(listener);
-    });
+      }
+    );
   }
 
   protected update(changed: PropertyValues): void {
@@ -110,7 +116,8 @@ export class HuiConditionalBase extends ReactiveElement {
     if (
       changed.has("_element") ||
       changed.has("_config") ||
-      changed.has("hass")
+      changed.has("hass") ||
+      changed.has("preview")
     ) {
       this._listenMediaQueries();
       this._updateVisibility();
@@ -122,23 +129,25 @@ export class HuiConditionalBase extends ReactiveElement {
       return;
     }
 
-    this._element.editMode = this.editMode;
+    this._element.preview = this.preview;
 
     const conditionMet = checkConditionsMet(
       this._config!.conditions,
       this.hass!
     );
-    this._setVisibility(conditionMet);
+
+    this.setVisibility(conditionMet);
   }
 
-  private _setVisibility(conditionMet: boolean) {
+  protected setVisibility(conditionMet: boolean) {
     if (!this._element || !this.hass) {
       return;
     }
-    const visible = this.editMode || conditionMet;
-    this.hidden = !visible;
-    this.style.setProperty("display", visible ? "" : "none");
-
+    const visible = this.preview || conditionMet;
+    if (this.hidden !== !visible) {
+      this.toggleAttribute("hidden", !visible);
+      this.style.setProperty("display", visible ? "" : "none");
+    }
     if (visible) {
       this._element.hass = this.hass;
       if (!this._element!.parentElement) {

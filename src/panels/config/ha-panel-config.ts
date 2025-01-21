@@ -9,6 +9,7 @@ import {
   mdiDevices,
   mdiInformation,
   mdiInformationOutline,
+  mdiLabel,
   mdiLightningBolt,
   mdiMapMarkerRadius,
   mdiMathLog,
@@ -28,23 +29,25 @@ import {
   mdiUpdate,
   mdiViewDashboard,
 } from "@mdi/js";
-import { PolymerElement } from "@polymer/polymer";
-import { UnsubscribeFunc } from "home-assistant-js-websocket";
-import { PropertyValues } from "lit";
+import type { UnsubscribeFunc } from "home-assistant-js-websocket";
+import type { PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { isComponentLoaded } from "../../common/config/is_component_loaded";
 import { listenMediaQuery } from "../../common/dom/media_query";
-import { CloudStatus, fetchCloudStatus } from "../../data/cloud";
-import { fullEntitiesContext } from "../../data/context";
+import type { CloudStatus } from "../../data/cloud";
+import { fetchCloudStatus } from "../../data/cloud";
+import { fullEntitiesContext, labelsContext } from "../../data/context";
 import {
   entityRegistryByEntityId,
   entityRegistryById,
   subscribeEntityRegistry,
 } from "../../data/entity_registry";
-import { HassRouterPage, RouterOptions } from "../../layouts/hass-router-page";
-import { PageNavigation } from "../../layouts/hass-tabs-subpage";
+import { subscribeLabelRegistry } from "../../data/label_registry";
+import type { RouterOptions } from "../../layouts/hass-router-page";
+import { HassRouterPage } from "../../layouts/hass-router-page";
+import type { PageNavigation } from "../../layouts/hass-tabs-subpage";
 import { SubscribeMixin } from "../../mixins/subscribe-mixin";
-import { HomeAssistant, Route } from "../../types";
+import type { HomeAssistant, Route } from "../../types";
 
 declare global {
   // for fire event
@@ -54,7 +57,7 @@ declare global {
   }
 }
 
-export const configSections: { [name: string]: PageNavigation[] } = {
+export const configSections: Record<string, PageNavigation[]> = {
   dashboard: [
     {
       path: "/config/integrations",
@@ -75,7 +78,7 @@ export const configSections: { [name: string]: PageNavigation[] } = {
       translationKey: "areas",
       iconPath: mdiSofa,
       iconColor: "#E48629",
-      components: ["zone"],
+      component: "zone",
     },
     {
       path: "/hassio",
@@ -109,7 +112,7 @@ export const configSections: { [name: string]: PageNavigation[] } = {
       translationKey: "people",
       iconPath: mdiAccount,
       iconColor: "#5A87FA",
-      components: ["person", "users"],
+      component: ["person", "users"],
     },
     {
       path: "#external-app-configuration",
@@ -269,6 +272,14 @@ export const configSections: { [name: string]: PageNavigation[] } = {
       core: true,
     },
     {
+      component: "labels",
+      path: "/config/labels",
+      translationKey: "ui.panel.config.labels.caption",
+      iconPath: mdiLabel,
+      iconColor: "#2D338F",
+      core: true,
+    },
+    {
       component: "zone",
       path: "/config/zone",
       translationKey: "ui.panel.config.zone.caption",
@@ -312,13 +323,6 @@ export const configSections: { [name: string]: PageNavigation[] } = {
       component: "backup",
     },
     {
-      path: "/hassio/backups",
-      translationKey: "backup",
-      iconPath: mdiBackupRestore,
-      iconColor: "#0D47A1",
-      component: "hassio",
-    },
-    {
       path: "/config/analytics",
       translationKey: "analytics",
       iconPath: mdiShape,
@@ -342,7 +346,7 @@ export const configSections: { [name: string]: PageNavigation[] } = {
       translationKey: "hardware",
       iconPath: mdiMemory,
       iconColor: "#301A8E",
-      components: ["hassio", "hardware"],
+      component: ["hassio", "hardware"],
     },
   ],
   about: [
@@ -361,12 +365,17 @@ export const configSections: { [name: string]: PageNavigation[] } = {
 class HaPanelConfig extends SubscribeMixin(HassRouterPage) {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public narrow!: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
-  @property() public route!: Route;
+  @property({ attribute: false }) public route!: Route;
 
   private _entitiesContext = new ContextProvider(this, {
     context: fullEntitiesContext,
+    initialValue: [],
+  });
+
+  private _labelsContext = new ContextProvider(this, {
+    context: labelsContext,
     initialValue: [],
   });
 
@@ -374,6 +383,9 @@ class HaPanelConfig extends SubscribeMixin(HassRouterPage) {
     return [
       subscribeEntityRegistry(this.hass.connection!, (entities) => {
         this._entitiesContext.setValue(entities);
+      }),
+      subscribeLabelRegistry(this.hass.connection!, (labels) => {
+        this._labelsContext.setValue(labels);
       }),
     ];
   }
@@ -450,6 +462,10 @@ class HaPanelConfig extends SubscribeMixin(HassRouterPage) {
       integrations: {
         tag: "ha-config-integrations",
         load: () => import("./integrations/ha-config-integrations"),
+      },
+      labels: {
+        tag: "ha-config-labels",
+        load: () => import("./labels/ha-config-labels"),
       },
       lovelace: {
         tag: "ha-config-lovelace",
@@ -546,7 +562,7 @@ class HaPanelConfig extends SubscribeMixin(HassRouterPage) {
 
   @state() private _cloudStatus?: CloudStatus;
 
-  private _listeners: Array<() => void> = [];
+  private _listeners: (() => void)[] = [];
 
   public connectedCallback() {
     super.connectedCallback();
@@ -605,24 +621,12 @@ class HaPanelConfig extends SubscribeMixin(HassRouterPage) {
     const isWide =
       this.hass.dockedSidebar === "docked" ? this._wideSidebar : this._wide;
 
-    if ("setProperties" in el) {
-      // As long as we have Polymer panels
-      (el as PolymerElement).setProperties({
-        route: this.routeTail,
-        hass: this.hass,
-        showAdvanced: Boolean(this.hass.userData?.showAdvanced),
-        isWide,
-        narrow: this.narrow,
-        cloudStatus: this._cloudStatus,
-      });
-    } else {
-      el.route = this.routeTail;
-      el.hass = this.hass;
-      el.showAdvanced = Boolean(this.hass.userData?.showAdvanced);
-      el.isWide = isWide;
-      el.narrow = this.narrow;
-      el.cloudStatus = this._cloudStatus;
-    }
+    el.route = this.routeTail;
+    el.hass = this.hass;
+    el.showAdvanced = Boolean(this.hass.userData?.showAdvanced);
+    el.isWide = isWide;
+    el.narrow = this.narrow;
+    el.cloudStatus = this._cloudStatus;
   }
 
   private async _updateCloudStatus() {

@@ -11,30 +11,24 @@ import {
   mdiVolumeOff,
   mdiVolumePlus,
 } from "@mdi/js";
-import { HassEntity } from "home-assistant-js-websocket";
-import {
-  CSSResultGroup,
-  LitElement,
-  PropertyValues,
-  css,
-  html,
-  nothing,
-} from "lit";
+import type { HassEntity } from "home-assistant-js-websocket";
+import type { PropertyValues } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { stateActive } from "../../../common/entity/state_active";
 import { supportsFeature } from "../../../common/entity/supports-feature";
-import { computeRTLDirection } from "../../../common/util/compute_rtl";
 import { debounce } from "../../../common/util/debounce";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-slider";
 import { isUnavailableState } from "../../../data/entity";
-import {
+import type {
   ControlButton,
   MediaPlayerEntity,
+} from "../../../data/media-player";
+import {
   MediaPlayerEntityFeature,
   computeMediaDescription,
 } from "../../../data/media-player";
-import { loadPolyfillIfNeeded } from "../../../resources/resize-observer.polyfill";
 import type { HomeAssistant } from "../../../types";
 import { hasConfigOrEntityChanged } from "../common/has-changed";
 import "../components/hui-generic-entity-row";
@@ -82,7 +76,11 @@ class HuiMediaPlayerEntityRow extends LitElement implements LovelaceRow {
   }
 
   protected shouldUpdate(changedProps: PropertyValues): boolean {
-    return hasConfigOrEntityChanged(this, changedProps);
+    return (
+      hasConfigOrEntityChanged(this, changedProps) ||
+      changedProps.size > 1 ||
+      !changedProps.has("hass")
+    );
   }
 
   protected render() {
@@ -204,12 +202,9 @@ class HuiMediaPlayerEntityRow extends LitElement implements LovelaceRow {
                 ></ha-icon-button>
               `
             : !supportsFeature(stateObj, MediaPlayerEntityFeature.VOLUME_SET) &&
-              !supportsFeature(
-                stateObj,
-                MediaPlayerEntityFeature.VOLUME_BUTTONS
-              )
-            ? buttons
-            : ""}
+                !supportsFeature(stateObj, MediaPlayerEntityFeature.VOLUME_STEP)
+              ? buttons
+              : ""}
           ${supportsFeature(stateObj, MediaPlayerEntityFeature.TURN_OFF) &&
           stateActive(stateObj)
             ? html`
@@ -222,8 +217,8 @@ class HuiMediaPlayerEntityRow extends LitElement implements LovelaceRow {
             : ""}
         </div>
       </hui-generic-entity-row>
-      ${(supportsFeature(stateObj, MediaPlayerEntityFeature.VOLUME_SET) ||
-        supportsFeature(stateObj, MediaPlayerEntityFeature.VOLUME_BUTTONS)) &&
+      ${(supportsFeature(stateObj, MediaPlayerEntityFeature.VOLUME_STEP) ||
+        supportsFeature(stateObj, MediaPlayerEntityFeature.VOLUME_SET)) &&
       stateActive(stateObj)
         ? html`
             <div class="flex">
@@ -252,36 +247,34 @@ class HuiMediaPlayerEntityRow extends LitElement implements LovelaceRow {
                 supportsFeature(stateObj, MediaPlayerEntityFeature.VOLUME_SET)
                   ? html`
                       <ha-slider
-                        .dir=${computeRTLDirection(this.hass!)}
+                        labeled
                         .value=${Number(stateObj.attributes.volume_level) * 100}
-                        pin
                         @change=${this._selectedValueChanged}
-                        ignore-bar-touch
                         id="input"
                       ></ha-slider>
                     `
                   : !this._veryNarrow &&
-                    supportsFeature(
-                      stateObj,
-                      MediaPlayerEntityFeature.VOLUME_BUTTONS
-                    )
-                  ? html`
-                      <ha-icon-button
-                        .path=${mdiVolumeMinus}
-                        .label=${this.hass.localize(
-                          "ui.card.media_player.media_volume_down"
-                        )}
-                        @click=${this._volumeDown}
-                      ></ha-icon-button>
-                      <ha-icon-button
-                        .path=${mdiVolumePlus}
-                        .label=${this.hass.localize(
-                          "ui.card.media_player.media_volume_up"
-                        )}
-                        @click=${this._volumeUp}
-                      ></ha-icon-button>
-                    `
-                  : ""}
+                      supportsFeature(
+                        stateObj,
+                        MediaPlayerEntityFeature.VOLUME_STEP
+                      )
+                    ? html`
+                        <ha-icon-button
+                          .path=${mdiVolumeMinus}
+                          .label=${this.hass.localize(
+                            "ui.card.media_player.media_volume_down"
+                          )}
+                          @click=${this._volumeDown}
+                        ></ha-icon-button>
+                        <ha-icon-button
+                          .path=${mdiVolumePlus}
+                          .label=${this.hass.localize(
+                            "ui.card.media_player.media_volume_up"
+                          )}
+                          @click=${this._volumeUp}
+                        ></ha-icon-button>
+                      `
+                    : ""}
               </div>
 
               <div class="controls">${buttons}</div>
@@ -293,7 +286,6 @@ class HuiMediaPlayerEntityRow extends LitElement implements LovelaceRow {
 
   private async _attachObserver(): Promise<void> {
     if (!this._resizeObserver) {
-      await loadPolyfillIfNeeded();
       this._resizeObserver = new ResizeObserver(
         debounce(() => this._measureCard(), 250, false)
       );
@@ -313,10 +305,10 @@ class HuiMediaPlayerEntityRow extends LitElement implements LovelaceRow {
     return stateObj.state === "on"
       ? { icon: mdiPlayPause, action: "media_play_pause" }
       : stateObj.state !== "playing"
-      ? { icon: mdiPlay, action: "media_play" }
-      : supportsFeature(stateObj, MediaPlayerEntityFeature.PAUSE)
-      ? { icon: mdiPause, action: "media_pause" }
-      : { icon: mdiStop, action: "media_stop" };
+        ? { icon: mdiPlay, action: "media_play" }
+        : supportsFeature(stateObj, MediaPlayerEntityFeature.PAUSE)
+          ? { icon: mdiPause, action: "media_pause" }
+          : { icon: mdiStop, action: "media_stop" };
   }
 
   private _togglePower(): void {
@@ -338,8 +330,8 @@ class HuiMediaPlayerEntityRow extends LitElement implements LovelaceRow {
       stateObj.state !== "playing"
         ? "media_play"
         : supportsFeature(stateObj, MediaPlayerEntityFeature.PAUSE)
-        ? "media_pause"
-        : "media_stop";
+          ? "media_pause"
+          : "media_stop";
 
     this.hass!.callService("media_player", service, {
       entity_id: this._config!.entity,
@@ -403,33 +395,32 @@ class HuiMediaPlayerEntityRow extends LitElement implements LovelaceRow {
     });
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host {
-        display: block;
-      }
-      .flex {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-      }
-      .volume {
-        display: flex;
-        flex-grow: 2;
-        flex-shrink: 2;
-      }
-      .controls {
-        white-space: nowrap;
-        direction: ltr;
-      }
-      ha-slider {
-        flex-grow: 2;
-        flex-shrink: 2;
-        width: 100%;
-        margin: 0 -8px 0 1px;
-      }
-    `;
-  }
+  static styles = css`
+    :host {
+      display: block;
+    }
+    .flex {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .volume {
+      display: flex;
+      align-items: center;
+      flex-grow: 2;
+      flex-shrink: 2;
+    }
+    .controls {
+      white-space: nowrap;
+      direction: ltr;
+    }
+    ha-slider {
+      flex-grow: 2;
+      flex-shrink: 2;
+      width: 100%;
+      margin: 0 -8px 0 1px;
+    }
+  `;
 }
 
 declare global {

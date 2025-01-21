@@ -1,4 +1,5 @@
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import type { CSSResultGroup } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { fireEvent } from "../../../../common/dom/fire_event";
 import "../../../../components/ha-formfield";
@@ -6,15 +7,15 @@ import "../../../../components/ha-icon-picker";
 import "../../../../components/ha-radio";
 import type { HaRadio } from "../../../../components/ha-radio";
 import "../../../../components/ha-textfield";
-import { InputDateTime } from "../../../../data/input_datetime";
+import type { InputDateTime } from "../../../../data/input_datetime";
 import { haStyle } from "../../../../resources/styles";
-import { HomeAssistant } from "../../../../types";
+import type { HomeAssistant } from "../../../../types";
 
 @customElement("ha-input_datetime-form")
 class HaInputDateTimeForm extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public new?: boolean;
+  @property({ type: Boolean }) public new = false;
 
   private _item?: InputDateTime;
 
@@ -33,8 +34,8 @@ class HaInputDateTimeForm extends LitElement {
         item.has_time && item.has_date
           ? "datetime"
           : item.has_time
-          ? "time"
-          : "date";
+            ? "time"
+            : "date";
       this._item.has_date =
         !item.has_date && !item.has_time ? true : item.has_date;
     } else {
@@ -45,11 +46,10 @@ class HaInputDateTimeForm extends LitElement {
   }
 
   public focus() {
-    this.updateComplete.then(
-      () =>
-        (
-          this.shadowRoot?.querySelector("[dialogInitialFocus]") as HTMLElement
-        )?.focus()
+    this.updateComplete.then(() =>
+      (
+        this.shadowRoot?.querySelector("[dialogInitialFocus]") as HTMLElement
+      )?.focus()
     );
   }
 

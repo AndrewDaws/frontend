@@ -4,10 +4,10 @@ import "../../../../src/components/ha-switch";
 
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
-import { IntegrationManifest } from "../../../../src/data/integration";
+import type { IntegrationManifest } from "../../../../src/data/integration";
 
-import { DeviceRegistryEntry } from "../../../../src/data/device_registry";
-import { EntityRegistryEntry } from "../../../../src/data/entity_registry";
+import type { DeviceRegistryEntry } from "../../../../src/data/device_registry";
+import type { EntityRegistryEntry } from "../../../../src/data/entity_registry";
 import { provideHass } from "../../../../src/fake_data/provide_hass";
 import "../../../../src/panels/config/integrations/ha-config-flow-card";
 import type {
@@ -16,7 +16,7 @@ import type {
 } from "../../../../src/panels/config/integrations/ha-config-integrations";
 import "../../../../src/panels/config/integrations/ha-ignored-config-entry-card";
 import "../../../../src/panels/config/integrations/ha-integration-card";
-import { HomeAssistant } from "../../../../src/types";
+import type { HomeAssistant } from "../../../../src/types";
 
 const createConfigEntry = (
   title: string,
@@ -31,10 +31,13 @@ const createConfigEntry = (
   supports_options: false,
   supports_remove_device: false,
   supports_unload: true,
+  supports_reconfigure: true,
   disabled_by: null,
   pref_disable_new_entities: false,
   pref_disable_polling: false,
   reason: null,
+  error_reason_translation_key: null,
+  error_reason_translation_placeholders: null,
   ...override,
 });
 
@@ -132,12 +135,12 @@ const configFlows: DataEntryFlowProgressExtended[] = [
   },
 ];
 
-const configEntries: Array<{
+const configEntries: {
   items: ConfigEntryExtended[];
   is_custom?: boolean;
   disabled?: boolean;
   highlight?: string;
-}> = [
+}[] = [
   { items: [loadedEntry] },
   { items: [configPanelEntry] },
   { items: [optionsFlowEntry] },
@@ -198,6 +201,10 @@ const createEntityRegistryEntries = (
     has_entity_name: false,
     unique_id: "updater",
     options: null,
+    labels: [],
+    categories: {},
+    created_at: 0,
+    modified_at: 0,
   },
 ];
 
@@ -210,9 +217,11 @@ const createDeviceRegistryEntries = (
     connections: [],
     manufacturer: "ESPHome",
     model: "Mock Device",
+    model_id: "ABC-001",
     name: "Tag Reader",
     sw_version: null,
     hw_version: "1.0.0",
+    serial_number: "00_12_4B_00_22_98_88_7F",
     id: "mock-device-id",
     identifiers: [],
     via_device_id: null,
@@ -220,6 +229,10 @@ const createDeviceRegistryEntries = (
     name_by_user: null,
     disabled_by: null,
     configuration_url: null,
+    labels: [],
+    created_at: 0,
+    modified_at: 0,
+    primary_config_entry: null,
   },
 ];
 
@@ -336,26 +349,24 @@ export class DemoIntegrationCard extends LitElement {
     this.isCloud = !this.isCloud;
   }
 
-  static get styles() {
-    return css`
-      .container {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        grid-gap: 8px 8px;
-        padding: 8px 16px 16px;
-        margin-bottom: 16px;
-      }
+  static styles = css`
+    .container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      grid-gap: 8px 8px;
+      padding: 8px 16px 16px;
+      margin-bottom: 16px;
+    }
 
-      .container > * {
-        max-width: 500px;
-      }
+    .container > * {
+      max-width: 500px;
+    }
 
-      ha-formfield {
-        margin: 8px 0;
-        display: block;
-      }
-    `;
-  }
+    ha-formfield {
+      margin: 8px 0;
+      display: block;
+    }
+  `;
 }
 
 declare global {

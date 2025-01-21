@@ -34,12 +34,12 @@ import {
   endOfMonth,
   endOfQuarter,
   endOfYear,
-} from "date-fns/esm";
+} from "date-fns";
 import {
   formatDate,
   formatDateMonth,
   formatDateMonthYear,
-  formatDateShort,
+  formatDateVeryShort,
   formatDateWeekdayDay,
   formatDateYear,
 } from "../../common/datetime/format_date";
@@ -128,13 +128,13 @@ _adapters._date.override({
           this.options.config
         );
       case "day":
-        return formatDateShort(
+        return formatDateVeryShort(
           new Date(time),
           this.options.locale,
           this.options.config
         );
       case "week":
-        return formatDate(
+        return formatDateVeryShort(
           new Date(time),
           this.options.locale,
           this.options.config

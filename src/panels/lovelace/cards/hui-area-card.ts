@@ -1,59 +1,55 @@
-import "@material/mwc-ripple";
 import {
+  mdiFan,
+  mdiFanOff,
   mdiLightbulbMultiple,
   mdiLightbulbMultipleOff,
   mdiRun,
-  mdiThermometer,
   mdiToggleSwitch,
   mdiToggleSwitchOff,
   mdiWaterAlert,
-  mdiWaterPercent,
 } from "@mdi/js";
 import type { HassEntity, UnsubscribeFunc } from "home-assistant-js-websocket";
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  PropertyValues,
-  TemplateResult,
-  nothing,
-} from "lit";
+import type { PropertyValues, TemplateResult } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
+import { styleMap } from "lit/directives/style-map";
 import memoizeOne from "memoize-one";
 import { STATES_OFF } from "../../../common/const";
 import { applyThemesOnElement } from "../../../common/dom/apply_themes_on_element";
 import { computeDomain } from "../../../common/entity/compute_domain";
-import { domainIcon } from "../../../common/entity/domain_icon";
 import { navigate } from "../../../common/navigate";
-import { formatNumber } from "../../../common/number/format_number";
+import {
+  formatNumber,
+  isNumericState,
+} from "../../../common/number/format_number";
+import { blankBeforeUnit } from "../../../common/translations/blank_before_unit";
+import parseAspectRatio from "../../../common/util/parse-aspect-ratio";
 import { subscribeOne } from "../../../common/util/subscribe-one";
-import "../../../components/entity/state-badge";
 import "../../../components/ha-card";
+import "../../../components/ha-domain-icon";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-state-icon";
-import "../../../components/ha-svg-icon";
-import {
-  AreaRegistryEntry,
-  subscribeAreaRegistry,
-} from "../../../data/area_registry";
-import {
-  DeviceRegistryEntry,
-  subscribeDeviceRegistry,
-} from "../../../data/device_registry";
+import type { AreaRegistryEntry } from "../../../data/area_registry";
+import { subscribeAreaRegistry } from "../../../data/area_registry";
+import type { DeviceRegistryEntry } from "../../../data/device_registry";
+import { subscribeDeviceRegistry } from "../../../data/device_registry";
 import { isUnavailableState } from "../../../data/entity";
-import {
-  EntityRegistryEntry,
-  subscribeEntityRegistry,
-} from "../../../data/entity_registry";
+import type { EntityRegistryEntry } from "../../../data/entity_registry";
+import { subscribeEntityRegistry } from "../../../data/entity_registry";
 import { forwardHaptic } from "../../../data/haptics";
 import { SubscribeMixin } from "../../../mixins/subscribe-mixin";
-import { HomeAssistant } from "../../../types";
+import type { HomeAssistant } from "../../../types";
 import "../components/hui-image";
 import "../components/hui-warning";
-import { LovelaceCard, LovelaceCardEditor } from "../types";
-import { AreaCardConfig } from "./types";
+import type {
+  LovelaceCard,
+  LovelaceCardEditor,
+  LovelaceGridOptions,
+} from "../types";
+import type { AreaCardConfig } from "./types";
+
+export const DEFAULT_ASPECT_RATIO = "16:9";
 
 const SENSOR_DOMAINS = ["sensor"];
 
@@ -63,7 +59,7 @@ const TOGGLE_DOMAINS = ["light", "switch", "fan"];
 
 const OTHER_DOMAINS = ["camera"];
 
-const DEVICE_CLASSES = {
+export const DEVICE_CLASSES = {
   sensor: ["temperature", "humidity"],
   binary_sensor: ["motion", "moisture"],
 };
@@ -71,11 +67,7 @@ const DEVICE_CLASSES = {
 const DOMAIN_ICONS = {
   light: { on: mdiLightbulbMultiple, off: mdiLightbulbMultipleOff },
   switch: { on: mdiToggleSwitch, off: mdiToggleSwitchOff },
-  fan: { on: domainIcon("fan"), off: domainIcon("fan") },
-  sensor: {
-    temperature: mdiThermometer,
-    humidity: mdiWaterPercent,
-  },
+  fan: { on: mdiFan, off: mdiFanOff },
   binary_sensor: {
     motion: mdiRun,
     moisture: mdiWaterAlert,
@@ -101,6 +93,9 @@ export class HuiAreaCard
 
   @property({ attribute: false }) public hass!: HomeAssistant;
 
+  @property({ attribute: false })
+  public layout?: string;
+
   @state() private _config?: AreaCardConfig;
 
   @state() private _entities?: EntityRegistryEntry[];
@@ -109,11 +104,19 @@ export class HuiAreaCard
 
   @state() private _areas?: AreaRegistryEntry[];
 
+  private _deviceClasses: Record<string, string[]> = DEVICE_CLASSES;
+
+  private _ratio: {
+    w: number;
+    h: number;
+  } | null = null;
+
   private _entitiesByDomain = memoizeOne(
     (
       areaId: string,
       devicesInArea: Set<string>,
       registryEntities: EntityRegistryEntry[],
+      deviceClasses: Record<string, string[]>,
       states: HomeAssistant["states"]
     ) => {
       const entitiesInArea = registryEntities
@@ -127,7 +130,7 @@ export class HuiAreaCard
         )
         .map((entry) => entry.entity_id);
 
-      const entitiesByDomain: { [domain: string]: HassEntity[] } = {};
+      const entitiesByDomain: Record<string, HassEntity[]> = {};
 
       for (const entity of entitiesInArea) {
         const domain = computeDomain(entity);
@@ -147,7 +150,7 @@ export class HuiAreaCard
 
         if (
           (SENSOR_DOMAINS.includes(domain) || ALERT_DOMAINS.includes(domain)) &&
-          !DEVICE_CLASSES[domain].includes(
+          !deviceClasses[domain].includes(
             stateObj.attributes.device_class || ""
           )
         ) {
@@ -164,11 +167,12 @@ export class HuiAreaCard
     }
   );
 
-  private _isOn(domain: string, deviceClass?: string): boolean | undefined {
+  private _isOn(domain: string, deviceClass?: string): HassEntity | undefined {
     const entities = this._entitiesByDomain(
       this._config!.area,
       this._devicesInArea(this._config!.area, this._devices!),
       this._entities!,
+      this._deviceClasses,
       this.hass.states
     )[domain];
     if (!entities) {
@@ -180,7 +184,7 @@ export class HuiAreaCard
             (entity) => entity.attributes.device_class === deviceClass
           )
         : entities
-    ).some(
+    ).find(
       (entity) =>
         !isUnavailableState(entity.state) && !STATES_OFF.includes(entity.state)
     );
@@ -191,6 +195,7 @@ export class HuiAreaCard
       this._config!.area,
       this._devicesInArea(this._config!.area, this._devices!),
       this._entities!,
+      this._deviceClasses,
       this.hass.states
     )[domain].filter((entity) =>
       deviceClass ? entity.attributes.device_class === deviceClass : true
@@ -200,10 +205,7 @@ export class HuiAreaCard
     }
     let uom;
     const values = entities.filter((entity) => {
-      if (
-        !entity.attributes.unit_of_measurement ||
-        isNaN(Number(entity.state))
-      ) {
+      if (!isNumericState(entity) || isNaN(Number(entity.state))) {
         return false;
       }
       if (!uom) {
@@ -221,7 +223,7 @@ export class HuiAreaCard
     );
     return `${formatNumber(sum / values.length, this.hass!.locale, {
       maximumFractionDigits: 1,
-    })} ${uom}`;
+    })}${uom ? blankBeforeUnit(uom, this.hass!.locale) : ""}${uom || ""}`;
   }
 
   private _area = memoizeOne(
@@ -264,6 +266,14 @@ export class HuiAreaCard
     }
 
     this._config = config;
+
+    this._deviceClasses = { ...DEVICE_CLASSES };
+    if (config.sensor_classes) {
+      this._deviceClasses.sensor = config.sensor_classes;
+    }
+    if (config.alert_classes) {
+      this._deviceClasses.binary_sensor = config.alert_classes;
+    }
   }
 
   protected shouldUpdate(changedProps: PropertyValues): boolean {
@@ -305,6 +315,7 @@ export class HuiAreaCard
       this._config.area,
       this._devicesInArea(this._config.area, this._devices),
       this._entities,
+      this._deviceClasses,
       this.hass.states
     );
 
@@ -317,6 +328,18 @@ export class HuiAreaCard
     }
 
     return false;
+  }
+
+  public willUpdate(changedProps: PropertyValues) {
+    if (changedProps.has("_config") || this._ratio === null) {
+      this._ratio = this._config?.aspect_ratio
+        ? parseAspectRatio(this._config?.aspect_ratio)
+        : null;
+
+      if (this._ratio === null || this._ratio.w <= 0 || this._ratio.h <= 0) {
+        this._ratio = parseAspectRatio(DEFAULT_ASPECT_RATIO);
+      }
+    }
   }
 
   protected render() {
@@ -334,6 +357,7 @@ export class HuiAreaCard
       this._config.area,
       this._devicesInArea(this._config.area, this._devices),
       this._entities,
+      this._deviceClasses,
       this.hass.states
     );
     const area = this._area(this._config.area, this._areas);
@@ -351,19 +375,21 @@ export class HuiAreaCard
       if (!(domain in entitiesByDomain)) {
         return;
       }
-      DEVICE_CLASSES[domain].forEach((deviceClass) => {
+      this._deviceClasses[domain].forEach((deviceClass) => {
         if (
           entitiesByDomain[domain].some(
             (entity) => entity.attributes.device_class === deviceClass
           )
         ) {
           sensors.push(html`
-            ${DOMAIN_ICONS[domain][deviceClass]
-              ? html`<ha-svg-icon
-                  .path=${DOMAIN_ICONS[domain][deviceClass]}
-                ></ha-svg-icon>`
-              : ""}
-            ${this._average(domain, deviceClass)}
+            <div class="sensor">
+              <ha-domain-icon
+                .hass=${this.hass}
+                .domain=${domain}
+                .deviceClass=${deviceClass}
+              ></ha-domain-icon>
+              ${this._average(domain, deviceClass)}
+            </div>
           `);
         }
       });
@@ -374,17 +400,41 @@ export class HuiAreaCard
       cameraEntityId = entitiesByDomain.camera[0].entity_id;
     }
 
+    const imageClass = area.picture || cameraEntityId;
+
+    const ignoreAspectRatio = this.layout === "grid";
+
     return html`
-      <ha-card class=${area.picture || cameraEntityId ? "image" : ""}>
+      <ha-card
+        class=${imageClass ? "image" : ""}
+        style=${styleMap({
+          paddingBottom:
+            ignoreAspectRatio || imageClass
+              ? "0"
+              : `${((100 * this._ratio!.h) / this._ratio!.w).toFixed(2)}%`,
+        })}
+      >
         ${area.picture || cameraEntityId
-          ? html`<hui-image
-              .config=${this._config}
-              .hass=${this.hass}
-              .image=${area.picture ? area.picture : undefined}
-              .cameraImage=${cameraEntityId}
-              aspectRatio="16:9"
-            ></hui-image>`
-          : ""}
+          ? html`
+              <hui-image
+                .config=${this._config}
+                .hass=${this.hass}
+                .image=${area.picture ? area.picture : undefined}
+                .cameraImage=${cameraEntityId}
+                .cameraView=${this._config.camera_view}
+                .aspectRatio=${ignoreAspectRatio
+                  ? undefined
+                  : this._config.aspect_ratio || DEFAULT_ASPECT_RATIO}
+                fitMode="cover"
+              ></hui-image>
+            `
+          : area.icon
+            ? html`
+                <div class="icon-container">
+                  <ha-icon icon=${area.icon}></ha-icon>
+                </div>
+              `
+            : nothing}
 
         <div
           class="container ${classMap({
@@ -395,19 +445,20 @@ export class HuiAreaCard
           <div class="alerts">
             ${ALERT_DOMAINS.map((domain) => {
               if (!(domain in entitiesByDomain)) {
-                return "";
+                return nothing;
               }
-              return DEVICE_CLASSES[domain].map((deviceClass) =>
-                this._isOn(domain, deviceClass)
+              return this._deviceClasses[domain].map((deviceClass) => {
+                const entity = this._isOn(domain, deviceClass);
+                return entity
                   ? html`
-                      ${DOMAIN_ICONS[domain][deviceClass]
-                        ? html`<ha-svg-icon
-                            .path=${DOMAIN_ICONS[domain][deviceClass]}
-                          ></ha-svg-icon>`
-                        : ""}
+                      <ha-state-icon
+                        class="alert"
+                        .hass=${this.hass}
+                        .stateObj=${entity}
+                      ></ha-state-icon>
                     `
-                  : ""
-              );
+                  : nothing;
+              });
             })}
           </div>
           <div class="bottom">
@@ -483,91 +534,133 @@ export class HuiAreaCard
     forwardHaptic("light");
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      ha-card {
-        overflow: hidden;
-        position: relative;
-        padding-bottom: 56.25%;
-        background-size: cover;
-      }
-
-      ha-card.image {
-        padding-bottom: 0;
-      }
-
-      .container {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        background: linear-gradient(
-          0,
-          rgba(33, 33, 33, 0.9) 0%,
-          rgba(33, 33, 33, 0) 45%
-        );
-      }
-
-      ha-card:not(.image) .container::before {
-        position: absolute;
-        content: "";
-        width: 100%;
-        height: 100%;
-        background-color: var(--sidebar-selected-icon-color);
-        opacity: 0.12;
-      }
-
-      .sensors {
-        color: #e3e3e3;
-        font-size: 16px;
-        --mdc-icon-size: 24px;
-        opacity: 0.6;
-        margin-top: 8px;
-      }
-
-      .alerts {
-        padding: 16px;
-      }
-
-      .alerts ha-svg-icon {
-        background: var(--accent-color);
-        color: var(--text-accent-color, var(--text-primary-color));
-        padding: 8px;
-        border-radius: 50%;
-      }
-
-      .name {
-        color: white;
-        font-size: 24px;
-      }
-
-      .bottom {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 16px;
-      }
-
-      .navigate {
-        cursor: pointer;
-      }
-
-      ha-icon-button {
-        color: white;
-        background-color: var(--area-button-color, #727272b2);
-        border-radius: 50%;
-        margin-left: 8px;
-        --mdc-icon-button-size: 44px;
-      }
-      .on {
-        color: var(--state-light-active-color);
-      }
-    `;
+  getGridOptions(): LovelaceGridOptions {
+    return {
+      columns: 12,
+      rows: 3,
+      min_columns: 3,
+    };
   }
+
+  static styles = css`
+    ha-card {
+      overflow: hidden;
+      position: relative;
+      background-size: cover;
+      height: 100%;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(
+        0,
+        rgba(33, 33, 33, 0.9) 0%,
+        rgba(33, 33, 33, 0) 45%
+      );
+    }
+
+    ha-card:not(.image) .container::before {
+      position: absolute;
+      content: "";
+      width: 100%;
+      height: 100%;
+      background-color: var(--sidebar-selected-icon-color);
+      opacity: 0.12;
+    }
+
+    .image hui-image {
+      height: 100%;
+    }
+
+    .icon-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .icon-container ha-icon {
+      --mdc-icon-size: 60px;
+      color: var(--sidebar-selected-icon-color);
+    }
+
+    .sensors {
+      color: #e3e3e3;
+      font-size: 16px;
+      --mdc-icon-size: 24px;
+      opacity: 0.6;
+      margin-top: 8px;
+    }
+
+    .sensor {
+      white-space: nowrap;
+      float: left;
+      margin-right: 4px;
+      margin-inline-end: 4px;
+      margin-inline-start: initial;
+    }
+
+    .alerts {
+      padding: 16px;
+    }
+
+    ha-state-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .alerts ha-state-icon {
+      background: var(--accent-color);
+      color: var(--text-accent-color, var(--text-primary-color));
+      padding: 8px;
+      margin-right: 8px;
+      margin-inline-end: 8px;
+      margin-inline-start: initial;
+      border-radius: 50%;
+    }
+
+    .name {
+      color: white;
+      font-size: 24px;
+    }
+
+    .bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+    }
+
+    .navigate {
+      cursor: pointer;
+    }
+
+    ha-icon-button {
+      color: white;
+      background-color: var(--area-button-color, #727272b2);
+      border-radius: 50%;
+      margin-left: 8px;
+      margin-inline-start: 8px;
+      margin-inline-end: initial;
+      --mdc-icon-button-size: 44px;
+    }
+    .on {
+      color: var(--state-light-active-color);
+    }
+  `;
 }
 
 declare global {

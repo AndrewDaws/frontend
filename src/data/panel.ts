@@ -1,13 +1,14 @@
 import { fireEvent } from "../common/dom/fire_event";
-import { HomeAssistant, PanelInfo } from "../types";
+import type { HomeAssistant, PanelInfo } from "../types";
 
 /** Panel to show when no panel is picked. */
 export const DEFAULT_PANEL = "lovelace";
 
-export const getStorageDefaultPanelUrlPath = (): string =>
-  localStorage.defaultPanel
-    ? JSON.parse(localStorage.defaultPanel)
-    : DEFAULT_PANEL;
+export const getStorageDefaultPanelUrlPath = (): string => {
+  const defaultPanel = window.localStorage.getItem("defaultPanel");
+
+  return defaultPanel ? JSON.parse(defaultPanel) : DEFAULT_PANEL;
+};
 
 export const setDefaultPanel = (
   element: HTMLElement,
@@ -33,22 +34,32 @@ export const getPanelNameTranslationKey = (panel: PanelInfo) => {
   return `panel.${panel.title}` as const;
 };
 
-export const getPanelTitle = (hass: HomeAssistant): string | undefined => {
+export const getPanelTitle = (
+  hass: HomeAssistant,
+  panel: PanelInfo
+): string | undefined => {
+  const translationKey = getPanelNameTranslationKey(panel);
+
+  return hass.localize(translationKey) || panel.title || undefined;
+};
+
+export const getPanelTitleFromUrlPath = (
+  hass: HomeAssistant,
+  urlPath: string
+): string | undefined => {
   if (!hass.panels) {
     return undefined;
   }
 
   const panel = Object.values(hass.panels).find(
-    (p: PanelInfo): boolean => p.url_path === hass.panelUrl
+    (p: PanelInfo): boolean => p.url_path === urlPath
   );
 
   if (!panel) {
     return undefined;
   }
 
-  const translationKey = getPanelNameTranslationKey(panel);
-
-  return hass.localize(translationKey) || panel.title || undefined;
+  return getPanelTitle(hass, panel);
 };
 
 export const getPanelIcon = (panel: PanelInfo): string | null => {

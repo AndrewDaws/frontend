@@ -1,23 +1,22 @@
-import { HassEntity } from "home-assistant-js-websocket";
-import { css, CSSResultGroup, html, LitElement, TemplateResult } from "lit";
+import type { HassEntity } from "home-assistant-js-websocket";
+import type { TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
-import { computeRTLDirection } from "../common/util/compute_rtl";
 import { debounce } from "../common/util/debounce";
 import "../components/entity/state-info";
 import "../components/ha-slider";
 import "../components/ha-textfield";
 import { isUnavailableState } from "../data/entity";
 import { setValue } from "../data/input_text";
-import { loadPolyfillIfNeeded } from "../resources/resize-observer.polyfill";
-import { HomeAssistant } from "../types";
+import type { HomeAssistant } from "../types";
 
 @customElement("state-card-input_number")
 class StateCardInputNumber extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public stateObj!: HassEntity;
+  @property({ attribute: false }) public stateObj!: HassEntity;
 
-  @property({ type: Boolean }) public inDialog = false;
+  @property({ attribute: "in-dialog", type: Boolean }) public inDialog = false;
 
   private _loaded?: boolean;
 
@@ -57,15 +56,13 @@ class StateCardInputNumber extends LitElement {
         ? html`
             <div class="flex">
               <ha-slider
+                labeled
                 .disabled=${isUnavailableState(this.stateObj.state)}
-                .dir=${computeRTLDirection(this.hass)}
                 .step=${Number(this.stateObj.attributes.step)}
                 .min=${Number(this.stateObj.attributes.min)}
                 .max=${Number(this.stateObj.attributes.max)}
                 .value=${this.stateObj.state}
-                pin
                 @change=${this._selectedValueChanged}
-                ignore-bar-touch
               ></ha-slider>
               <span class="state">
                 ${this.hass.formatEntityState(this.stateObj)}
@@ -91,30 +88,28 @@ class StateCardInputNumber extends LitElement {
     `;
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host {
-        display: flex;
-      }
-      .flex {
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        flex-grow: 2;
-      }
-      .state {
-        min-width: 45px;
-        text-align: end;
-      }
-      ha-textfield {
-        text-align: end;
-      }
-      ha-slider {
-        width: 100%;
-        max-width: 200px;
-      }
-    `;
-  }
+  static styles = css`
+    :host {
+      display: flex;
+    }
+    .flex {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      flex-grow: 2;
+    }
+    .state {
+      min-width: 45px;
+      text-align: end;
+    }
+    ha-textfield {
+      text-align: end;
+    }
+    ha-slider {
+      width: 100%;
+      max-width: 200px;
+    }
+  `;
 
   private async _initialLoad(): Promise<void> {
     this._loaded = true;
@@ -135,7 +130,6 @@ class StateCardInputNumber extends LitElement {
 
   private async _attachObserver(): Promise<void> {
     if (!this._resizeObserver) {
-      await loadPolyfillIfNeeded();
       this._resizeObserver = new ResizeObserver(
         debounce(() => this._measureCard(), 250, false)
       );

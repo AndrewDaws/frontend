@@ -1,24 +1,21 @@
 import { mdiCog } from "@mdi/js";
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  nothing,
-  PropertyValues,
-} from "lit";
+import type { PropertyValues } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { fireEvent } from "../common/dom/fire_event";
 import { stopPropagation } from "../common/dom/stop_propagation";
 import { debounce } from "../common/util/debounce";
-import { ConfigEntry, getConfigEntry } from "../data/config_entries";
-import { Agent, listAgents } from "../data/conversation";
+import type { ConfigEntry } from "../data/config_entries";
+import { getConfigEntry } from "../data/config_entries";
+import type { Agent } from "../data/conversation";
+import { listAgents } from "../data/conversation";
 import { fetchIntegrationManifest } from "../data/integration";
 import { showOptionsFlowDialog } from "../dialogs/config-flow/show-dialog-options-flow";
-import { HomeAssistant } from "../types";
+import type { HomeAssistant } from "../types";
 import "./ha-list-item";
 import "./ha-select";
 import type { HaSelect } from "./ha-select";
+import { getExtendedEntityRegistryEntry } from "../data/entity_registry";
 
 const NONE = "__NONE_OPTION__";
 
@@ -44,15 +41,35 @@ export class HaConversationAgentPicker extends LitElement {
     if (!this._agents) {
       return nothing;
     }
-    const value =
-      this.value ??
-      (this.required &&
-      (!this.language ||
-        this._agents
-          .find((agent) => agent.id === "homeassistant")
-          ?.supported_languages.includes(this.language))
-        ? "homeassistant"
-        : NONE);
+    let value = this.value;
+    if (!value && this.required) {
+      // Select Home Assistant conversation agent if it supports the language
+      for (const agent of this._agents) {
+        if (
+          agent.id === "conversation.home_assistant" &&
+          agent.supported_languages.includes(this.language!)
+        ) {
+          value = agent.id;
+          break;
+        }
+      }
+      if (!value) {
+        // Select the first agent that supports the language
+        for (const agent of this._agents) {
+          if (
+            agent.supported_languages === "*" &&
+            agent.supported_languages.includes(this.language!)
+          ) {
+            value = agent.id;
+            break;
+          }
+        }
+      }
+    }
+    if (!value) {
+      value = NONE;
+    }
+
     return html`
       <ha-select
         .label=${this.label ||
@@ -107,15 +124,25 @@ export class HaConversationAgentPicker extends LitElement {
   }
 
   private async _maybeFetchConfigEntry() {
-    if (!this.value || this.value === "homeassistant") {
+    if (!this.value || !(this.value in this.hass.entities)) {
       this._configEntry = undefined;
       return;
     }
     try {
+      const regEntry = await getExtendedEntityRegistryEntry(
+        this.hass,
+        this.value
+      );
+
+      if (!regEntry.config_entry_id) {
+        this._configEntry = undefined;
+        return;
+      }
+
       this._configEntry = (
-        await getConfigEntry(this.hass, this.value)
+        await getConfigEntry(this.hass, regEntry.config_entry_id)
       ).config_entry;
-    } catch (err) {
+    } catch (_err) {
       this._configEntry = undefined;
     }
   }
@@ -163,20 +190,18 @@ export class HaConversationAgentPicker extends LitElement {
     });
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host {
-        display: flex;
-        align-items: center;
-      }
-      ha-select {
-        width: 100%;
-      }
-      ha-icon-button {
-        color: var(--secondary-text-color);
-      }
-    `;
-  }
+  static styles = css`
+    :host {
+      display: flex;
+      align-items: center;
+    }
+    ha-select {
+      width: 100%;
+    }
+    ha-icon-button {
+      color: var(--secondary-text-color);
+    }
+  `;
 
   private _changed(ev): void {
     const target = ev.target as HaSelect;

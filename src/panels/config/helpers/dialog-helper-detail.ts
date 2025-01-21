@@ -1,19 +1,12 @@
 import "@material/mwc-button/mwc-button";
-import { RequestSelectedDetail } from "@material/mwc-list/mwc-list-item-base";
 import "@lrnwebcomponents/simple-tooltip/simple-tooltip";
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  TemplateResult,
-  nothing,
-} from "lit";
+import type { CSSResultGroup, TemplateResult } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
+import memoizeOne from "memoize-one";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
 import { dynamicElement } from "../../../common/dom/dynamic-element-directive";
-import { shouldHandleRequestSelectedEvent } from "../../../common/mwc/handle-request-selected-event";
 import "../../../components/ha-circular-progress";
 import { createCloseHeading } from "../../../components/ha-dialog";
 import "../../../components/ha-list-item";
@@ -25,18 +18,25 @@ import { createInputDateTime } from "../../../data/input_datetime";
 import { createInputNumber } from "../../../data/input_number";
 import { createInputSelect } from "../../../data/input_select";
 import { createInputText } from "../../../data/input_text";
-import { domainToName } from "../../../data/integration";
+import {
+  domainToName,
+  fetchIntegrationManifest,
+} from "../../../data/integration";
 import { createSchedule } from "../../../data/schedule";
 import { createTimer } from "../../../data/timer";
 import { showConfigFlowDialog } from "../../../dialogs/config-flow/show-dialog-config-flow";
-import { haStyleDialog } from "../../../resources/styles";
-import { HomeAssistant } from "../../../types";
+import { haStyleDialog, haStyleScrollbar } from "../../../resources/styles";
+import type { HomeAssistant } from "../../../types";
 import { brandsUrl } from "../../../util/brands-url";
-import { Helper, HelperDomain } from "./const";
+import type { Helper, HelperDomain } from "./const";
+import { isHelperDomain } from "./const";
 import type { ShowDialogHelperDetailParams } from "./show-dialog-helper-detail";
+import { fireEvent } from "../../../common/dom/fire_event";
+import { stringCompare } from "../../../common/string/compare";
 
-type HelperCreators = {
-  [domain in HelperDomain]: {
+type HelperCreators = Record<
+  HelperDomain,
+  {
     create: (
       hass: HomeAssistant,
       // Not properly typed because there is currently a mismatch for this._item between:
@@ -46,13 +46,15 @@ type HelperCreators = {
       params: any
     ) => Promise<Helper>;
     import: () => Promise<unknown>;
-  };
-};
+    alias?: string[];
+  }
+>;
 
 const HELPERS: HelperCreators = {
   input_boolean: {
     create: createInputBoolean,
     import: () => import("./forms/ha-input_boolean-form"),
+    alias: ["switch", "toggle"],
   },
   input_button: {
     create: createInputButton,
@@ -73,6 +75,7 @@ const HELPERS: HelperCreators = {
   input_select: {
     create: createInputSelect,
     import: () => import("./forms/ha-input_select-form"),
+    alias: ["select", "dropdown"],
   },
   counter: {
     create: createCounter,
@@ -81,6 +84,7 @@ const HELPERS: HelperCreators = {
   timer: {
     create: createTimer,
     import: () => import("./forms/ha-timer-form"),
+    alias: ["countdown"],
   },
   schedule: {
     create: createSchedule,
@@ -96,7 +100,7 @@ export class DialogHelperDetail extends LitElement {
 
   @state() private _opened = false;
 
-  @state() private _domain?: HelperDomain;
+  @state() private _domain?: string;
 
   @state() private _error?: string;
 
@@ -108,21 +112,24 @@ export class DialogHelperDetail extends LitElement {
 
   @state() private _loading = false;
 
+  @state() private _filter?: string;
+
   private _params?: ShowDialogHelperDetailParams;
 
   public async showDialog(params: ShowDialogHelperDetailParams): Promise<void> {
     this._params = params;
     this._domain = params.domain;
     this._item = undefined;
+    if (this._domain && this._domain in HELPERS) {
+      await HELPERS[this._domain].import();
+    }
     this._opened = true;
     await this.updateComplete;
-    Promise.all([
-      getConfigFlowHandlers(this.hass, ["helper"]),
-      // Ensure the titles are loaded before we render the flows.
-      this.hass.loadBackendTranslation("title", undefined, true),
-    ]).then(([flows]) => {
-      this._helperFlows = flows;
-    });
+    this.hass.loadFragmentTranslation("config");
+    const flows = await getConfigFlowHandlers(this.hass, ["helper"]);
+    await this.hass.loadBackendTranslation("title", flows, true);
+    // Ensure the titles are loaded before we render the flows.
+    this._helperFlows = flows;
   }
 
   public closeDialog(): void {
@@ -130,6 +137,7 @@ export class DialogHelperDetail extends LitElement {
     this._error = undefined;
     this._domain = undefined;
     this._params = undefined;
+    fireEvent(this, "dialog-closed", { dialog: this.localName });
   }
 
   protected render() {
@@ -141,7 +149,7 @@ export class DialogHelperDetail extends LitElement {
     if (this._domain) {
       content = html`
         <div class="form" @value-changed=${this._valueChanged}>
-          ${this._error ? html` <div class="error">${this._error}</div> ` : ""}
+          ${this._error ? html`<div class="error">${this._error}</div>` : ""}
           ${dynamicElement(`ha-${this._domain}-form`, {
             hass: this.hass,
             item: this._item,
@@ -155,35 +163,39 @@ export class DialogHelperDetail extends LitElement {
         >
           ${this.hass!.localize("ui.panel.config.helpers.dialog.create")}
         </mwc-button>
-        <mwc-button
-          slot="secondaryAction"
-          @click=${this._goBack}
-          .disabled=${this._submitting}
-        >
-          ${this.hass!.localize("ui.common.back")}
-        </mwc-button>
+        ${this._params?.domain
+          ? nothing
+          : html`<mwc-button
+              slot="secondaryAction"
+              @click=${this._goBack}
+              .disabled=${this._submitting}
+            >
+              ${this.hass!.localize("ui.common.back")}
+            </mwc-button>`}
       `;
     } else if (this._loading || this._helperFlows === undefined) {
-      content = html`<ha-circular-progress active></ha-circular-progress>`;
+      content = html`<ha-circular-progress
+        indeterminate
+      ></ha-circular-progress>`;
     } else {
-      const items: [string, string][] = [];
-
-      for (const helper of Object.keys(HELPERS) as (keyof typeof HELPERS)[]) {
-        items.push([
-          helper,
-          this.hass.localize(`ui.panel.config.helpers.types.${helper}`) ||
-            helper,
-        ]);
-      }
-
-      for (const domain of this._helperFlows) {
-        items.push([domain, domainToName(this.hass.localize, domain)]);
-      }
-
-      items.sort((a, b) => a[1].localeCompare(b[1]));
+      const items = this._filterHelpers(
+        HELPERS,
+        this._helperFlows,
+        this._filter
+      );
 
       content = html`
+        <search-input
+          .hass=${this.hass}
+          dialogInitialFocus="true"
+          .filter=${this._filter}
+          @value-changed=${this._filterChanged}
+          .label=${this.hass.localize(
+            "ui.panel.config.integrations.search_helper"
+          )}
+        ></search-input>
         <mwc-list
+          class="ha-scrollbar"
           innerRole="listbox"
           itemRoles="option"
           innerAriaLabel=${this.hass.localize(
@@ -207,13 +219,14 @@ export class DialogHelperDetail extends LitElement {
                 <img
                   slot="graphic"
                   loading="lazy"
+                  alt=""
                   src=${brandsUrl({
                     domain,
                     type: "icon",
                     useFallback: true,
                     darkOptimized: this.hass.themes?.darkMode,
                   })}
-                  aria-hidden="true"
+                  crossorigin="anonymous"
                   referrerpolicy="no-referrer"
                 />
                 <span class="item-text"> ${label} </span>
@@ -224,8 +237,7 @@ export class DialogHelperDetail extends LitElement {
                     <simple-tooltip animation-delay="0"
                       >${this.hass.localize(
                         "ui.dialogs.helper_settings.platform_not_loaded",
-                        "platform",
-                        domain
+                        { platform: domain }
                       )}</simple-tooltip
                     >
                   `
@@ -249,10 +261,16 @@ export class DialogHelperDetail extends LitElement {
           this._domain
             ? this.hass.localize(
                 "ui.panel.config.helpers.dialog.create_platform",
-                "platform",
-                this.hass.localize(
-                  `ui.panel.config.helpers.types.${this._domain}`
-                ) || this._domain
+                {
+                  platform:
+                    (isHelperDomain(this._domain) &&
+                      this.hass.localize(
+                        `ui.panel.config.helpers.types.${
+                          this._domain as HelperDomain
+                        }`
+                      )) ||
+                    this._domain,
+                }
               )
             : this.hass.localize("ui.panel.config.helpers.dialog.create_helper")
         )}
@@ -260,6 +278,52 @@ export class DialogHelperDetail extends LitElement {
         ${content}
       </ha-dialog>
     `;
+  }
+
+  private _filterHelpers = memoizeOne(
+    (
+      predefinedHelpers: HelperCreators,
+      flowHelpers?: string[],
+      filter?: string
+    ) => {
+      const items: [string, string][] = [];
+
+      for (const helper of Object.keys(
+        predefinedHelpers
+      ) as (keyof typeof predefinedHelpers)[]) {
+        items.push([
+          helper,
+          this.hass.localize(`ui.panel.config.helpers.types.${helper}`) ||
+            helper,
+        ]);
+      }
+
+      if (flowHelpers) {
+        for (const domain of flowHelpers) {
+          items.push([domain, domainToName(this.hass.localize, domain)]);
+        }
+      }
+
+      return items
+        .filter(([domain, label]) => {
+          if (filter) {
+            const lowerFilter = filter.toLowerCase();
+            return (
+              label.toLowerCase().includes(lowerFilter) ||
+              domain.toLowerCase().includes(lowerFilter) ||
+              (predefinedHelpers[domain as HelperDomain]?.alias || []).some(
+                (alias) => alias.toLowerCase().includes(lowerFilter)
+              )
+            );
+          }
+          return true;
+        })
+        .sort((a, b) => stringCompare(a[1], b[1], this.hass.locale.language));
+    }
+  );
+
+  private async _filterChanged(e) {
+    this._filter = e.detail.value;
   }
 
   private _valueChanged(ev: CustomEvent): void {
@@ -273,7 +337,16 @@ export class DialogHelperDetail extends LitElement {
     this._submitting = true;
     this._error = "";
     try {
-      await HELPERS[this._domain].create(this.hass, this._item);
+      const createdEntity = await HELPERS[this._domain].create(
+        this.hass,
+        this._item
+      );
+      if (this._params?.dialogClosedCallback && createdEntity.id) {
+        this._params.dialogClosedCallback({
+          flowFinished: true,
+          entityId: `${this._domain}.${createdEntity.id}`,
+        });
+      }
       this.closeDialog();
     } catch (err: any) {
       this._error = err.message || "Unknown error";
@@ -282,13 +355,8 @@ export class DialogHelperDetail extends LitElement {
     }
   }
 
-  private async _domainPicked(
-    ev: CustomEvent<RequestSelectedDetail>
-  ): Promise<void> {
-    if (!shouldHandleRequestSelectedEvent(ev)) {
-      return;
-    }
-    const domain = (ev.currentTarget! as any).domain;
+  private async _domainPicked(ev): Promise<void> {
+    const domain = ev.target.closest("ha-list-item").domain;
 
     if (domain in HELPERS) {
       this._loading = true;
@@ -302,6 +370,7 @@ export class DialogHelperDetail extends LitElement {
     } else {
       showConfigFlowDialog(this, {
         startFlowHandler: domain,
+        manifest: await fetchIntegrationManifest(this.hass, domain),
         dialogClosedCallback: this._params!.dialogClosedCallback,
       });
       this.closeDialog();
@@ -321,6 +390,7 @@ export class DialogHelperDetail extends LitElement {
 
   static get styles(): CSSResultGroup {
     return [
+      haStyleScrollbar,
       haStyleDialog,
       css`
         ha-dialog.button-left {
@@ -341,6 +411,18 @@ export class DialogHelperDetail extends LitElement {
         }
         .form {
           padding: 24px;
+        }
+        search-input {
+          display: block;
+          margin: 16px 16px 0;
+        }
+        mwc-list {
+          height: calc(60vh - 184px);
+        }
+        @media all and (max-width: 450px), all and (max-height: 500px) {
+          mwc-list {
+            height: calc(100vh - 184px);
+          }
         }
       `,
     ];

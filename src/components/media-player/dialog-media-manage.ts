@@ -2,19 +2,21 @@ import { animate } from "@lit-labs/motion";
 import "@material/mwc-list/mwc-list";
 import "@material/mwc-list/mwc-list-item";
 import { mdiClose, mdiDelete } from "@mdi/js";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import type { CSSResultGroup } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { repeat } from "lit/directives/repeat";
 import { fireEvent } from "../../common/dom/fire_event";
 import { computeRTLDirection } from "../../common/util/compute_rtl";
-import {
-  MediaClassBrowserSettings,
-  MediaPlayerItem,
-} from "../../data/media-player";
+import type { MediaPlayerItem } from "../../data/media-player";
+import { MediaClassBrowserSettings } from "../../data/media-player";
 import {
   browseLocalMediaPlayer,
   removeLocalMedia,
+  isLocalMediaSourceContentId,
+  isImageUploadMediaSourceContentId,
 } from "../../data/media_source";
+import { deleteImage, getIdFromUrl } from "../../data/image_upload";
 import { showConfirmationDialog } from "../../dialogs/generic/show-dialog-box";
 import { haStyleDialog } from "../../resources/styles";
 import type { HomeAssistant } from "../../types";
@@ -115,7 +117,7 @@ class DialogMediaManage extends LitElement {
             : html`
                 <ha-button
                   class="danger"
-                  slot="title"
+                  slot="navigationIcon"
                   .disabled=${this._deleting}
                   .label=${this.hass.localize(
                     `ui.components.media-browser.file_management.${
@@ -133,7 +135,9 @@ class DialogMediaManage extends LitElement {
                   : html`
                       <ha-button
                         slot="actionItems"
-                        .label=${`Deselect all`}
+                        .label=${this.hass.localize(
+                          `ui.components.media-browser.file_management.deselect_all`
+                        )}
                         @click=${this._handleDeselectAll}
                       >
                         <ha-svg-icon
@@ -147,58 +151,58 @@ class DialogMediaManage extends LitElement {
         ${!this._currentItem
           ? html`
               <div class="refresh">
-                <ha-circular-progress active></ha-circular-progress>
+                <ha-circular-progress indeterminate></ha-circular-progress>
               </div>
             `
           : !children.length
-          ? html`<div class="no-items">
-              <p>
-                ${this.hass.localize(
-                  "ui.components.media-browser.file_management.no_items"
-                )}
-              </p>
-              ${this._currentItem?.children?.length
-                ? html`<span class="folders"
-                    >${this.hass.localize(
-                      "ui.components.media-browser.file_management.folders_not_supported"
-                    )}</span
-                  >`
-                : ""}
-            </div>`
-          : html`
-              <mwc-list multi @selected=${this._handleSelected}>
-                ${repeat(
-                  children,
-                  (item) => item.media_content_id,
-                  (item) => {
-                    const icon = html`
-                      <ha-svg-icon
-                        slot="graphic"
-                        .path=${MediaClassBrowserSettings[
-                          item.media_class === "directory"
-                            ? item.children_media_class || item.media_class
-                            : item.media_class
-                        ].icon}
-                      ></ha-svg-icon>
-                    `;
-                    return html`
-                      <ha-check-list-item
-                        ${animate({
-                          id: item.media_content_id,
-                          skipInitial: true,
-                        })}
-                        graphic="icon"
-                        .disabled=${this._uploading || this._deleting}
-                        .selected=${this._selected.has(fileIndex++)}
-                        .item=${item}
-                      >
-                        ${icon} ${item.title}
-                      </ha-check-list-item>
-                    `;
-                  }
-                )}
-              </mwc-list>
-            `}
+            ? html`<div class="no-items">
+                <p>
+                  ${this.hass.localize(
+                    "ui.components.media-browser.file_management.no_items"
+                  )}
+                </p>
+                ${this._currentItem?.children?.length
+                  ? html`<span class="folders"
+                      >${this.hass.localize(
+                        "ui.components.media-browser.file_management.folders_not_supported"
+                      )}</span
+                    >`
+                  : ""}
+              </div>`
+            : html`
+                <mwc-list multi @selected=${this._handleSelected}>
+                  ${repeat(
+                    children,
+                    (item) => item.media_content_id,
+                    (item) => {
+                      const icon = html`
+                        <ha-svg-icon
+                          slot="graphic"
+                          .path=${MediaClassBrowserSettings[
+                            item.media_class === "directory"
+                              ? item.children_media_class || item.media_class
+                              : item.media_class
+                          ].icon}
+                        ></ha-svg-icon>
+                      `;
+                      return html`
+                        <ha-check-list-item
+                          ${animate({
+                            id: item.media_content_id,
+                            skipInitial: true,
+                          })}
+                          graphic="icon"
+                          .disabled=${this._uploading || this._deleting}
+                          .selected=${this._selected.has(fileIndex++)}
+                          .item=${item}
+                        >
+                          ${icon} ${item.title}
+                        </ha-check-list-item>
+                      `;
+                    }
+                  )}
+                </mwc-list>
+              `}
         ${isComponentLoaded(this.hass, "hassio")
           ? html`<ha-tip .hass=${this.hass}>
               ${this.hass.localize(
@@ -208,12 +212,10 @@ class DialogMediaManage extends LitElement {
                     href="/config/storage"
                     @click=${this.closeDialog}
                   >
-                    ${this.hass
-                      .localize(
-                        "ui.components.media-browser.file_management.tip_storage_panel"
-                      )
-                      .toLowerCase()}
-                  </a>`,
+                    ${this.hass.localize(
+                      "ui.components.media-browser.file_management.tip_storage_panel"
+                    )}</a
+                  >`,
                 }
               )}
             </ha-tip>`
@@ -271,7 +273,14 @@ class DialogMediaManage extends LitElement {
     try {
       await Promise.all(
         toDelete.map(async (item) => {
-          await removeLocalMedia(this.hass, item.media_content_id);
+          if (isLocalMediaSourceContentId(item.media_content_id)) {
+            await removeLocalMedia(this.hass, item.media_content_id);
+          } else if (isImageUploadMediaSourceContentId(item.media_content_id)) {
+            const media_id = getIdFromUrl(item.media_content_id);
+            if (media_id) {
+              await deleteImage(this.hass, media_id);
+            }
+          }
           this._currentItem = {
             ...this._currentItem!,
             children: this._currentItem!.children!.filter((i) => i !== item),
@@ -316,10 +325,6 @@ class DialogMediaManage extends LitElement {
           --mdc-theme-primary: var(--primary-text-color);
           margin: 6px;
           display: block;
-        }
-
-        mwc-list {
-          direction: ltr;
         }
 
         .danger {

@@ -1,9 +1,9 @@
 import type { HassEntity } from "home-assistant-js-websocket";
-import { css, CSSResultGroup, html, LitElement, TemplateResult } from "lit";
+import type { CSSResultGroup, TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { computeDomain } from "../common/entity/compute_domain";
-import { computeRTL } from "../common/util/compute_rtl";
 import "../components/entity/state-info";
 import { isUnavailableState } from "../data/entity";
 import { SENSOR_DEVICE_CLASS_TIMESTAMP } from "../data/sensor";
@@ -12,12 +12,12 @@ import { haStyle } from "../resources/styles";
 import type { HomeAssistant } from "../types";
 
 @customElement("state-card-display")
-export class StateCardDisplay extends LitElement {
+class StateCardDisplay extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property({ attribute: false }) public stateObj!: HassEntity;
 
-  @property({ type: Boolean }) public inDialog = false;
+  @property({ attribute: "in-dialog", type: Boolean }) public inDialog = false;
 
   // property used only in CSS
   @property({ type: Boolean, reflect: true }) public rtl = false;
@@ -53,41 +53,36 @@ export class StateCardDisplay extends LitElement {
     `;
   }
 
-  protected updated(changedProps) {
-    super.updated(changedProps);
-    if (!changedProps.has("hass")) {
-      return;
-    }
-
-    const oldHass = changedProps.get("hass") as HomeAssistant | undefined;
-    if (!oldHass || oldHass.language !== this.hass.language) {
-      this.rtl = computeRTL(this.hass);
-    }
-  }
-
   static get styles(): CSSResultGroup {
     return [
       haStyle,
       css`
         state-info {
-          flex: 0 0 fit-content;
-          min-width: 0;
+          flex: 0 1 fit-content;
+          min-width: 120px;
         }
         .state {
           color: var(--primary-text-color);
           margin-inline-start: 16px;
           margin-inline-end: initial;
           text-align: var(--float-end, right);
+          min-width: 50px;
           flex: 0 1 fit-content;
           word-break: break-word;
           display: flex;
           align-items: center;
-          direction: ltr;
+          justify-content: flex-end;
         }
         .state.has-unit_of_measurement {
           white-space: nowrap;
         }
       `,
     ];
+  }
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    "state-card-display": StateCardDisplay;
   }
 }

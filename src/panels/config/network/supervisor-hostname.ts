@@ -1,7 +1,8 @@
 import "@material/mwc-button/mwc-button";
 import "@material/mwc-list/mwc-list";
 import "@material/mwc-list/mwc-list-item";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import type { CSSResultGroup } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import "../../../components/ha-alert";
 import "../../../components/ha-card";
@@ -24,7 +25,7 @@ import type { HomeAssistant } from "../../../types";
 export class HassioHostname extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property({ type: Boolean }) narrow!: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
   @state() private _processing = false;
 
@@ -69,7 +70,7 @@ export class HassioHostname extends LitElement {
         <div class="card-actions">
           <mwc-button @click=${this._save} .disabled=${this._processing}>
             ${this._processing
-              ? html`<ha-circular-progress active size="small">
+              ? html`<ha-circular-progress indeterminate size="small">
                 </ha-circular-progress>`
               : this.hass.localize("ui.common.save")}
           </mwc-button>

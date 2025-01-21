@@ -1,23 +1,21 @@
 import "@material/mwc-button/mwc-button";
+import "@material/mwc-list/mwc-list";
 import {
   mdiCrosshairsGps,
   mdiMagnify,
   mdiMapMarker,
   mdiMapSearchOutline,
 } from "@mdi/js";
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  nothing,
-  TemplateResult,
-} from "lit";
+import type { CSSResultGroup, TemplateResult } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
+import { fireEvent } from "../common/dom/fire_event";
 import type { LocalizeFunc } from "../common/translations/localize";
 import "../components/ha-alert";
+import "../components/ha-circular-progress";
 import "../components/ha-formfield";
+import "../components/ha-list-item";
 import "../components/ha-radio";
 import "../components/ha-textfield";
 import type { HaTextField } from "../components/ha-textfield";
@@ -26,26 +24,23 @@ import type {
   HaLocationsEditor,
   MarkerLocation,
 } from "../components/map/ha-locations-editor";
-import { ConfigUpdateValues, detectCoreConfig } from "../data/core";
+import type { ConfigUpdateValues } from "../data/core";
+import { detectCoreConfig } from "../data/core";
+import type { OpenStreetMapPlace } from "../data/openstreetmap";
+import { reverseGeocode, searchPlaces } from "../data/openstreetmap";
 import { showConfirmationDialog } from "../dialogs/generic/show-dialog-box";
 import type { HomeAssistant } from "../types";
-import { fireEvent } from "../common/dom/fire_event";
-import {
-  OpenStreetMapPlace,
-  reverseGeocode,
-  searchPlaces,
-} from "../data/openstreetmap";
 import { onBoardingStyles } from "./styles";
 
 const AMSTERDAM: [number, number] = [52.3731339, 4.8903147];
-const mql = matchMedia("(prefers-color-scheme: dark)");
+const darkMql = matchMedia("(prefers-color-scheme: dark)");
 const LOCATION_MARKER_ID = "location";
 
 @customElement("onboarding-location")
 class OnboardingLocation extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public onboardingLocalize!: LocalizeFunc;
+  @property({ attribute: false }) public onboardingLocalize!: LocalizeFunc;
 
   @state() private _working = false;
 
@@ -123,7 +118,7 @@ class OnboardingLocation extends LitElement {
             ? html`
                 <ha-circular-progress
                   slot="trailingIcon"
-                  active
+                  indeterminate
                   size="small"
                 ></ha-circular-progress>
               `
@@ -196,7 +191,7 @@ class OnboardingLocation extends LitElement {
           this._highlightedMarker
         )}
         zoom="14"
-        .darkMode=${mql.matches}
+        .themeMode=${darkMql.matches ? "dark" : "light"}
         .disabled=${this._working}
         @location-updated=${this._locationChanged}
         @marker-clicked=${this._markerClicked}
@@ -292,8 +287,10 @@ class OnboardingLocation extends LitElement {
     if (ev.detail.id === LOCATION_MARKER_ID) {
       return;
     }
-    this._highlightedMarker = ev.detail.id;
-    const place = this._places!.find((plc) => plc.place_id === ev.detail.id)!;
+    this._highlightedMarker = Number(ev.detail.id);
+    const place = this._places!.find(
+      (plc) => plc.place_id === Number(ev.detail.id)
+    )!;
     this._location = [Number(place.lat), Number(place.lon)];
     this._country = place.address.country_code.toUpperCase();
   }
@@ -494,6 +491,8 @@ class OnboardingLocation extends LitElement {
           position: absolute;
           top: 10px;
           right: 10px;
+          inset-inline-end: 10px;
+          inset-inline-start: initial;
           --mdc-icon-button-size: 36px;
           --mdc-icon-size: 20px;
           color: var(--secondary-text-color);
@@ -504,6 +503,8 @@ class OnboardingLocation extends LitElement {
         ha-textfield > ha-circular-progress {
           position: relative;
           left: 12px;
+          inset-inline-start: 12px;
+          inset-inline-end: initial;
         }
         ha-locations-editor {
           display: block;

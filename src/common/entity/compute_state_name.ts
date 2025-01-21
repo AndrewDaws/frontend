@@ -1,9 +1,9 @@
-import { HassEntity } from "home-assistant-js-websocket";
+import type { HassEntity } from "home-assistant-js-websocket";
 import { computeObjectId } from "./compute_object_id";
 
 export const computeStateNameFromEntityAttributes = (
   entityId: string,
-  attributes: { [key: string]: any }
+  attributes: Record<string, any>
 ): string =>
   attributes.friendly_name === undefined
     ? computeObjectId(entityId).replace(/_/g, " ")

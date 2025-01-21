@@ -1,4 +1,4 @@
-import {
+import type {
   HassEntity,
   HassEntityAttributeBase,
 } from "home-assistant-js-websocket";
@@ -10,9 +10,9 @@ import { computeStateDisplay } from "../../../../src/common/entity/compute_state
 import "../../../../src/components/data-table/ha-data-table";
 import type { DataTableColumnContainer } from "../../../../src/components/data-table/ha-data-table";
 import "../../../../src/components/entity/state-badge";
-import "../../../../src/components/ha-chip";
 import { provideHass } from "../../../../src/fake_data/provide_hass";
-import { HomeAssistant } from "../../../../src/types";
+import { mockIcons } from "../../../../demo/src/stubs/icons";
+import type { HomeAssistant } from "../../../../src/types";
 
 const SENSOR_DEVICE_CLASSES = [
   "apparent_power",
@@ -54,6 +54,7 @@ const SENSOR_DEVICE_CLASSES = [
   "volatile_organic_compounds_parts",
   "voltage",
   "volume",
+  "volume_flow_rate",
   "water",
   "weight",
   "wind_speed",
@@ -138,6 +139,9 @@ const ENTITIES: HassEntity[] = [
   createEntity("climate.auto_off", "auto", undefined, { hvac_action: "off" }),
   createEntity("climate.auto_preheating", "auto", undefined, {
     hvac_action: "preheating",
+  }),
+  createEntity("climate.auto_defrosting", "auto", undefined, {
+    hvac_action: "defrosting",
   }),
   createEntity("climate.auto_heating", "auto", undefined, {
     hvac_action: "heating",
@@ -291,6 +295,7 @@ const ENTITIES: HassEntity[] = [
   createEntity("water_heater.high_demand", "high_demand"),
   createEntity("water_heater.heat_pump", "heat_pump"),
   createEntity("water_heater.gas", "gas"),
+  createEntity("select.speed", "ridiculous_speed"),
 ];
 
 function createEntity(
@@ -316,13 +321,13 @@ function createEntity(
   };
 }
 
-type EntityRowData = {
+interface EntityRowData {
   stateObj: HassEntity;
   entity_id: string;
   state: string;
   device_class?: string;
   domain: string;
-};
+}
 
 function createRowData(stateObj: HassEntity): EntityRowData {
   return {
@@ -345,6 +350,7 @@ export class DemoEntityState extends LitElement {
           title: "Icon",
           template: (entry) => html`
             <state-badge
+              .hass=${hass}
               .stateObj=${entry.stateObj}
               .stateColor=${true}
             ></state-badge>
@@ -352,19 +358,18 @@ export class DemoEntityState extends LitElement {
         },
         entity_id: {
           title: "Entity ID",
-          width: "30%",
           filterable: true,
           sortable: true,
         },
         state: {
           title: "State",
-          width: "20%",
           sortable: true,
           template: (entry) =>
             html`${computeStateDisplay(
               hass.localize,
               entry.stateObj,
               hass.locale,
+              [], // numericDeviceClasses
               hass.config,
               hass.entities
             )}`,
@@ -372,14 +377,12 @@ export class DemoEntityState extends LitElement {
         device_class: {
           title: "Device class",
           template: (entry) => html`${entry.device_class ?? "-"}`,
-          width: "20%",
           filterable: true,
           sortable: true,
         },
         domain: {
           title: "Domain",
           template: (entry) => html`${computeDomain(entry.entity_id)}`,
-          width: "20%",
           filterable: true,
           sortable: true,
         },
@@ -396,6 +399,17 @@ export class DemoEntityState extends LitElement {
   protected firstUpdated(changedProps) {
     super.firstUpdated(changedProps);
     const hass = provideHass(this);
+    mockIcons(hass);
+    hass.updateHass({
+      entities: {
+        "select.speed": {
+          entity_id: "select.speed",
+          translation_key: "speed",
+          platform: "demo",
+          labels: [],
+        },
+      },
+    });
     hass.updateTranslations(null, "en");
     hass.updateTranslations("config", "en");
   }
@@ -415,17 +429,15 @@ export class DemoEntityState extends LitElement {
     `;
   }
 
-  static get styles() {
-    return css`
-      .color {
-        display: block;
-        height: 20px;
-        width: 20px;
-        border-radius: 10px;
-        background-color: rgb(--color);
-      }
-    `;
-  }
+  static styles = css`
+    .color {
+      display: block;
+      height: 20px;
+      width: 20px;
+      border-radius: 10px;
+      background-color: rgb(--color);
+    }
+  `;
 }
 
 declare global {

@@ -1,4 +1,5 @@
-import { css, CSSResultGroup, html, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 
@@ -17,7 +18,7 @@ class HaFaded extends LitElement {
         @click=${this._showContent}
       >
         <slot
-          @iron-resize=${
+          @content-resize=${
             // ha-markdown-element fire this when render is complete
             this._setShowContent
           }
@@ -54,29 +55,30 @@ class HaFaded extends LitElement {
     this._contentShown = true;
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      .container {
-        display: block;
-        height: auto;
-        cursor: default;
-      }
-      .faded {
-        cursor: pointer;
-        -webkit-mask-image: linear-gradient(
-          to bottom,
-          black 25%,
-          transparent 100%
-        );
-        mask-image: linear-gradient(to bottom, black 25%, transparent 100%);
-        overflow-y: hidden;
-      }
-    `;
-  }
+  static styles = css`
+    .container {
+      display: block;
+      height: auto;
+      cursor: default;
+    }
+    .faded {
+      cursor: pointer;
+      -webkit-mask-image: linear-gradient(
+        to bottom,
+        black 25%,
+        transparent 100%
+      );
+      mask-image: linear-gradient(to bottom, black 25%, transparent 100%);
+      overflow-y: hidden;
+    }
+  `;
 }
 
 declare global {
   interface HTMLElementTagNameMap {
     "ha-faded": HaFaded;
+  }
+  interface HASSDomEvents {
+    "content-resize": undefined;
   }
 }

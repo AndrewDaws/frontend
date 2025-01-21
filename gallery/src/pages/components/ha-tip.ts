@@ -1,4 +1,5 @@
-import { html, css, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { html, css, LitElement } from "lit";
 import { customElement } from "lit/decorators";
 import "../../../../src/components/ha-tip";
 import "../../../../src/components/ha-card";
@@ -47,27 +48,25 @@ export class DemoHaTip extends LitElement {
     );
   }
 
-  static get styles() {
-    return css`
-      :host {
-        display: flex;
-        flex-direction: row;
-        justify-content: space-between;
-      }
-      .dark,
-      .light {
-        display: block;
-        background-color: var(--primary-background-color);
-        padding: 0 50px;
-      }
-      ha-tip {
-        margin-bottom: 14px;
-      }
-      ha-card {
-        margin: 24px auto;
-      }
-    `;
-  }
+  static styles = css`
+    :host {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+    }
+    .dark,
+    .light {
+      display: block;
+      background-color: var(--primary-background-color);
+      padding: 0 50px;
+    }
+    ha-tip {
+      margin-bottom: 14px;
+    }
+    ha-card {
+      margin: 24px auto;
+    }
+  `;
 }
 
 declare global {

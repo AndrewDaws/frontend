@@ -1,5 +1,5 @@
 import { mdiPlayCircleOutline } from "@mdi/js";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { storage } from "../../common/decorators/storage";
 import { fireEvent } from "../../common/dom/fire_event";
@@ -8,9 +8,9 @@ import { createCloseHeading } from "../../components/ha-dialog";
 import "../../components/ha-textarea";
 import type { HaTextArea } from "../../components/ha-textarea";
 import { convertTextToSpeech } from "../../data/tts";
-import { HomeAssistant } from "../../types";
+import type { HomeAssistant } from "../../types";
 import { showAlertDialog } from "../generic/show-dialog-box";
-import { TTSTryDialogParams } from "./show-dialog-tts-try";
+import type { TTSTryDialogParams } from "./show-dialog-tts-try";
 import "../../components/ha-circular-progress";
 
 @customElement("dialog-tts-try")
@@ -85,8 +85,7 @@ export class TTSTryDialog extends LitElement {
           ? html`
               <ha-circular-progress
                 size="small"
-                active
-                alt=""
+                indeterminate
                 slot="primaryAction"
                 class="loading"
               ></ha-circular-progress>
@@ -163,23 +162,21 @@ export class TTSTryDialog extends LitElement {
     });
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      ha-dialog {
-        --mdc-dialog-max-width: 500px;
-      }
-      ha-textarea,
-      ha-select {
-        width: 100%;
-      }
-      ha-select {
-        margin-top: 8px;
-      }
-      .loading {
-        height: 36px;
-      }
-    `;
-  }
+  static styles = css`
+    ha-dialog {
+      --mdc-dialog-max-width: 500px;
+    }
+    ha-textarea,
+    ha-select {
+      width: 100%;
+    }
+    ha-select {
+      margin-top: 8px;
+    }
+    .loading {
+      height: 36px;
+    }
+  `;
 }
 
 declare global {

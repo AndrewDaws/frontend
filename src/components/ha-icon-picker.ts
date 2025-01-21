@@ -1,27 +1,29 @@
-import { ComboBoxLitRenderer } from "@vaadin/combo-box/lit";
-import {
+import type { ComboBoxLitRenderer } from "@vaadin/combo-box/lit";
+import type {
   ComboBoxDataProviderCallback,
   ComboBoxDataProviderParams,
 } from "@vaadin/combo-box/vaadin-combo-box-light";
-import { css, html, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { LitElement, css, html } from "lit";
 import { customElement, property } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { fireEvent } from "../common/dom/fire_event";
 import { customIcons } from "../data/custom_icons";
-import { ValueChangedEvent, HomeAssistant } from "../types";
+import type { HomeAssistant, ValueChangedEvent } from "../types";
 import "./ha-combo-box";
+import "./ha-list-item";
 import "./ha-icon";
 
-type IconItem = {
+interface IconItem {
   icon: string;
   parts: Set<string>;
   keywords: string[];
-};
+}
 
-type RankedIcon = {
+interface RankedIcon {
   icon: string;
   rank: number;
-};
+}
 
 let ICONS: IconItem[] = [];
 let ICONS_LOADED = false;
@@ -58,7 +60,7 @@ const loadCustomIconItems = async (iconsetPrefix: string) => {
       keywords: icon.keywords ?? [],
     }));
     return customIconItems;
-  } catch (e) {
+  } catch (_err) {
     // eslint-disable-next-line no-console
     console.warn(`Unable to load icon list for ${iconsetPrefix} iconset`);
     return [];
@@ -66,14 +68,14 @@ const loadCustomIconItems = async (iconsetPrefix: string) => {
 };
 
 const rowRenderer: ComboBoxLitRenderer<IconItem | RankedIcon> = (item) =>
-  html`<mwc-list-item graphic="avatar">
+  html`<ha-list-item graphic="avatar">
     <ha-icon .icon=${item.icon} slot="graphic"></ha-icon>
     ${item.icon}
-  </mwc-list-item>`;
+  </ha-list-item>`;
 
 @customElement("ha-icon-picker")
 export class HaIconPicker extends LitElement {
-  @property() public hass?: HomeAssistant;
+  @property({ attribute: false }) public hass?: HomeAssistant;
 
   @property() public value?: string;
 
@@ -82,8 +84,6 @@ export class HaIconPicker extends LitElement {
   @property() public helper?: string;
 
   @property() public placeholder?: string;
-
-  @property() public fallbackPath?: string;
 
   @property({ attribute: "error-message" }) public errorMessage?: string;
 
@@ -119,12 +119,7 @@ export class HaIconPicker extends LitElement {
               <ha-icon .icon=${this._value || this.placeholder} slot="icon">
               </ha-icon>
             `
-          : this.fallbackPath
-          ? html`<ha-svg-icon
-              .path=${this.fallbackPath}
-              slot="icon"
-            ></ha-svg-icon>`
-          : ""}
+          : html`<slot slot="icon" name="fallback"></slot>`}
       </ha-combo-box>
     `;
   }
@@ -202,19 +197,18 @@ export class HaIconPicker extends LitElement {
     return this.value || "";
   }
 
-  static get styles() {
-    return css`
-      ha-icon,
-      ha-svg-icon {
-        color: var(--primary-text-color);
-        position: relative;
-        bottom: 2px;
-      }
-      *[slot="prefix"] {
-        margin-right: 8px;
-      }
-    `;
-  }
+  static styles = css`
+    *[slot="icon"] {
+      color: var(--primary-text-color);
+      position: relative;
+      bottom: 2px;
+    }
+    *[slot="prefix"] {
+      margin-right: 8px;
+      margin-inline-end: 8px;
+      margin-inline-start: initial;
+    }
+  `;
 }
 
 declare global {

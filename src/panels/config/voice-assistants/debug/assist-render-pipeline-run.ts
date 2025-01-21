@@ -1,4 +1,5 @@
-import { css, html, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
 import "../../../../components/ha-card";
 import "../../../../components/ha-alert";
@@ -71,10 +72,11 @@ const maybeRenderError = (
 const renderProgress = (
   hass: HomeAssistant,
   pipelineRun: PipelineRun,
-  stage: PipelineRun["stage"]
+  stage: PipelineRun["stage"],
+  start_suffix = "-start"
 ) => {
   const startEvent = pipelineRun.events.find(
-    (ev) => ev.type === `${stage}-start`
+    (ev) => ev.type === `${stage}` + start_suffix
   );
   const finishEvent = pipelineRun.events.find(
     (ev) => ev.type === `${stage}-end`
@@ -89,7 +91,7 @@ const renderProgress = (
       return html`❌`;
     }
     return html`
-      <ha-circular-progress size="tiny" active></ha-circular-progress>
+      <ha-circular-progress size="small" indeterminate></ha-circular-progress>
     `;
   }
 
@@ -137,7 +139,7 @@ const dataMinusKeysRender = (
 export class AssistPipelineDebug extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public pipelineRun!: PipelineRun;
+  @property({ attribute: false }) public pipelineRun!: PipelineRun;
 
   protected render(): TemplateResult {
     const lastRunStage: string = this.pipelineRun
@@ -146,7 +148,7 @@ export class AssistPipelineDebug extends LitElement {
         ) || "ready"
       : "ready";
 
-    const messages: Array<{ from: string; text: string }> = [];
+    const messages: { from: string; text: string }[] = [];
 
     const userMessage =
       (this.pipelineRun.init_options &&
@@ -244,7 +246,12 @@ export class AssistPipelineDebug extends LitElement {
               <div class="card-content">
                 <div class="row heading">
                   <span>Speech-to-text</span>
-                  ${renderProgress(this.hass, this.pipelineRun, "stt")}
+                  ${renderProgress(
+                    this.hass,
+                    this.pipelineRun,
+                    "stt",
+                    "-vad-end"
+                  )}
                 </div>
                 ${this.pipelineRun.stt
                   ? html`
@@ -300,6 +307,18 @@ export class AssistPipelineDebug extends LitElement {
                                   </div>`
                                 : ""}`
                           : ""}
+                        <div class="row">
+                          <div>Prefer handling locally</div>
+                          <div>
+                            ${this.pipelineRun.intent.prefer_local_intents}
+                          </div>
+                        </div>
+                        <div class="row">
+                          <div>Processed locally</div>
+                          <div>
+                            ${this.pipelineRun.intent.processed_locally}
+                          </div>
+                        </div>
                         ${dataMinusKeysRender(
                           this.pipelineRun.intent,
                           INTENT_DATA
@@ -346,8 +365,8 @@ export class AssistPipelineDebug extends LitElement {
         <ha-expansion-panel>
           <span slot="header">Raw</span>
           <ha-yaml-editor
-            readOnly
-            autoUpdate
+            read-only
+            auto-update
             .value=${this.pipelineRun}
           ></ha-yaml-editor>
         </ha-expansion-panel>
@@ -384,9 +403,13 @@ export class AssistPipelineDebug extends LitElement {
     }
     ha-expansion-panel {
       padding-left: 8px;
+      padding-inline-start: 8px;
+      padding-inline-end: initial;
     }
     .card-content ha-expansion-panel {
       padding-left: 0px;
+      padding-inline-start: 0px;
+      padding-inline-end: initial;
       --expansion-panel-summary-padding: 0px;
       --expansion-panel-content-padding: 0px;
     }

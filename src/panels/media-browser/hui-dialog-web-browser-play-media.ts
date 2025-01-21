@@ -1,18 +1,18 @@
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
-import { customElement, property } from "lit/decorators";
+import type { CSSResultGroup } from "lit";
+import { css, html, LitElement, nothing } from "lit";
+import { customElement, property, state } from "lit/decorators";
 import { fireEvent } from "../../common/dom/fire_event";
 import { createCloseHeading } from "../../components/ha-dialog";
 import "../../components/ha-hls-player";
 import { haStyleDialog } from "../../resources/styles";
 import type { HomeAssistant } from "../../types";
-import { WebBrowserPlayMediaDialogParams } from "./show-media-player-dialog";
+import type { WebBrowserPlayMediaDialogParams } from "./show-media-player-dialog";
 
 @customElement("hui-dialog-web-browser-play-media")
 export class HuiDialogWebBrowserPlayMedia extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property({ attribute: false })
-  private _params?: WebBrowserPlayMediaDialogParams;
+  @state() private _params?: WebBrowserPlayMediaDialogParams;
 
   public showDialog(params: WebBrowserPlayMediaDialogParams): void {
     this._params = params;
@@ -54,35 +54,35 @@ export class HuiDialogWebBrowserPlayMedia extends LitElement {
               </audio>
             `
           : mediaType === "video"
-          ? html`
-              <video controls autoplay playsinline>
-                <source
-                  src=${this._params.sourceUrl}
-                  type=${this._params.sourceType}
-                />
-                ${this.hass.localize(
-                  "ui.components.media-browser.video_not_supported"
-                )}
-              </video>
-            `
-          : this._params.sourceType === "application/x-mpegURL"
-          ? html`
-              <ha-hls-player
-                controls
-                autoplay
-                playsinline
-                .hass=${this.hass}
-                .url=${this._params.sourceUrl}
-              ></ha-hls-player>
-            `
-          : mediaType === "image"
-          ? html`<img
-              alt=${this._params.title || nothing}
-              src=${this._params.sourceUrl}
-            />`
-          : html`${this.hass.localize(
-              "ui.components.media-browser.media_not_supported"
-            )}`}
+            ? html`
+                <video controls autoplay playsinline>
+                  <source
+                    src=${this._params.sourceUrl}
+                    type=${this._params.sourceType}
+                  />
+                  ${this.hass.localize(
+                    "ui.components.media-browser.video_not_supported"
+                  )}
+                </video>
+              `
+            : this._params.sourceType === "application/x-mpegURL"
+              ? html`
+                  <ha-hls-player
+                    controls
+                    autoplay
+                    playsinline
+                    .hass=${this.hass}
+                    .url=${this._params.sourceUrl}
+                  ></ha-hls-player>
+                `
+              : mediaType === "image"
+                ? html`<img
+                    alt=${this._params.title || nothing}
+                    src=${this._params.sourceUrl}
+                  />`
+                : html`${this.hass.localize(
+                    "ui.components.media-browser.media_not_supported"
+                  )}`}
       </ha-dialog>
     `;
   }

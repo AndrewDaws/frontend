@@ -1,17 +1,21 @@
 import "@material/mwc-button/mwc-button";
+import "@lrnwebcomponents/simple-tooltip/simple-tooltip";
 import { mdiCheckCircle, mdiCloseCircle } from "@mdi/js";
-import { UnsubscribeFunc } from "home-assistant-js-websocket";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import type { UnsubscribeFunc } from "home-assistant-js-websocket";
+import type { CSSResultGroup } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { fireEvent } from "../../../../../common/dom/fire_event";
 import "../../../../../components/ha-circular-progress";
 import { createCloseHeading } from "../../../../../components/ha-dialog";
 import "../../../../../components/ha-svg-icon";
-import {
+import type {
   AttributeConfigurationStatus,
   Cluster,
   ClusterConfigurationEvent,
   ClusterConfigurationStatus,
+} from "../../../../../data/zha";
+import {
   fetchClustersForZhaDevice,
   reconfigureNode,
   ZHA_CHANNEL_CFG_DONE,
@@ -19,8 +23,8 @@ import {
   ZHA_CHANNEL_MSG_CFG_RPT,
 } from "../../../../../data/zha";
 import { haStyleDialog } from "../../../../../resources/styles";
-import { HomeAssistant } from "../../../../../types";
-import { ZHAReconfigureDeviceDialogParams } from "./show-dialog-zha-reconfigure-device";
+import type { HomeAssistant } from "../../../../../types";
+import type { ZHAReconfigureDeviceDialogParams } from "./show-dialog-zha-reconfigure-device";
 
 @customElement("dialog-zha-reconfigure-device")
 class DialogZHAReconfigureDevice extends LitElement {
@@ -30,10 +34,10 @@ class DialogZHAReconfigureDevice extends LitElement {
 
   @state() private _stages?: string[];
 
-  @state() private _clusterConfigurationStatuses?: Map<
+  @state() private _clusterConfigurationStatuses? = new Map<
     number,
     ClusterConfigurationStatus
-  > = new Map();
+  >();
 
   @state() private _params: ZHAReconfigureDeviceDialogParams | undefined =
     undefined;
@@ -46,6 +50,7 @@ class DialogZHAReconfigureDevice extends LitElement {
 
   public showDialog(params: ZHAReconfigureDeviceDialogParams): void {
     this._params = params;
+    this._clusterConfigurationStatuses = new Map();
     this._stages = undefined;
   }
 
@@ -56,6 +61,7 @@ class DialogZHAReconfigureDevice extends LitElement {
     this._stages = undefined;
     this._clusterConfigurationStatuses = undefined;
     this._showDetails = false;
+    this._allSuccessful = true;
     fireEvent(this, "dialog-closed", { dialog: this.localName });
   }
 
@@ -102,7 +108,7 @@ class DialogZHAReconfigureDevice extends LitElement {
         ${this._status === "started"
           ? html`
               <div class="flex-container">
-                <ha-circular-progress active></ha-circular-progress>
+                <ha-circular-progress indeterminate></ha-circular-progress>
                 <div class="status">
                   <p>
                     <b>
@@ -278,7 +284,7 @@ class DialogZHAReconfigureDevice extends LitElement {
                                       (attribute) => html`
                                         <span class="grid-item">
                                           ${attribute.name}:
-                                          ${attribute.success
+                                          ${attribute.status === "SUCCESS"
                                             ? html`
                                                 <span class="stage">
                                                   <ha-svg-icon
@@ -289,6 +295,12 @@ class DialogZHAReconfigureDevice extends LitElement {
                                               `
                                             : html`
                                                 <span class="stage">
+                                                  <simple-tooltip
+                                                    animation-delay="0"
+                                                    position="top"
+                                                  >
+                                                    ${attribute.status}
+                                                  </simple-tooltip>
                                                   <ha-svg-icon
                                                     .path=${mdiCloseCircle}
                                                     class="failed"
@@ -361,7 +373,12 @@ class DialogZHAReconfigureDevice extends LitElement {
         Object.keys(attributes).forEach((name) => {
           const attribute = attributes[name];
           clusterConfigurationStatus!.attributes.set(attribute.id, attribute);
-          this._allSuccessful = this._allSuccessful && attribute.success;
+          this._allSuccessful =
+            this._allSuccessful &&
+            !(
+              attribute.status in
+              ["FAILURE", "UNSUPPORTED_ATTRIBUTE", "UNREPORTABLE_ATTRIBUTE"]
+            );
         });
       }
       this.requestUpdate();
@@ -439,6 +456,8 @@ class DialogZHAReconfigureDevice extends LitElement {
         .flex-container ha-circular-progress,
         .flex-container ha-svg-icon {
           margin-right: 20px;
+          margin-inline-end: 20px;
+          margin-inline-start: initial;
         }
       `,
     ];

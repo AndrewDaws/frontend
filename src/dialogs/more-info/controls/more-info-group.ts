@@ -1,18 +1,13 @@
-import { HassEntity } from "home-assistant-js-websocket";
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  PropertyValues,
-  nothing,
-} from "lit";
+import type { HassEntity } from "home-assistant-js-websocket";
+import type { CSSResultGroup, PropertyValues } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { property, state } from "lit/decorators";
 import { dynamicElement } from "../../../common/dom/dynamic-element-directive";
-import { computeGroupDomain, GroupEntity } from "../../../data/group";
+import type { GroupEntity } from "../../../data/group";
+import { computeGroupDomain } from "../../../data/group";
 import "../../../state-summary/state-card-content";
-import { HomeAssistant } from "../../../types";
-import { moreInfoControlStyle } from "../components/ha-more-info-control-style";
+import type { HomeAssistant } from "../../../types";
+import { moreInfoControlStyle } from "../components/more-info-control-style";
 import {
   domainMoreInfoType,
   importMoreInfoControl,
@@ -21,7 +16,7 @@ import {
 class MoreInfoGroup extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public stateObj?: GroupEntity;
+  @property({ attribute: false }) public stateObj?: GroupEntity;
 
   @state() private _groupDomainStateObj?: HassEntity;
 

@@ -1,14 +1,6 @@
-/* eslint-disable lit/prefer-static-styles */
 import { mdiEye, mdiEyeOff } from "@mdi/js";
-import {
-  CSSResultGroup,
-  LitElement,
-  PropertyValues,
-  TemplateResult,
-  css,
-  html,
-  nothing,
-} from "lit";
+import type { PropertyValues, TemplateResult } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { fireEvent } from "../../common/dom/fire_event";
 import "../ha-icon-button";
@@ -19,12 +11,21 @@ import type {
   HaFormStringData,
   HaFormStringSchema,
 } from "./types";
+import type {
+  LocalizeFunc,
+  LocalizeKeys,
+} from "../../common/translations/localize";
 
 const MASKED_FIELDS = ["password", "secret", "token"];
 
 @customElement("ha-form-string")
 export class HaFormString extends LitElement implements HaFormElement {
-  @property() public schema!: HaFormStringSchema;
+  @property({ attribute: false }) public localize?: LocalizeFunc;
+
+  @property({ attribute: false }) public localizeBaseKey =
+    "ui.components.selectors.text";
+
+  @property({ attribute: false }) public schema!: HaFormStringSchema;
 
   @property() public data!: HaFormStringData;
 
@@ -50,8 +51,8 @@ export class HaFormString extends LitElement implements HaFormElement {
         .type=${!this.isPassword
           ? this.stringType
           : this.unmaskedPassword
-          ? "text"
-          : "password"}
+            ? "text"
+            : "password"}
         .label=${this.label}
         .value=${this.data || ""}
         .helper=${this.helper}
@@ -65,7 +66,9 @@ export class HaFormString extends LitElement implements HaFormElement {
           ? // reserve some space for the icon.
             html`<div style="width: 24px"></div>`
           : this.schema.description?.suffix}
-        .validationMessage=${this.schema.required ? "Required" : undefined}
+        .validationMessage=${this.schema.required
+          ? this.localize?.("ui.common.error_required")
+          : undefined}
         @input=${this._valueChanged}
         @change=${this._valueChanged}
       ></ha-textfield>
@@ -78,7 +81,11 @@ export class HaFormString extends LitElement implements HaFormElement {
     return html`
       <ha-icon-button
         toggles
-        .label=${`${this.unmaskedPassword ? "Hide" : "Show"} password`}
+        .label=${this.localize?.(
+          `${this.localizeBaseKey}.${
+            this.unmaskedPassword ? "hide_password" : "show_password"
+          }` as LocalizeKeys
+        )}
         @click=${this.toggleUnmaskedPassword}
         .path=${this.unmaskedPassword ? mdiEyeOff : mdiEye}
       ></ha-icon-button>
@@ -124,31 +131,29 @@ export class HaFormString extends LitElement implements HaFormElement {
     return MASKED_FIELDS.some((field) => this.schema.name.includes(field));
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host {
-        display: block;
-        position: relative;
-      }
-      :host([own-margin]) {
-        margin-bottom: 5px;
-      }
-      ha-textfield {
-        display: block;
-      }
-      ha-icon-button {
-        position: absolute;
-        top: 8px;
-        right: 8px;
-        inset-inline-start: initial;
-        inset-inline-end: 8px;
-        --mdc-icon-button-size: 40px;
-        --mdc-icon-size: 20px;
-        color: var(--secondary-text-color);
-        direction: var(--direction);
-      }
-    `;
-  }
+  static styles = css`
+    :host {
+      display: block;
+      position: relative;
+    }
+    :host([own-margin]) {
+      margin-bottom: 5px;
+    }
+    ha-textfield {
+      display: block;
+    }
+    ha-icon-button {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      inset-inline-start: initial;
+      inset-inline-end: 8px;
+      --mdc-icon-button-size: 40px;
+      --mdc-icon-size: 20px;
+      color: var(--secondary-text-color);
+      direction: var(--direction);
+    }
+  `;
 }
 
 declare global {

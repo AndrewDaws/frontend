@@ -1,22 +1,25 @@
-import { HassEntity } from "home-assistant-js-websocket";
-import { html, LitElement, PropertyValues, nothing } from "lit";
+import type { HassEntity } from "home-assistant-js-websocket";
+import type { PropertyValues } from "lit";
+import { html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { ensureArray } from "../../common/array/ensure-array";
-import {
-  EntitySources,
-  fetchEntitySourcesWithCache,
-} from "../../data/entity_sources";
+import { fireEvent } from "../../common/dom/fire_event";
+import type { EntitySources } from "../../data/entity_sources";
+import { fetchEntitySourcesWithCache } from "../../data/entity_sources";
 import type { EntitySelector } from "../../data/selector";
-import { filterSelectorEntities } from "../../data/selector";
-import { HomeAssistant } from "../../types";
+import {
+  filterSelectorEntities,
+  computeCreateDomains,
+} from "../../data/selector";
+import type { HomeAssistant } from "../../types";
 import "../entity/ha-entities-picker";
 import "../entity/ha-entity-picker";
 
 @customElement("ha-selector-entity")
 export class HaEntitySelector extends LitElement {
-  @property() public hass!: HomeAssistant;
+  @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public selector!: EntitySelector;
+  @property({ attribute: false }) public selector!: EntitySelector;
 
   @state() private _entitySources?: EntitySources;
 
@@ -30,11 +33,25 @@ export class HaEntitySelector extends LitElement {
 
   @property({ type: Boolean }) public required = true;
 
+  @state() private _createDomains: string[] | undefined;
+
   private _hasIntegration(selector: EntitySelector) {
     return (
       selector.entity?.filter &&
       ensureArray(selector.entity.filter).some((filter) => filter.integration)
     );
+  }
+
+  protected willUpdate(changedProperties: PropertyValues): void {
+    if (changedProperties.has("selector") && this.value !== undefined) {
+      if (this.selector.entity?.multiple && !Array.isArray(this.value)) {
+        this.value = [this.value];
+        fireEvent(this, "value-changed", { value: this.value });
+      } else if (!this.selector.entity?.multiple && Array.isArray(this.value)) {
+        this.value = this.value[0];
+        fireEvent(this, "value-changed", { value: this.value });
+      }
+    }
   }
 
   protected render() {
@@ -51,6 +68,7 @@ export class HaEntitySelector extends LitElement {
         .includeEntities=${this.selector.entity?.include_entities}
         .excludeEntities=${this.selector.entity?.exclude_entities}
         .entityFilter=${this._filterEntities}
+        .createDomains=${this._createDomains}
         .disabled=${this.disabled}
         .required=${this.required}
         allow-custom-entity
@@ -66,6 +84,7 @@ export class HaEntitySelector extends LitElement {
         .includeEntities=${this.selector.entity.include_entities}
         .excludeEntities=${this.selector.entity.exclude_entities}
         .entityFilter=${this._filterEntities}
+        .createDomains=${this._createDomains}
         .disabled=${this.disabled}
         .required=${this.required}
       ></ha-entities-picker>
@@ -82,6 +101,9 @@ export class HaEntitySelector extends LitElement {
       fetchEntitySourcesWithCache(this.hass).then((sources) => {
         this._entitySources = sources;
       });
+    }
+    if (changedProps.has("selector")) {
+      this._createDomains = computeCreateDomains(this.selector);
     }
   }
 

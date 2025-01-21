@@ -3,7 +3,7 @@ import { mdiUpload } from "@mdi/js";
 import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { fireEvent } from "../../common/dom/fire_event";
-import { MediaPlayerItem } from "../../data/media-player";
+import type { MediaPlayerItem } from "../../data/media-player";
 import {
   isLocalMediaSourceContentId,
   uploadLocalMedia,
@@ -24,7 +24,7 @@ declare global {
 class MediaUploadButton extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() currentItem?: MediaPlayerItem;
+  @property({ attribute: false }) currentItem?: MediaPlayerItem;
 
   @state() _uploading = 0;
 
@@ -53,9 +53,9 @@ class MediaUploadButton extends LitElement {
         ${this._uploading > 0
           ? html`
               <ha-circular-progress
-                size="tiny"
-                active
-                alt=""
+                size="small"
+                indeterminate
+                area-label="Uploading"
                 slot="icon"
               ></ha-circular-progress>
             `

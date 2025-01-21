@@ -19,12 +19,13 @@ const includeDomains = ["zone"];
 export class HaZoneTrigger extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public trigger!: ZoneTrigger;
+  @property({ attribute: false }) public trigger!: ZoneTrigger;
 
   @property({ type: Boolean }) public disabled = false;
 
-  public static get defaultConfig() {
+  public static get defaultConfig(): ZoneTrigger {
     return {
+      trigger: "zone",
       entity_id: "",
       zone: "",
       event: "enter" as ZoneTrigger["event"],

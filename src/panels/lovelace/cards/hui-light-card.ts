@@ -1,13 +1,7 @@
 import { mdiDotsVertical } from "@mdi/js";
 import "@thomasloven/round-slider";
-import {
-  CSSResultGroup,
-  LitElement,
-  PropertyValues,
-  css,
-  html,
-  nothing,
-} from "lit";
+import type { PropertyValues } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { styleMap } from "lit/directives/style-map";
@@ -19,17 +13,18 @@ import "../../../components/ha-card";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-state-icon";
 import { UNAVAILABLE, isUnavailableState } from "../../../data/entity";
-import { LightEntity, lightSupportsBrightness } from "../../../data/light";
-import { ActionHandlerEvent } from "../../../data/lovelace";
-import { HomeAssistant } from "../../../types";
+import type { LightEntity } from "../../../data/light";
+import { lightSupportsBrightness } from "../../../data/light";
+import type { ActionHandlerEvent } from "../../../data/lovelace/action_handler";
+import type { HomeAssistant } from "../../../types";
 import { actionHandler } from "../common/directives/action-handler-directive";
 import { findEntities } from "../common/find-entities";
 import { handleAction } from "../common/handle-action";
 import { hasAction } from "../common/has-action";
 import { hasConfigOrEntityChanged } from "../common/has-changed";
 import { createEntityNotFoundWarning } from "../components/hui-warning";
-import { LovelaceCard, LovelaceCardEditor } from "../types";
-import { LightCardConfig } from "./types";
+import type { LovelaceCard, LovelaceCardEditor } from "../types";
+import type { LightCardConfig } from "./types";
 
 @customElement("hui-light-card")
 export class HuiLightCard extends LitElement implements LovelaceCard {
@@ -114,6 +109,7 @@ export class HuiLightCard extends LitElement implements LovelaceCard {
         <div class="content">
           <div id="controls">
             <div id="slider">
+              <!-- @ts-ignore Round-slider has no tag definition or exported type -->
               <round-slider
                 min="1"
                 max="100"
@@ -147,7 +143,8 @@ export class HuiLightCard extends LitElement implements LovelaceCard {
               >
                 <ha-state-icon
                   .icon=${this._config.icon}
-                  .state=${stateObj}
+                  .stateObj=${stateObj}
+                  .hass=${this.hass}
                 ></ha-state-icon>
               </ha-icon-button>
             </div>
@@ -196,9 +193,8 @@ export class HuiLightCard extends LitElement implements LovelaceCard {
   }
 
   private _dragEvent(e: any): void {
-    this.shadowRoot!.querySelector(
-      ".brightness"
-    )!.innerHTML = `${e.detail.value} %`;
+    this.shadowRoot!.querySelector(".brightness")!.innerHTML =
+      `${e.detail.value} %`;
     this._showBrightness();
     this._hideBrightness();
   }
@@ -251,102 +247,100 @@ export class HuiLightCard extends LitElement implements LovelaceCard {
     });
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      ha-card {
-        height: 100%;
-        box-sizing: border-box;
-        position: relative;
-        overflow: hidden;
-        text-align: center;
-        --name-font-size: 1.2rem;
-        --brightness-font-size: 1.2rem;
-      }
+  static styles = css`
+    ha-card {
+      height: 100%;
+      box-sizing: border-box;
+      position: relative;
+      overflow: hidden;
+      text-align: center;
+      --name-font-size: 1.2rem;
+      --brightness-font-size: 1.2rem;
+    }
 
-      .more-info {
-        position: absolute;
-        cursor: pointer;
-        top: 0;
-        right: 0;
-        inset-inline-start: initial;
-        inset-inline-end: 0;
-        border-radius: 100%;
-        color: var(--secondary-text-color);
-        z-index: 1;
-        direction: var(--direction);
-      }
+    .more-info {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      right: 0;
+      inset-inline-start: initial;
+      inset-inline-end: 0;
+      border-radius: 100%;
+      color: var(--secondary-text-color);
+      z-index: 1;
+      direction: var(--direction);
+    }
 
-      .content {
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-      }
+    .content {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
 
-      #controls {
-        display: flex;
-        justify-content: center;
-        padding: 16px;
-        position: relative;
-      }
+    #controls {
+      display: flex;
+      justify-content: center;
+      padding: 16px;
+      position: relative;
+    }
 
-      #slider {
-        height: 100%;
-        width: 100%;
-        position: relative;
-        max-width: 200px;
-        min-width: 100px;
-      }
+    #slider {
+      height: 100%;
+      width: 100%;
+      position: relative;
+      max-width: 200px;
+      min-width: 100px;
+    }
 
-      round-slider {
-        --round-slider-path-color: var(--slider-track-color);
-        --round-slider-bar-color: var(--primary-color);
-        padding-bottom: 10%;
-      }
+    round-slider {
+      --round-slider-path-color: var(--slider-track-color);
+      --round-slider-bar-color: var(--primary-color);
+      padding-bottom: 10%;
+    }
 
-      .light-button {
-        color: var(--paper-item-icon-color, #44739e);
-        width: 60%;
-        height: auto;
-        position: absolute;
-        max-width: calc(100% - 40px);
-        box-sizing: border-box;
-        border-radius: 100%;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        --mdc-icon-button-size: 100%;
-        --mdc-icon-size: 100%;
-      }
+    .light-button {
+      color: var(--paper-item-icon-color, #44739e);
+      width: 60%;
+      height: auto;
+      position: absolute;
+      max-width: calc(100% - 40px);
+      box-sizing: border-box;
+      border-radius: 100%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      --mdc-icon-button-size: 100%;
+      --mdc-icon-size: 100%;
+    }
 
-      .light-button.state-on {
-        color: var(--state-light-active-color);
-      }
+    .light-button.state-on {
+      color: var(--state-light-active-color);
+    }
 
-      .light-button.state-unavailable {
-        color: var(--state-unavailable-color);
-      }
+    .light-button.state-unavailable {
+      color: var(--state-unavailable-color);
+    }
 
-      #info {
-        text-align: center;
-        margin-top: -56px;
-        padding: 16px;
-        font-size: var(--name-font-size);
-      }
+    #info {
+      text-align: center;
+      margin-top: -56px;
+      padding: 16px;
+      font-size: var(--name-font-size);
+    }
 
-      .brightness {
-        font-size: var(--brightness-font-size);
-        opacity: 0;
-        transition: opacity 0.5s ease-in-out;
-        -moz-transition: opacity 0.5s ease-in-out;
-        -webkit-transition: opacity 0.5s ease-in-out;
-      }
+    .brightness {
+      font-size: var(--brightness-font-size);
+      opacity: 0;
+      transition: opacity 0.5s ease-in-out;
+      -moz-transition: opacity 0.5s ease-in-out;
+      -webkit-transition: opacity 0.5s ease-in-out;
+    }
 
-      .show_brightness {
-        opacity: 1;
-      }
-    `;
-  }
+    .show_brightness {
+      opacity: 1;
+    }
+  `;
 }
 
 declare global {

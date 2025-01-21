@@ -9,7 +9,7 @@ import gulp from "gulp";
 import jszip from "jszip";
 import path from "path";
 import process from "process";
-import tar from "tar";
+import { extract } from "tar";
 
 const MAX_AGE = 24; // hours
 const OWNER = "home-assistant";
@@ -66,7 +66,7 @@ gulp.task("fetch-nightly-translations", async function () {
       tokenAuth = JSON.parse(await readFile(TOKEN_FILE, "utf-8"));
     } catch {
       if (!allowTokenSetup) {
-        console.log("No token found so  build wil continue with English only");
+        console.log("No token found so build will continue with English only");
         return;
       }
       const auth = createOAuthDeviceAuth({
@@ -156,7 +156,7 @@ gulp.task("fetch-nightly-translations", async function () {
   console.log("Unpacking downloaded translations...");
   const zip = await jszip.loadAsync(downloadResponse.data);
   await deleteCurrent;
-  const extractStream = zip.file(/.*/)[0].nodeStream().pipe(tar.extract());
+  const extractStream = zip.file(/.*/)[0].nodeStream().pipe(extract());
   await new Promise((resolve, reject) => {
     extractStream.on("close", resolve).on("error", reject);
   });

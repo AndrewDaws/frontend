@@ -1,16 +1,13 @@
 import { ReactiveElement } from "lit";
 import { customElement } from "lit/decorators";
-import {
+import type {
   EnergyPreferences,
-  getEnergyPreferences,
   GridSourceTypeEnergyPreference,
 } from "../../../data/energy";
-import {
-  LovelaceStrategyConfig,
-  LovelaceViewConfig,
-} from "../../../data/lovelace";
-import { HomeAssistant } from "../../../types";
-import { LovelaceStrategyParams } from "../../lovelace/strategies/types";
+import { getEnergyPreferences } from "../../../data/energy";
+import type { HomeAssistant } from "../../../types";
+import type { LovelaceViewConfig } from "../../../data/lovelace/config/view";
+import type { LovelaceStrategyConfig } from "../../../data/lovelace/config/strategy";
 
 const setupWizard = async (): Promise<LovelaceViewConfig> => {
   await import("../cards/energy-setup-wizard-card");
@@ -24,16 +21,11 @@ const setupWizard = async (): Promise<LovelaceViewConfig> => {
   };
 };
 
-export interface EnergeryViewStrategyConfig extends LovelaceStrategyConfig {
-  show_date_selection?: boolean;
-}
-
 @customElement("energy-view-strategy")
 export class EnergyViewStrategy extends ReactiveElement {
   static async generate(
-    config: EnergeryViewStrategyConfig,
-    hass: HomeAssistant,
-    params: LovelaceStrategyParams
+    _config: LovelaceStrategyConfig,
+    hass: HomeAssistant
   ): Promise<LovelaceViewConfig> {
     const view: LovelaceViewConfig = { cards: [] };
 
@@ -52,10 +44,20 @@ export class EnergyViewStrategy extends ReactiveElement {
       return view;
     }
 
+    // No energy sources available, start from scratch
+    if (
+      prefs!.device_consumption.length === 0 &&
+      prefs!.energy_sources.length === 0
+    ) {
+      return setupWizard();
+    }
+
     view.type = "sidebar";
 
     const hasGrid = prefs.energy_sources.find(
-      (source) => source.type === "grid"
+      (source) =>
+        source.type === "grid" &&
+        (source.flow_from?.length || source.flow_to?.length)
     ) as GridSourceTypeEnergyPreference;
     const hasReturn = hasGrid && hasGrid.flow_to.length;
     const hasSolar = prefs.energy_sources.some(
@@ -66,14 +68,6 @@ export class EnergyViewStrategy extends ReactiveElement {
     const hasWater = prefs.energy_sources.some(
       (source) => source.type === "water"
     );
-
-    if (params.narrow || config.show_date_selection) {
-      view.cards!.push({
-        type: "energy-date-selection",
-        collection_key: "energy_dashboard",
-        view_layout: { position: "sidebar" },
-      });
-    }
 
     view.cards!.push({
       type: "energy-compare",
@@ -126,7 +120,7 @@ export class EnergyViewStrategy extends ReactiveElement {
       });
     }
 
-    if (hasGrid || hasSolar) {
+    if (hasGrid || hasSolar || hasGas || hasWater) {
       view.cards!.push({
         title: hass.localize(
           "ui.panel.energy.cards.energy_sources_table_title"
@@ -172,6 +166,13 @@ export class EnergyViewStrategy extends ReactiveElement {
     if (prefs.device_consumption.length) {
       view.cards!.push({
         title: hass.localize(
+          "ui.panel.energy.cards.energy_devices_detail_graph_title"
+        ),
+        type: "energy-devices-detail-graph",
+        collection_key: "energy_dashboard",
+      });
+      view.cards!.push({
+        title: hass.localize(
           "ui.panel.energy.cards.energy_devices_graph_title"
         ),
         type: "energy-devices-graph",
@@ -180,5 +181,11 @@ export class EnergyViewStrategy extends ReactiveElement {
     }
 
     return view;
+  }
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    "energy-view-strategy": EnergyViewStrategy;
   }
 }

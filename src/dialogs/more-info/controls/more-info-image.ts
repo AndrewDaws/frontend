@@ -1,7 +1,8 @@
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property } from "lit/decorators";
 import "../../../components/ha-camera-stream";
-import { computeImageUrl, ImageEntity } from "../../../data/image";
+import type { ImageEntity } from "../../../data/image";
+import { computeImageUrl } from "../../../data/image";
 import type { HomeAssistant } from "../../../types";
 
 @customElement("more-info-image")
@@ -20,17 +21,15 @@ class MoreInfoImage extends LitElement {
     /> `;
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host {
-        display: block;
-        text-align: center;
-      }
-      img {
-        max-width: 100%;
-      }
-    `;
-  }
+  static styles = css`
+    :host {
+      display: block;
+      text-align: center;
+    }
+    img {
+      max-width: 100%;
+    }
+  `;
 }
 
 declare global {

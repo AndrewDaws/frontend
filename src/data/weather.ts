@@ -1,6 +1,9 @@
 import {
   mdiAlertCircleOutline,
   mdiGauge,
+  mdiThermometer,
+  mdiThermometerWater,
+  mdiSunWireless,
   mdiWaterPercent,
   mdiWeatherCloudy,
   mdiWeatherFog,
@@ -8,7 +11,6 @@ import {
   mdiWeatherLightning,
   mdiWeatherLightningRainy,
   mdiWeatherNight,
-  mdiWeatherNightPartlyCloudy,
   mdiWeatherPartlyCloudy,
   mdiWeatherPouring,
   mdiWeatherRainy,
@@ -18,12 +20,13 @@ import {
   mdiWeatherWindy,
   mdiWeatherWindyVariant,
 } from "@mdi/js";
-import {
+import type {
   HassConfig,
   HassEntityAttributeBase,
   HassEntityBase,
 } from "home-assistant-js-websocket";
-import { SVGTemplateResult, TemplateResult, css, html, svg } from "lit";
+import type { SVGTemplateResult, TemplateResult } from "lit";
+import { css, html, svg } from "lit";
 import { styleMap } from "lit/directives/style-map";
 import { supportsFeature } from "../common/entity/supports-feature";
 import { round } from "../common/number/round";
@@ -115,10 +118,15 @@ export const weatherIcons = {
 };
 
 export const weatherAttrIcons = {
+  apparent_temperature: mdiThermometer,
+  cloud_coverage: mdiWeatherCloudy,
+  dew_point: mdiThermometerWater,
   humidity: mdiWaterPercent,
   wind_bearing: mdiWeatherWindy,
   wind_speed: mdiWeatherWindy,
   pressure: mdiGauge,
+  temperature: mdiThermometer,
+  uv_index: mdiSunWireless,
   visibility: mdiWeatherFog,
   precipitation: mdiWeatherRainy,
 };
@@ -222,6 +230,8 @@ export const getWeatherUnit = (
         stateObj.attributes.pressure_unit ||
         (lengthUnit === "km" ? "hPa" : "inHg")
       );
+    case "apparent_temperature":
+    case "dew_point":
     case "temperature":
     case "templow":
       return (
@@ -229,6 +239,7 @@ export const getWeatherUnit = (
       );
     case "wind_speed":
       return stateObj.attributes.wind_speed_unit || `${lengthUnit}/h`;
+    case "cloud_coverage":
     case "humidity":
     case "precipitation_probability":
       return "%";
@@ -383,13 +394,13 @@ const getWeatherStateSVG = (
           />
         `
       : state === "partlycloudy"
-      ? svg`
+        ? svg`
           <path
             class="sun"
             d="m14.981 4.2112c0 1.9244-1.56 3.4844-3.484 3.4844-1.9244 0-3.4844-1.56-3.4844-3.4844s1.56-3.484 3.4844-3.484c1.924 0 3.484 1.5596 3.484 3.484"
           />
         `
-      : ""
+        : ""
   }
   ${
     cloudyStates.has(state)
@@ -520,13 +531,6 @@ export const getWeatherStateIcon = (
   return undefined;
 };
 
-export const weatherIcon = (state?: string, nightTime?: boolean): string =>
-  !state
-    ? undefined
-    : nightTime && state === "partlycloudy"
-    ? mdiWeatherNightPartlyCloudy
-    : weatherIcons[state];
-
 const EIGHT_HOURS = 28800000;
 const DAY_IN_MILLISECONDS = 86400000;
 
@@ -558,13 +562,13 @@ const isForecastTwiceDaily = (
   return undefined;
 };
 
-export type WeatherUnits = {
+export interface WeatherUnits {
   precipitation_unit: string[];
   pressure_unit: string[];
   temperature_unit: string[];
   visibility_unit: string[];
   wind_speed_unit: string[];
-};
+}
 
 export const getWeatherConvertibleUnits = (
   hass: HomeAssistant

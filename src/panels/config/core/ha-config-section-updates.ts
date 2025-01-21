@@ -1,7 +1,9 @@
-import { RequestSelectedDetail } from "@material/mwc-list/mwc-list-item";
-import { mdiDotsVertical, mdiUpdate } from "@mdi/js";
-import { HassEntities } from "home-assistant-js-websocket";
-import { css, html, LitElement, TemplateResult } from "lit";
+import "@material/mwc-list/mwc-list-item";
+import type { RequestSelectedDetail } from "@material/mwc-list/mwc-list-item";
+import { mdiDotsVertical, mdiRefresh } from "@mdi/js";
+import type { HassEntities } from "home-assistant-js-websocket";
+import type { TemplateResult } from "lit";
+import { LitElement, css, html } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
@@ -13,12 +15,14 @@ import "../../../components/ha-card";
 import "../../../components/ha-check-list-item";
 import "../../../components/ha-metric";
 import { extractApiErrorMessage } from "../../../data/hassio/common";
+import type {
+  HassioSupervisorInfo,
+  SupervisorOptions,
+} from "../../../data/hassio/supervisor";
 import {
   fetchHassioSupervisorInfo,
-  HassioSupervisorInfo,
   reloadSupervisor,
   setSupervisorOption,
-  SupervisorOptions,
 } from "../../../data/hassio/supervisor";
 import {
   checkForEntityUpdates,
@@ -34,7 +38,7 @@ import { showJoinBetaDialog } from "./updates/show-dialog-join-beta";
 class HaConfigSectionUpdates extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property({ type: Boolean }) public narrow!: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
   @state() private _showSkipped = false;
 
@@ -66,7 +70,7 @@ class HaConfigSectionUpdates extends LitElement {
             .label=${this.hass.localize(
               "ui.panel.config.updates.check_updates"
             )}
-            .path=${mdiUpdate}
+            .path=${mdiRefresh}
             @click=${this._checkUpdates}
           ></ha-icon-button>
           <ha-button-menu multi>
@@ -82,11 +86,14 @@ class HaConfigSectionUpdates extends LitElement {
             >
               ${this.hass.localize("ui.panel.config.updates.show_skipped")}
             </ha-check-list-item>
-            ${this._supervisorInfo?.channel !== "dev"
+            ${this._supervisorInfo
               ? html`
                   <li divider role="separator"></li>
-                  <mwc-list-item @request-selected=${this._toggleBeta}>
-                    ${this._supervisorInfo?.channel === "stable"
+                  <mwc-list-item
+                    @request-selected=${this._toggleBeta}
+                    .disabled=${this._supervisorInfo.channel === "dev"}
+                  >
+                    ${this._supervisorInfo.channel === "stable"
                       ? this.hass.localize("ui.panel.config.updates.join_beta")
                       : this.hass.localize(
                           "ui.panel.config.updates.leave_beta"

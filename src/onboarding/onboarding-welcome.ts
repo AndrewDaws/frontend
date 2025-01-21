@@ -1,11 +1,5 @@
-import {
-  CSSResultGroup,
-  LitElement,
-  TemplateResult,
-  css,
-  html,
-  nothing,
-} from "lit";
+import type { CSSResultGroup, TemplateResult } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { customElement, property } from "lit/decorators";
 import type { LocalizeFunc } from "../common/translations/localize";
 import type { HomeAssistant } from "../types";
@@ -17,9 +11,9 @@ import "../components/ha-button";
 class OnboardingWelcome extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public localize!: LocalizeFunc;
+  @property({ attribute: false }) public localize!: LocalizeFunc;
 
-  @property({ type: Boolean }) public supervisor?: boolean;
+  @property({ type: Boolean }) public supervisor = false;
 
   protected render(): TemplateResult {
     return html`

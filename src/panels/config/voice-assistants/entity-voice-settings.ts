@@ -1,58 +1,51 @@
 import { mdiAlertCircle } from "@mdi/js";
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  nothing,
-  PropertyValues,
-} from "lit";
+import type { CSSResultGroup, PropertyValues } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
 import { fireEvent } from "../../../common/dom/fire_event";
-import {
+import type {
   EntityFilter,
   FilterFunc,
+} from "../../../common/entity/entity_filter";
+import {
   generateFilter,
   isEmptyFilter,
 } from "../../../common/entity/entity_filter";
 import "../../../components/ha-aliases-editor";
 import "../../../components/ha-settings-row";
 import "../../../components/ha-switch";
+import "../../../components/ha-formfield";
+import "../../../components/ha-checkbox";
+import "../../../components/ha-alert";
 import { fetchCloudAlexaEntity } from "../../../data/alexa";
+import type { CloudStatus, CloudStatusLoggedIn } from "../../../data/cloud";
 import {
-  CloudStatus,
-  CloudStatusLoggedIn,
   fetchCloudStatus,
   updateCloudGoogleEntityConfig,
 } from "../../../data/cloud";
+import type { ExtEntityRegistryEntry } from "../../../data/entity_registry";
 import {
-  ExtEntityRegistryEntry,
   getExtendedEntityRegistryEntry,
   updateEntityRegistryEntry,
 } from "../../../data/entity_registry";
-import {
-  fetchCloudGoogleEntity,
-  GoogleEntity,
-} from "../../../data/google_assistant";
-import {
-  exposeEntities,
-  ExposeEntitySettings,
-  voiceAssistants,
-} from "../../../data/expose";
+import type { GoogleEntity } from "../../../data/google_assistant";
+import { fetchCloudGoogleEntity } from "../../../data/google_assistant";
+import type { ExposeEntitySettings } from "../../../data/expose";
+import { exposeEntities, voiceAssistants } from "../../../data/expose";
 import { SubscribeMixin } from "../../../mixins/subscribe-mixin";
 import { haStyle } from "../../../resources/styles";
 import type { HomeAssistant } from "../../../types";
 import { brandsUrl } from "../../../util/brands-url";
-import { EntityRegistrySettings } from "../entities/entity-registry-settings";
+import type { EntityRegistrySettings } from "../entities/entity-registry-settings";
 import { documentationUrl } from "../../../util/documentation-url";
 
 @customElement("entity-voice-settings")
 export class EntityVoiceSettings extends SubscribeMixin(LitElement) {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public entityId!: string;
+  @property({ attribute: false }) public entityId!: string;
 
   @property({ attribute: false }) public exposed!: ExposeEntitySettings;
 
@@ -203,8 +196,8 @@ export class EntityVoiceSettings extends SubscribeMixin(LitElement) {
               alexaManual && key === "cloud.alexa"
                 ? manExposedAlexa
                 : googleManual && key === "cloud.google_assistant"
-                ? manExposedGoogle
-                : this.exposed[key];
+                  ? manExposedGoogle
+                  : this.exposed[key];
 
             const manualConfig =
               (alexaManual && key === "cloud.alexa") ||
@@ -225,6 +218,7 @@ export class EntityVoiceSettings extends SubscribeMixin(LitElement) {
                     type: "icon",
                     darkOptimized: this.hass.themes?.darkMode,
                   })}
+                  crossorigin="anonymous"
                   referrerpolicy="no-referrer"
                   slot="prefix"
                 />
@@ -304,7 +298,15 @@ export class EntityVoiceSettings extends SubscribeMixin(LitElement) {
   }
 
   private _aliasesChanged(ev) {
+    const currentLength =
+      this._aliases?.length ?? this.entry?.aliases?.length ?? 0;
+
     this._aliases = ev.detail.value;
+
+    // if an entry was deleted, then save changes
+    if (currentLength > ev.detail.value.length) {
+      this._saveAliases();
+    }
   }
 
   private async _2faChanged(ev) {
@@ -384,6 +386,8 @@ export class EntityVoiceSettings extends SubscribeMixin(LitElement) {
           height: 32px;
           width: 32px;
           margin-right: 16px;
+          margin-inline-end: 16px;
+          margin-inline-start: initial;
         }
         ha-aliases-editor {
           display: block;
@@ -394,6 +398,8 @@ export class EntityVoiceSettings extends SubscribeMixin(LitElement) {
         }
         ha-formfield {
           margin-left: -8px;
+          margin-inline-start: -8px;
+          margin-inline-end: initial;
         }
         ha-checkbox {
           --mdc-checkbox-state-layer-size: 40px;
@@ -406,6 +412,8 @@ export class EntityVoiceSettings extends SubscribeMixin(LitElement) {
           color: var(--error-color);
           --mdc-icon-size: 16px;
           margin-right: 4px;
+          margin-inline-end: 4px;
+          margin-inline-start: initial;
         }
         .header {
           margin-top: 8px;

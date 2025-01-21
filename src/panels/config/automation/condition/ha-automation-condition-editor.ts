@@ -28,9 +28,7 @@ export default class HaAutomationConditionEditor extends LitElement {
 
   @property({ type: Boolean }) public disabled = false;
 
-  @property({ type: Boolean }) public yamlMode = false;
-
-  @property({ type: Boolean }) public reOrderMode = false;
+  @property({ attribute: false }) public yamlMode = false;
 
   private _processedCondition = memoizeOne((condition) =>
     expandConditionWithShorthand(condition)
@@ -49,8 +47,7 @@ export default class HaAutomationConditionEditor extends LitElement {
               ? html`
                   ${this.hass.localize(
                     "ui.panel.config.automation.editor.conditions.unsupported_condition",
-                    "condition",
-                    condition.condition
+                    { condition: condition.condition }
                   )}
                 `
               : ""}
@@ -68,7 +65,6 @@ export default class HaAutomationConditionEditor extends LitElement {
                 {
                   hass: this.hass,
                   condition: condition,
-                  reOrderMode: this.reOrderMode,
                   disabled: this.disabled,
                 }
               )}

@@ -1,23 +1,24 @@
 import "@material/mwc-button";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import type { CSSResultGroup } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import "../../components/ha-circular-progress";
 import "../../components/ha-dialog";
 import "../../components/ha-form/ha-form";
 import "../../components/ha-markdown";
 import { autocompleteLoginFields } from "../../data/auth";
-import {
+import type {
   DataEntryFlowStep,
   DataEntryFlowStepForm,
 } from "../../data/data_entry_flow";
 import { haStyleDialog } from "../../resources/styles";
-import { HomeAssistant } from "../../types";
+import type { HomeAssistant } from "../../types";
 
 let instance = 0;
 
 @customElement("ha-mfa-module-setup-flow")
 class HaMfaModuleSetupFlow extends LitElement {
-  @property() public hass!: HomeAssistant;
+  @property({ attribute: false }) public hass!: HomeAssistant;
 
   @state() private _dialogClosedCallback?: (params: {
     flowFinished: boolean;
@@ -83,45 +84,48 @@ class HaMfaModuleSetupFlow extends LitElement {
             : ""}
           ${!this._step
             ? html`<div class="init-spinner">
-                <ha-circular-progress active></ha-circular-progress>
+                <ha-circular-progress indeterminate></ha-circular-progress>
               </div>`
             : html`${this._step.type === "abort"
                 ? html` <ha-markdown
-                    allowsvg
+                    allow-svg
                     breaks
                     .content=${this.hass.localize(
                       `component.auth.mfa_setup.${this._step.handler}.abort.${this._step.reason}`
                     )}
                   ></ha-markdown>`
                 : this._step.type === "create_entry"
-                ? html`<p>
-                    ${this.hass.localize(
-                      "ui.panel.profile.mfa_setup.step_done",
-                      "step",
-                      this._step.title
-                    )}
-                  </p>`
-                : this._step.type === "form"
-                ? html`<ha-markdown
-                      allowsvg
-                      breaks
-                      .content=${this.hass.localize(
-                        `component.auth.mfa_setup.${this._step!.handler}.step.${
-                          (this._step! as DataEntryFlowStepForm).step_id
-                        }.description`,
-                        this._step!.description_placeholders
+                  ? html`<p>
+                      ${this.hass.localize(
+                        "ui.panel.profile.mfa_setup.step_done",
+                        { step: this._step.title || this._step.handler }
                       )}
-                    ></ha-markdown>
-                    <ha-form
-                      .hass=${this.hass}
-                      .data=${this._stepData}
-                      .schema=${autocompleteLoginFields(this._step.data_schema)}
-                      .error=${this._step.errors}
-                      .computeLabel=${this._computeLabel}
-                      .computeError=${this._computeError}
-                      @value-changed=${this._stepDataChanged}
-                    ></ha-form>`
-                : ""}`}
+                    </p>`
+                  : this._step.type === "form"
+                    ? html`<ha-markdown
+                          allow-svg
+                          breaks
+                          .content=${this.hass.localize(
+                            `component.auth.mfa_setup.${
+                              this._step!.handler
+                            }.step.${
+                              (this._step! as DataEntryFlowStepForm).step_id
+                            }.description`,
+                            this._step!.description_placeholders
+                          )}
+                        ></ha-markdown>
+                        <ha-form
+                          .hass=${this.hass}
+                          .data=${this._stepData}
+                          .schema=${autocompleteLoginFields(
+                            this._step.data_schema
+                          )}
+                          .error=${this._step.errors}
+                          .computeLabel=${this._computeLabel}
+                          .computeError=${this._computeError}
+                          @value-changed=${this._stepDataChanged}
+                        ></ha-form>`
+                    : ""}`}
         </div>
         ${["abort", "create_entry"].includes(this._step?.type || "")
           ? html`<mwc-button slot="primaryAction" @click=${this.closeDialog}
@@ -163,12 +167,23 @@ class HaMfaModuleSetupFlow extends LitElement {
         ha-markdown a {
           color: var(--primary-color);
         }
+        ha-markdown-element p {
+          text-align: center;
+        }
+        ha-markdown-element code {
+          background-color: transparent;
+        }
+        ha-markdown-element > *:last-child {
+          margin-bottom: revert;
+        }
         .init-spinner {
           padding: 10px 100px 34px;
           text-align: center;
         }
         .submit-spinner {
           margin-right: 16px;
+          margin-inline-end: 16px;
+          margin-inline-start: initial;
         }
       `,
     ];
@@ -246,12 +261,12 @@ class HaMfaModuleSetupFlow extends LitElement {
     return this._step?.type === "abort"
       ? this.hass.localize("ui.panel.profile.mfa_setup.title_aborted")
       : this._step?.type === "create_entry"
-      ? this.hass.localize("ui.panel.profile.mfa_setup.title_success")
-      : this._step?.type === "form"
-      ? this.hass.localize(
-          `component.auth.mfa_setup.${this._step.handler}.step.${this._step.step_id}.title`
-        )
-      : "";
+        ? this.hass.localize("ui.panel.profile.mfa_setup.title_success")
+        : this._step?.type === "form"
+          ? this.hass.localize(
+              `component.auth.mfa_setup.${this._step.handler}.step.${this._step.step_id}.title`
+            )
+          : "";
   }
 
   private _computeLabel = (schema) =>

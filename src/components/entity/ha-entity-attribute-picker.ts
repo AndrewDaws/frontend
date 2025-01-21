@@ -1,8 +1,9 @@
-import { HassEntity } from "home-assistant-js-websocket";
-import { html, LitElement, PropertyValues, nothing } from "lit";
-import { customElement, property, query } from "lit/decorators";
+import type { HassEntity } from "home-assistant-js-websocket";
+import type { PropertyValues } from "lit";
+import { LitElement, html, nothing } from "lit";
+import { customElement, property, query, state } from "lit/decorators";
 import { computeAttributeNameDisplay } from "../../common/entity/compute_attribute_display";
-import { ValueChangedEvent, HomeAssistant } from "../../types";
+import type { HomeAssistant, ValueChangedEvent } from "../../types";
 import "../ha-combo-box";
 import type { HaComboBox } from "../ha-combo-box";
 
@@ -12,7 +13,7 @@ export type HaEntityPickerEntityFilterFunc = (entityId: HassEntity) => boolean;
 class HaEntityAttributePicker extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public entityId?: string;
+  @property({ attribute: false }) public entityId?: string;
 
   /**
    * List of attributes to be hidden.
@@ -22,6 +23,7 @@ class HaEntityAttributePicker extends LitElement {
   @property({ type: Array, attribute: "hide-attributes" })
   public hideAttributes?: string[];
 
+  // eslint-disable-next-line lit/no-native-attributes
   @property({ type: Boolean }) public autofocus = false;
 
   @property({ type: Boolean }) public disabled = false;
@@ -37,7 +39,7 @@ class HaEntityAttributePicker extends LitElement {
 
   @property() public helper?: string;
 
-  @property({ type: Boolean }) private _opened = false;
+  @state() private _opened = false;
 
   @query("ha-combo-box", true) private _comboBox!: HaComboBox;
 
@@ -47,15 +49,17 @@ class HaEntityAttributePicker extends LitElement {
 
   protected updated(changedProps: PropertyValues) {
     if (changedProps.has("_opened") && this._opened) {
-      const state = this.entityId ? this.hass.states[this.entityId] : undefined;
-      (this._comboBox as any).items = state
-        ? Object.keys(state.attributes)
+      const entityState = this.entityId
+        ? this.hass.states[this.entityId]
+        : undefined;
+      (this._comboBox as any).items = entityState
+        ? Object.keys(entityState.attributes)
             .filter((key) => !this.hideAttributes?.includes(key))
             .map((key) => ({
               value: key,
               label: computeAttributeNameDisplay(
                 this.hass.localize,
-                state,
+                entityState,
                 this.hass.entities,
                 key
               ),

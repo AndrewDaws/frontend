@@ -1,29 +1,20 @@
 import "@material/mwc-button/mwc-button";
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  TemplateResult,
-  nothing,
-} from "lit";
+import type { CSSResultGroup, TemplateResult } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, state } from "lit/decorators";
 import { computeStateName } from "../../../../../../common/entity/compute_state_name";
-import { computeRTLDirection } from "../../../../../../common/util/compute_rtl";
 import "../../../../../../components/ha-dialog";
 import "../../../../../../components/ha-formfield";
 import "../../../../../../components/ha-switch";
 import type { HaSwitch } from "../../../../../../components/ha-switch";
 import { computeDeviceName } from "../../../../../../data/device_registry";
-import {
-  fetchMQTTDebugInfo,
-  MQTTDeviceDebugInfo,
-} from "../../../../../../data/mqtt";
+import type { MQTTDeviceDebugInfo } from "../../../../../../data/mqtt";
+import { fetchMQTTDebugInfo } from "../../../../../../data/mqtt";
 import { haStyleDialog } from "../../../../../../resources/styles";
-import { HomeAssistant } from "../../../../../../types";
+import type { HomeAssistant } from "../../../../../../types";
 import "./mqtt-discovery-payload";
 import "./mqtt-messages";
-import { MQTTDeviceDebugInfoDialogParams } from "./show-dialog-mqtt-device-debug-info";
+import type { MQTTDeviceDebugInfoDialogParams } from "./show-dialog-mqtt-device-debug-info";
 
 @customElement("dialog-mqtt-device-debug-info")
 class DialogMQTTDeviceDebugInfo extends LitElement {
@@ -51,16 +42,13 @@ class DialogMQTTDeviceDebugInfo extends LitElement {
       return nothing;
     }
 
-    const dir = computeRTLDirection(this.hass!);
-
     return html`
       <ha-dialog
         open
         @closed=${this._close}
         .heading=${this.hass!.localize(
           "ui.dialogs.mqtt_device_debug_info.title",
-          "device",
-          computeDeviceName(this._params.device, this.hass)
+          { device: computeDeviceName(this._params.device, this.hass) }
         )}
       >
         <h4>
@@ -73,7 +61,6 @@ class DialogMQTTDeviceDebugInfo extends LitElement {
             .label=${this.hass!.localize(
               "ui.dialogs.mqtt_device_debug_info.deserialize"
             )}
-            .dir=${dir}
           >
             <ha-switch
               .checked=${this._showDeserialized}
@@ -88,7 +75,6 @@ class DialogMQTTDeviceDebugInfo extends LitElement {
             .label=${this.hass!.localize(
               "ui.dialogs.mqtt_device_debug_info.show_as_yaml"
             )}
-            .dir=${dir}
           >
             <ha-switch
               .checked=${this._showAsYaml}
@@ -179,11 +165,10 @@ class DialogMQTTDeviceDebugInfo extends LitElement {
                       .subscribedTopic=${topic.topic}
                       .summary=${this.hass!.localize(
                         "ui.dialogs.mqtt_device_debug_info.recent_messages",
-                        "n",
-                        topic.messages.length
+                        { n: topic.messages.length }
                       )}
                     >
-                    </mqtt-rx-messages>
+                    </mqtt-messages>
                   </li>
                 `
               )}
@@ -203,11 +188,10 @@ class DialogMQTTDeviceDebugInfo extends LitElement {
                       .subscribedTopic=${topic.topic}
                       .summary=${this.hass!.localize(
                         "ui.dialogs.mqtt_device_debug_info.recent_tx_messages",
-                        "n",
-                        topic.messages.length
+                        { n: topic.messages.length }
                       )}
                     >
-                    </mqtt-tx-messages>
+                    </mqtt-messages>
                   </li>
                 `
               )}
@@ -270,6 +254,8 @@ class DialogMQTTDeviceDebugInfo extends LitElement {
           list-style-type: none;
           margin: 4px;
           padding-left: 16px;
+          padding-inline-start: 16px;
+          padding-inline-end: initial;
         }
         .entitylistitem {
           margin-bottom: 12px;

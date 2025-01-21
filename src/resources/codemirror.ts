@@ -1,5 +1,6 @@
 import { indentLess, indentMore } from "@codemirror/commands";
 import {
+  foldService,
   HighlightStyle,
   StreamLanguage,
   syntaxHighlighting,
@@ -7,12 +8,13 @@ import {
 import { jinja2 } from "@codemirror/legacy-modes/mode/jinja2";
 import { yaml } from "@codemirror/legacy-modes/mode/yaml";
 import { Compartment } from "@codemirror/state";
-import { EditorView, KeyBinding } from "@codemirror/view";
+import type { KeyBinding } from "@codemirror/view";
+import { EditorView } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
 
 export { autocompletion } from "@codemirror/autocomplete";
 export { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
-export { highlightingFor } from "@codemirror/language";
+export { highlightingFor, foldGutter } from "@codemirror/language";
 export { highlightSelectionMatches, searchKeymap } from "@codemirror/search";
 export { EditorState } from "@codemirror/state";
 export {
@@ -24,6 +26,7 @@ export {
   lineNumbers,
   rectangularSelection,
 } from "@codemirror/view";
+export { indentationMarkers } from "@replit/codemirror-indentation-markers";
 export { tags } from "@lezer/highlight";
 
 export const langs = {
@@ -33,6 +36,8 @@ export const langs = {
 
 export const langCompartment = new Compartment();
 export const readonlyCompartment = new Compartment();
+export const linewrapCompartment = new Compartment();
+export const foldingCompartment = new Compartment();
 
 export const tabKeyBindings: KeyBinding[] = [
   { key: "Tab", run: indentMore },
@@ -79,6 +84,7 @@ export const haTheme = EditorView.theme({
   ".cm-content": {
     caretColor: "var(--secondary-text-color)",
     paddingTop: "16px",
+    paddingBottom: "16px",
   },
 
   ".cm-panels": {
@@ -112,11 +118,10 @@ export const haTheme = EditorView.theme({
     border: "0",
     background: "none",
     fontFamily: "Roboto",
-    borderBottom:
-      "1px solid var(--paper-input-container-color, var(--secondary-text-color))",
+    borderBottom: "1px solid var(--secondary-text-color)",
     margin: "4px 4px 0",
     "& ::placeholder": {
-      color: "var(--paper-input-container-color, var(--secondary-text-color))",
+      color: "var(--secondary-text-color)",
     },
     "&:focus": {
       outline: "none",
@@ -184,13 +189,11 @@ export const haTheme = EditorView.theme({
       "var(--code-editor-gutter-color, var(--secondary-background-color, whitesmoke))",
     color: "var(--paper-dialog-color, var(--secondary-text-color))",
     border: "none",
-    borderRight:
-      "1px solid var(--paper-input-container-color, var(--secondary-text-color))",
+    borderRight: "1px solid var(--secondary-text-color)",
     paddingRight: "1px",
   },
   "&.cm-focused .cm-gutters": {
-    borderRight:
-      "2px solid var(--paper-input-container-focus-color, var(--primary-color))",
+    borderRight: "2px solid var(--primary-color)",
     paddingRight: "0",
   },
   ".cm-gutterElement.lineNumber": { color: "inherit" },
@@ -271,3 +274,62 @@ const haHighlightStyle = HighlightStyle.define([
 ]);
 
 export const haSyntaxHighlighting = syntaxHighlighting(haHighlightStyle);
+
+// A folding service for indent-based languages such as YAML.
+export const foldingOnIndent = foldService.of((state, from, to) => {
+  const line = state.doc.lineAt(from);
+
+  // empty lines continue their indentation from surrounding lines
+  if (!line.length || !line.text.trim().length) {
+    return null;
+  }
+
+  let onlyEmptyNext = true;
+
+  const lineCount = state.doc.lines;
+  const indent = line.text.search(/\S|$/); // Indent level of the first line
+
+  let foldStart = from; // Start of the fold
+  let foldEnd = to; // End of the fold
+
+  // Check if the next line is on a deeper indent level
+  // If so, continue subsequent lines
+  // If not, go on with the foldEnd
+  let nextLine = line;
+  while (nextLine.number < lineCount) {
+    nextLine = state.doc.line(nextLine.number + 1); // Next line
+    const nextIndent = nextLine.text.search(/\S|$/); // Indent level of the next line
+
+    // If the next line is on a deeper indent level, add it to the fold
+    // empty lines continue their indentation from surrounding lines
+    if (
+      !nextLine.length ||
+      !nextLine.text.trim().length ||
+      nextIndent > indent
+    ) {
+      if (onlyEmptyNext) {
+        onlyEmptyNext = nextLine.text.trim().length === 0;
+      }
+      // include this line in the fold and continue
+      foldEnd = nextLine.to;
+    } else {
+      // If the next line is not on a deeper indent level, we found the end of the region
+      break;
+    }
+  }
+
+  // Don't create fold if it's a single line
+  if (
+    onlyEmptyNext ||
+    state.doc.lineAt(foldStart).number === state.doc.lineAt(foldEnd).number
+  ) {
+    return null;
+  }
+
+  // Set the fold start to the end of the first line
+  // With this, the fold will not include the first line
+  foldStart = line.to;
+
+  // Return a fold that covers the entire indent level
+  return { from: foldStart, to: foldEnd };
+});

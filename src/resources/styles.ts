@@ -29,6 +29,8 @@ export const haStyle = css`
 
   app-toolbar [main-title] {
     margin-left: 20px;
+    margin-inline-start: 20px;
+    margin-inline-end: initial;
   }
 
   h1 {
@@ -80,6 +82,7 @@ export const haStyle = css`
     color: var(--error-color);
   }
 
+  ha-button.warning,
   mwc-button.warning {
     --mdc-theme-primary: var(--error-color);
   }

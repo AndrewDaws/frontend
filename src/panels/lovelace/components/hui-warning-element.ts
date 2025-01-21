@@ -1,5 +1,6 @@
 import { mdiAlertOutline } from "@mdi/js";
-import { css, CSSResultGroup, html, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
 import "../../../components/ha-svg-icon";
 
@@ -13,13 +14,11 @@ export class HuiWarningElement extends LitElement {
     `;
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      ha-svg-icon {
-        color: var(--warning-color);
-      }
-    `;
-  }
+  static styles = css`
+    ha-svg-icon {
+      color: var(--warning-color);
+    }
+  `;
 }
 
 declare global {

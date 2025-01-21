@@ -1,8 +1,10 @@
 import { mdiPacMan } from "@mdi/js";
-import { css, html, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement } from "lit/decorators";
 import "../../../../src/components/ha-card";
 import "../../../../src/components/ha-expansion-panel";
+import "../../../../src/components/ha-icon-button";
 import "../../../../src/components/ha-markdown";
 import "../../components/demo-black-white-row";
 import { LONG_TEXT } from "../../data/text";
@@ -141,13 +143,11 @@ export class DemoHaExpansionPanel extends LitElement {
     `;
   }
 
-  static get styles() {
-    return css`
-      ha-expansion-panel {
-        margin: -16px;
-      }
-    `;
-  }
+  static styles = css`
+    ha-expansion-panel {
+      margin: -16px;
+    }
+  `;
 }
 
 declare global {

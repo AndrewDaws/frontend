@@ -1,22 +1,24 @@
 import "../components/ha-textfield";
-import { css, CSSResultGroup, html, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
 import { computeStateName } from "../common/entity/compute_state_name";
 import { stopPropagation } from "../common/dom/stop_propagation";
 import "../components/entity/state-badge";
 import { isUnavailableState, UNAVAILABLE } from "../data/entity";
-import { TextEntity, setValue } from "../data/text";
+import type { TextEntity } from "../data/text";
+import { setValue } from "../data/text";
 import type { HomeAssistant } from "../types";
 
 @customElement("state-card-text")
 class StateCardText extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public stateObj!: TextEntity;
+  @property({ attribute: false }) public stateObj!: TextEntity;
 
   protected render(): TemplateResult {
     return html`
-      <state-badge .stateObj=${this.stateObj}></state-badge>
+      <state-badge .hass=${this.hass} .stateObj=${this.stateObj}></state-badge>
       <ha-textfield
         .label=${computeStateName(this.stateObj)}
         .disabled=${this.stateObj.state === UNAVAILABLE}
@@ -48,22 +50,20 @@ class StateCardText extends LitElement {
     setValue(this.hass!, this.stateObj.entity_id, value);
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host {
-        display: flex;
-      }
+  static styles = css`
+    :host {
+      display: flex;
+    }
 
-      state-badge {
-        float: left;
-        margin-top: 10px;
-      }
+    state-badge {
+      float: left;
+      margin-top: 10px;
+    }
 
-      ha-textfield {
-        width: 100%;
-      }
-    `;
-  }
+    ha-textfield {
+      width: 100%;
+    }
+  `;
 }
 
 declare global {

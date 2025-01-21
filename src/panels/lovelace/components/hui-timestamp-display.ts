@@ -1,22 +1,20 @@
-import { HassConfig } from "home-assistant-js-websocket";
-import { html, LitElement, PropertyValues, nothing } from "lit";
+import type { HassConfig } from "home-assistant-js-websocket";
+import type { PropertyValues } from "lit";
+import { html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { formatDate } from "../../../common/datetime/format_date";
 import { formatDateTime } from "../../../common/datetime/format_date_time";
 import { formatTime } from "../../../common/datetime/format_time";
 import { relativeTime } from "../../../common/datetime/relative_time";
 import { capitalizeFirstLetter } from "../../../common/string/capitalize-first-letter";
-import { FrontendLocaleData } from "../../../data/translation";
-import { HomeAssistant } from "../../../types";
-import { TimestampRenderingFormat } from "./types";
+import type { FrontendLocaleData } from "../../../data/translation";
+import type { HomeAssistant } from "../../../types";
+import type { TimestampRenderingFormat } from "./types";
 
-const FORMATS: {
-  [key: string]: (
-    ts: Date,
-    lang: FrontendLocaleData,
-    config: HassConfig
-  ) => string;
-} = {
+const FORMATS: Record<
+  string,
+  (ts: Date, lang: FrontendLocaleData, config: HassConfig) => string
+> = {
   date: formatDate,
   datetime: formatDateTime,
   time: formatTime,
@@ -27,7 +25,7 @@ const INTERVAL_FORMAT = ["relative", "total"];
 class HuiTimestampDisplay extends LitElement {
   @property({ attribute: false }) public hass?: HomeAssistant;
 
-  @property() public ts?: Date;
+  @property({ attribute: false }) public ts?: Date;
 
   @property() public format?: TimestampRenderingFormat;
 

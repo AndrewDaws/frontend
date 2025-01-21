@@ -11,6 +11,7 @@ const LAZY_LOADED_MORE_INFO_CONTROL = {
   camera: () => import("./controls/more-info-camera"),
   climate: () => import("./controls/more-info-climate"),
   configurator: () => import("./controls/more-info-configurator"),
+  conversation: () => import("./controls/more-info-conversation"),
   counter: () => import("./controls/more-info-counter"),
   cover: () => import("./controls/more-info-cover"),
   date: () => import("./controls/more-info-date"),
@@ -35,6 +36,7 @@ const LAZY_LOADED_MORE_INFO_CONTROL = {
   timer: () => import("./controls/more-info-timer"),
   update: () => import("./controls/more-info-update"),
   vacuum: () => import("./controls/more-info-vacuum"),
+  valve: () => import("./controls/more-info-valve"),
   water_heater: () => import("./controls/more-info-water_heater"),
   weather: () => import("./controls/more-info-weather"),
 };

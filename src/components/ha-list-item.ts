@@ -1,6 +1,7 @@
 import { ListItemBase } from "@material/mwc-list/mwc-list-item-base";
 import { styles } from "@material/mwc-list/mwc-list-item.css";
-import { css, CSSResultGroup } from "lit";
+import type { CSSResultGroup } from "lit";
+import { css } from "lit";
 import { customElement } from "lit/decorators";
 
 @customElement("ha-list-item")
@@ -21,7 +22,15 @@ export class HaListItem extends ListItemBase {
             --mdc-list-side-padding-left,
             var(--mdc-list-side-padding, 20px)
           );
+          padding-inline-start: var(
+            --mdc-list-side-padding-left,
+            var(--mdc-list-side-padding, 20px)
+          );
           padding-right: var(
+            --mdc-list-side-padding-right,
+            var(--mdc-list-side-padding, 20px)
+          );
+          padding-inline-end: var(
             --mdc-list-side-padding-right,
             var(--mdc-list-side-padding, 20px)
           );
@@ -36,16 +45,24 @@ export class HaListItem extends ListItemBase {
             --mdc-list-item-graphic-margin,
             16px
           ) !important;
-          direction: var(--direction);
+          direction: var(--direction) !important;
         }
         span.material-icons:last-of-type {
           margin-inline-start: auto !important;
           margin-inline-end: 0px !important;
-          direction: var(--direction);
+          direction: var(--direction) !important;
         }
         .mdc-deprecated-list-item__meta {
           display: var(--mdc-list-item-meta-display);
           align-items: center;
+          flex-shrink: 0;
+        }
+        :host([graphic="icon"]:not([twoline]))
+          .mdc-deprecated-list-item__graphic {
+          margin-inline-end: var(
+            --mdc-list-item-graphic-margin,
+            20px
+          ) !important;
         }
         :host([multiline-secondary]) {
           height: auto;
@@ -78,6 +95,16 @@ export class HaListItem extends ListItemBase {
           pointer-events: unset;
         }
       `,
+      // safari workaround - must be explicit
+      document.dir === "rtl"
+        ? css`
+            span.material-icons:first-of-type,
+            span.material-icons:last-of-type {
+              direction: rtl !important;
+              --direction: rtl;
+            }
+          `
+        : css``,
     ];
   }
 }

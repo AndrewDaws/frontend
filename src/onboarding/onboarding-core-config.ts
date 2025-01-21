@@ -1,19 +1,15 @@
 import "@material/mwc-button/mwc-button";
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  nothing,
-  PropertyValues,
-  TemplateResult,
-} from "lit";
+import type { PropertyValues, TemplateResult } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
+import { LOCAL_TIME_ZONE } from "../common/datetime/resolve-time-zone";
 import { fireEvent } from "../common/dom/fire_event";
 import type { LocalizeFunc } from "../common/translations/localize";
 import "../components/ha-alert";
+import "../components/ha-circular-progress";
 import "../components/ha-country-picker";
-import { ConfigUpdateValues, saveCoreConfig } from "../data/core";
+import type { ConfigUpdateValues } from "../data/core";
+import { saveCoreConfig } from "../data/core";
 import { countryCurrency } from "../data/currency";
 import { onboardCoreConfigStep } from "../data/onboarding";
 import type { HomeAssistant, ValueChangedEvent } from "../types";
@@ -24,7 +20,7 @@ import "./onboarding-location";
 class OnboardingCoreConfig extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public onboardingLocalize!: LocalizeFunc;
+  @property({ attribute: false }) public onboardingLocalize!: LocalizeFunc;
 
   @state() private _working = false;
 
@@ -32,8 +28,7 @@ class OnboardingCoreConfig extends LitElement {
 
   private _elevation = "0";
 
-  private _timeZone: ConfigUpdateValues["time_zone"] =
-    Intl.DateTimeFormat?.().resolvedOptions?.().timeZone;
+  private _timeZone: ConfigUpdateValues["time_zone"] = LOCAL_TIME_ZONE;
 
   private _language: ConfigUpdateValues["language"] = getLocalLanguage();
 
@@ -57,7 +52,7 @@ class OnboardingCoreConfig extends LitElement {
     }
     if (this._skipCore) {
       return html`<div class="row center">
-        <ha-circular-progress active></ha-circular-progress>
+        <ha-circular-progress indeterminate></ha-circular-progress>
       </div>`;
     }
     return html`
@@ -179,64 +174,62 @@ class OnboardingCoreConfig extends LitElement {
     }
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      .row {
-        display: flex;
-        flex-direction: row;
-        margin: 0 -8px;
-        align-items: center;
-        --ha-select-min-width: 100px;
-      }
+  static styles = css`
+    .row {
+      display: flex;
+      flex-direction: row;
+      margin: 0 -8px;
+      align-items: center;
+      --ha-select-min-width: 100px;
+    }
 
-      .secondary {
-        color: var(--secondary-text-color);
-      }
+    .secondary {
+      color: var(--secondary-text-color);
+    }
 
-      p {
-        font-size: 14px;
-        line-height: 20px;
-      }
+    p {
+      font-size: 14px;
+      line-height: 20px;
+    }
 
-      ha-textfield {
-        display: block;
-      }
+    ha-textfield {
+      display: block;
+    }
 
-      .flex {
-        flex: 1;
-      }
+    .flex {
+      flex: 1;
+    }
 
-      .middle-text {
-        margin: 16px 0;
-      }
+    .middle-text {
+      margin: 16px 0;
+    }
 
-      .row {
-        margin-top: 16px;
-      }
+    .row {
+      margin-top: 16px;
+    }
 
-      .center {
-        justify-content: center;
-      }
+    .center {
+      justify-content: center;
+    }
 
-      .row > * {
-        margin: 0 8px;
-      }
+    .row > * {
+      margin: 0 8px;
+    }
 
-      .radio-group {
-        display: flex;
-        flex-direction: column;
-        flex: 1;
-      }
+    .radio-group {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
 
-      .footer {
-        margin-top: 16px;
-        text-align: right;
-      }
-      a {
-        color: var(--primary-color);
-      }
-    `;
-  }
+    .footer {
+      margin-top: 16px;
+      text-align: right;
+    }
+    a {
+      color: var(--primary-color);
+    }
+  `;
 }
 
 declare global {

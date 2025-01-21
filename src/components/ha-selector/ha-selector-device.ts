@@ -1,15 +1,17 @@
-import { HassEntity } from "home-assistant-js-websocket";
+import type { HassEntity } from "home-assistant-js-websocket";
+import type { PropertyValues } from "lit";
 import { html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { ensureArray } from "../../common/array/ensure-array";
+import { fireEvent } from "../../common/dom/fire_event";
 import type { DeviceRegistryEntry } from "../../data/device_registry";
 import { getDeviceIntegrationLookup } from "../../data/device_registry";
-import {
-  EntitySources,
-  fetchEntitySourcesWithCache,
-} from "../../data/entity_sources";
+import type { EntitySources } from "../../data/entity_sources";
+import { fetchEntitySourcesWithCache } from "../../data/entity_sources";
 import type { DeviceSelector } from "../../data/selector";
+import type { ConfigEntry } from "../../data/config_entries";
+import { getConfigEntries } from "../../data/config_entries";
 import {
   filterSelectorDevices,
   filterSelectorEntities,
@@ -20,11 +22,13 @@ import "../device/ha-devices-picker";
 
 @customElement("ha-selector-device")
 export class HaDeviceSelector extends LitElement {
-  @property() public hass!: HomeAssistant;
+  @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public selector!: DeviceSelector;
+  @property({ attribute: false }) public selector!: DeviceSelector;
 
   @state() private _entitySources?: EntitySources;
+
+  @state() private _configEntries?: ConfigEntry[];
 
   @property() public value?: any;
 
@@ -51,7 +55,19 @@ export class HaDeviceSelector extends LitElement {
     );
   }
 
-  protected updated(changedProperties): void {
+  protected willUpdate(changedProperties: PropertyValues): void {
+    if (changedProperties.has("selector") && this.value !== undefined) {
+      if (this.selector.device?.multiple && !Array.isArray(this.value)) {
+        this.value = [this.value];
+        fireEvent(this, "value-changed", { value: this.value });
+      } else if (!this.selector.device?.multiple && Array.isArray(this.value)) {
+        this.value = this.value[0];
+        fireEvent(this, "value-changed", { value: this.value });
+      }
+    }
+  }
+
+  protected updated(changedProperties: PropertyValues): void {
     super.updated(changedProperties);
     if (
       changedProperties.has("selector") &&
@@ -60,6 +76,12 @@ export class HaDeviceSelector extends LitElement {
     ) {
       fetchEntitySourcesWithCache(this.hass).then((sources) => {
         this._entitySources = sources;
+      });
+    }
+    if (!this._configEntries && this._hasIntegration(this.selector)) {
+      this._configEntries = [];
+      getConfigEntries(this.hass).then((entries) => {
+        this._configEntries = entries;
       });
     }
   }
@@ -110,7 +132,9 @@ export class HaDeviceSelector extends LitElement {
     const deviceIntegrations = this._entitySources
       ? this._deviceIntegrationLookup(
           this._entitySources,
-          Object.values(this.hass.entities)
+          Object.values(this.hass.entities),
+          Object.values(this.hass.devices),
+          this._configEntries
         )
       : undefined;
 

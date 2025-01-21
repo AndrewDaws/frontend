@@ -1,16 +1,11 @@
 import { mdiStop } from "@mdi/js";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property } from "lit/decorators";
 import { classMap } from "lit/directives/class-map";
 import { computeCloseIcon, computeOpenIcon } from "../common/entity/cover_icon";
 import { supportsFeature } from "../common/entity/supports-feature";
-import {
-  canClose,
-  canOpen,
-  canStop,
-  CoverEntity,
-  CoverEntityFeature,
-} from "../data/cover";
+import type { CoverEntity } from "../data/cover";
+import { canClose, canOpen, canStop, CoverEntityFeature } from "../data/cover";
 import type { HomeAssistant } from "../types";
 import "./ha-icon-button";
 
@@ -31,9 +26,7 @@ class HaCoverControls extends LitElement {
           class=${classMap({
             hidden: !supportsFeature(this.stateObj, CoverEntityFeature.OPEN),
           })}
-          .label=${this.hass.localize(
-            "ui.dialogs.more_info_control.cover.open_cover"
-          )}
+          .label=${this.hass.localize("ui.card.cover.open_cover")}
           @click=${this._onOpenTap}
           .disabled=${!canOpen(this.stateObj)}
           .path=${computeOpenIcon(this.stateObj)}
@@ -43,9 +36,7 @@ class HaCoverControls extends LitElement {
           class=${classMap({
             hidden: !supportsFeature(this.stateObj, CoverEntityFeature.STOP),
           })}
-          .label=${this.hass.localize(
-            "ui.dialogs.more_info_control.cover.stop_cover"
-          )}
+          .label=${this.hass.localize("ui.card.cover.stop_cover")}
           .path=${mdiStop}
           @click=${this._onStopTap}
           .disabled=${!canStop(this.stateObj)}
@@ -54,9 +45,7 @@ class HaCoverControls extends LitElement {
           class=${classMap({
             hidden: !supportsFeature(this.stateObj, CoverEntityFeature.CLOSE),
           })}
-          .label=${this.hass.localize(
-            "ui.dialogs.more_info_control.cover.close_cover"
-          )}
+          .label=${this.hass.localize("ui.card.cover.close_cover")}
           @click=${this._onCloseTap}
           .disabled=${!canClose(this.stateObj)}
           .path=${computeCloseIcon(this.stateObj)}
@@ -87,16 +76,14 @@ class HaCoverControls extends LitElement {
     });
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      .state {
-        white-space: nowrap;
-      }
-      .hidden {
-        visibility: hidden !important;
-      }
-    `;
-  }
+  static styles = css`
+    .state {
+      white-space: nowrap;
+    }
+    .hidden {
+      visibility: hidden !important;
+    }
+  `;
 }
 
 declare global {

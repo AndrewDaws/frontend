@@ -1,4 +1,4 @@
-import { HomeAssistant } from "../types";
+import type { HomeAssistant } from "../types";
 import { fetchFrontendUserData, saveFrontendUserData } from "./frontend";
 
 export enum NumberFormat {
@@ -61,6 +61,7 @@ export type TranslationCategory =
   | "state"
   | "entity"
   | "entity_component"
+  | "exceptions"
   | "config"
   | "config_panel"
   | "options"

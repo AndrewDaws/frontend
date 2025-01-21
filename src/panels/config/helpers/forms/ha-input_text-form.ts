@@ -1,4 +1,5 @@
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import type { CSSResultGroup } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { fireEvent } from "../../../../common/dom/fire_event";
 import "../../../../components/ha-form/ha-form";
@@ -7,15 +8,15 @@ import "../../../../components/ha-icon-picker";
 import "../../../../components/ha-radio";
 import type { HaRadio } from "../../../../components/ha-radio";
 import "../../../../components/ha-textfield";
-import { InputText } from "../../../../data/input_text";
+import type { InputText } from "../../../../data/input_text";
 import { haStyle } from "../../../../resources/styles";
-import { HomeAssistant } from "../../../../types";
+import type { HomeAssistant } from "../../../../types";
 
 @customElement("ha-input_text-form")
 class HaInputTextForm extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public new?: boolean;
+  @property({ type: Boolean }) public new = false;
 
   private _item?: InputText;
 
@@ -50,11 +51,10 @@ class HaInputTextForm extends LitElement {
   }
 
   public focus() {
-    this.updateComplete.then(
-      () =>
-        (
-          this.shadowRoot?.querySelector("[dialogInitialFocus]") as HTMLElement
-        )?.focus()
+    this.updateComplete.then(() =>
+      (
+        this.shadowRoot?.querySelector("[dialogInitialFocus]") as HTMLElement
+      )?.focus()
     );
   }
 

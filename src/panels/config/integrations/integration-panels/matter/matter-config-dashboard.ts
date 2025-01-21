@@ -1,6 +1,7 @@
 import "@material/mwc-button";
-import { UnsubscribeFunc } from "home-assistant-js-websocket";
-import { css, html, LitElement, TemplateResult } from "lit";
+import type { UnsubscribeFunc } from "home-assistant-js-websocket";
+import type { TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { isComponentLoaded } from "../../../../../common/config/is_component_loaded";
 import "../../../../../components/ha-alert";
@@ -17,13 +18,13 @@ import {
 import { showPromptDialog } from "../../../../../dialogs/generic/show-dialog-box";
 import "../../../../../layouts/hass-subpage";
 import { haStyle } from "../../../../../resources/styles";
-import { HomeAssistant } from "../../../../../types";
+import type { HomeAssistant } from "../../../../../types";
 
 @customElement("matter-config-dashboard")
 export class MatterConfigDashboard extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property({ type: Boolean }) public narrow!: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
   @state() private _error?: string;
 
@@ -209,4 +210,10 @@ export class MatterConfigDashboard extends LitElement {
       }
     `,
   ];
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    "matter-config-dashboard": MatterConfigDashboard;
+  }
 }

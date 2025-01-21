@@ -1,4 +1,4 @@
-import { HassEntity } from "home-assistant-js-websocket";
+import type { HassEntity } from "home-assistant-js-websocket";
 import { getGraphColorByIndex } from "../../../common/color/colors";
 import { hex2rgb, lab2hex, rgb2lab } from "../../../common/color/convert-color";
 import { labBrighten } from "../../../common/color/lab";
@@ -49,7 +49,7 @@ function computeTimelineStateColor(
 }
 
 let colorIndex = 0;
-const stateColorMap: Map<string, string> = new Map();
+const stateColorMap = new Map<string, string>();
 
 function computeTimeLineGenericColor(
   state: string,

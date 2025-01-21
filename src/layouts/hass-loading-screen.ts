@@ -1,17 +1,11 @@
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  nothing,
-  TemplateResult,
-} from "lit";
+import type { CSSResultGroup, TemplateResult } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property } from "lit/decorators";
 import "../components/ha-circular-progress";
 import "../components/ha-icon-button-arrow-prev";
 import "../components/ha-menu-button";
 import { haStyle } from "../resources/styles";
-import { HomeAssistant } from "../types";
+import type { HomeAssistant } from "../types";
 
 @customElement("hass-loading-screen")
 class HassLoadingScreen extends LitElement {
@@ -46,7 +40,7 @@ class HassLoadingScreen extends LitElement {
                 `}
           </div>`}
       <div class="content">
-        <ha-circular-progress active></ha-circular-progress>
+        <ha-circular-progress indeterminate></ha-circular-progress>
         ${this.message
           ? html`<div id="loading-text">${this.message}</div>`
           : nothing}

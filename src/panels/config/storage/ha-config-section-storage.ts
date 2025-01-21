@@ -6,14 +6,8 @@ import {
   mdiPlayBox,
   mdiReload,
 } from "@mdi/js";
-import {
-  LitElement,
-  PropertyValues,
-  TemplateResult,
-  css,
-  html,
-  nothing,
-} from "lit";
+import type { PropertyValues, TemplateResult } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
 import "../../../components/ha-alert";
@@ -23,13 +17,16 @@ import "../../../components/ha-metric";
 import "../../../components/ha-svg-icon";
 import "../../../components/ha-icon-next";
 import { extractApiErrorMessage } from "../../../data/hassio/common";
-import { HassioHostInfo, fetchHassioHostInfo } from "../../../data/hassio/host";
-import {
+import type { HassioHostInfo } from "../../../data/hassio/host";
+import { fetchHassioHostInfo } from "../../../data/hassio/host";
+import type {
   SupervisorMount,
+  SupervisorMounts,
+} from "../../../data/supervisor/mounts";
+import {
   SupervisorMountState,
   SupervisorMountType,
   SupervisorMountUsage,
-  SupervisorMounts,
   fetchSupervisorMounts,
   reloadSupervisorMount,
 } from "../../../data/supervisor/mounts";
@@ -51,7 +48,7 @@ class HaConfigSectionStorage extends LitElement {
 
   @property({ attribute: false }) public route!: Route;
 
-  @property({ type: Boolean }) public narrow!: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
   @state() private _error?: { code: string; message: string };
 
@@ -168,56 +165,56 @@ class HaConfigSectionStorage extends LitElement {
                       )}
                 </ha-alert>`
               : validMounts?.length
-              ? html`<mwc-list>
-                  ${validMounts.map(
-                    (mount) => html`
-                      <ha-list-item
-                        graphic="avatar"
-                        .mount=${mount}
-                        twoline
-                        hasMeta
-                        @click=${this._changeMount}
-                      >
-                        <div slot="graphic">
-                          <ha-svg-icon
-                            .path=${mount.usage === SupervisorMountUsage.MEDIA
-                              ? mdiPlayBox
-                              : mount.usage === SupervisorMountUsage.SHARE
-                              ? mdiFolder
-                              : mdiBackupRestore}
-                          ></ha-svg-icon>
-                        </div>
-                        <span class="mount-state-${mount.state || "unknown"}">
-                          ${mount.name}
-                        </span>
-                        <span slot="secondary">
-                          ${mount.server}${mount.port
-                            ? `:${mount.port}`
-                            : nothing}${mount.type === SupervisorMountType.NFS
-                            ? mount.path
-                            : `:${mount.share}`}
-                        </span>
-                        ${mount.state !== SupervisorMountState.ACTIVE
-                          ? html`<ha-icon-button
-                              class="reload-btn"
-                              slot="meta"
-                              .mount=${mount}
-                              @click=${this._reloadMount}
-                              .path=${mdiReload}
-                            ></ha-icon-button>`
-                          : html`<ha-icon-next slot="meta"></ha-icon-next>`}
-                      </ha-list-item>
-                    `
-                  )}
-                </mwc-list>`
-              : html`<div class="no-mounts">
-                  <ha-svg-icon .path=${mdiNas}></ha-svg-icon>
-                  <p>
-                    ${this.hass.localize(
-                      "ui.panel.config.storage.network_mounts.no_mounts"
+                ? html`<mwc-list>
+                    ${validMounts.map(
+                      (mount) => html`
+                        <ha-list-item
+                          graphic="avatar"
+                          .mount=${mount}
+                          twoline
+                          hasMeta
+                          @click=${this._changeMount}
+                        >
+                          <div slot="graphic">
+                            <ha-svg-icon
+                              .path=${mount.usage === SupervisorMountUsage.MEDIA
+                                ? mdiPlayBox
+                                : mount.usage === SupervisorMountUsage.SHARE
+                                  ? mdiFolder
+                                  : mdiBackupRestore}
+                            ></ha-svg-icon>
+                          </div>
+                          <span class="mount-state-${mount.state || "unknown"}">
+                            ${mount.name}
+                          </span>
+                          <span slot="secondary">
+                            ${mount.server}${mount.port
+                              ? `:${mount.port}`
+                              : nothing}${mount.type === SupervisorMountType.NFS
+                              ? mount.path
+                              : `:${mount.share}`}
+                          </span>
+                          ${mount.state !== SupervisorMountState.ACTIVE
+                            ? html`<ha-icon-button
+                                class="reload-btn"
+                                slot="meta"
+                                .mount=${mount}
+                                @click=${this._reloadMount}
+                                .path=${mdiReload}
+                              ></ha-icon-button>`
+                            : html`<ha-icon-next slot="meta"></ha-icon-next>`}
+                        </ha-list-item>
+                      `
                     )}
-                  </p>
-                </div>`}
+                  </mwc-list>`
+                : html`<div class="no-mounts">
+                    <ha-svg-icon .path=${mdiNas}></ha-svg-icon>
+                    <p>
+                      ${this.hass.localize(
+                        "ui.panel.config.storage.network_mounts.no_mounts"
+                      )}
+                    </p>
+                  </div>`}
             ${this._mountsInfo !== null
               ? html`<div class="card-actions">
                   <mwc-button @click=${this._addMount}>
@@ -334,6 +331,8 @@ class HaConfigSectionStorage extends LitElement {
       position: relative;
       top: -10px;
       right: 10px;
+      inset-inline-end: 10px;
+      inset-inline-start: initial;
     }
 
     .no-mounts {

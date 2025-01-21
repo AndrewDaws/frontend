@@ -2,6 +2,7 @@ import { FabBase } from "@material/mwc-fab/mwc-fab-base";
 import { styles } from "@material/mwc-fab/mwc-fab.css";
 import { customElement } from "lit/decorators";
 import { css } from "lit";
+import { mainWindow } from "../common/dom/get_main_window";
 
 @customElement("ha-fab")
 export class HaFab extends FabBase {
@@ -18,9 +19,13 @@ export class HaFab extends FabBase {
         margin-inline-end: 12px;
         direction: var(--direction);
       }
+      :disabled {
+        --mdc-theme-secondary: var(--disabled-text-color);
+        pointer-events: none;
+      }
     `,
     // safari workaround - must be explicit
-    document.dir === "rtl"
+    mainWindow.document.dir === "rtl"
       ? css`
           :host .mdc-fab--extended .mdc-fab__icon {
             direction: rtl;

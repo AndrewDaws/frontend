@@ -1,20 +1,17 @@
 import "@material/mwc-button/mwc-button";
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  PropertyValues,
-  nothing,
-} from "lit";
+import type { PropertyValues } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { isUnavailableState } from "../../../data/entity";
-import { canRun, ScriptEntity } from "../../../data/script";
-import { HomeAssistant } from "../../../types";
+import type { ScriptEntity } from "../../../data/script";
+import { canRun, hasScriptFields } from "../../../data/script";
+import type { HomeAssistant } from "../../../types";
 import { hasConfigOrEntityChanged } from "../common/has-changed";
 import "../components/hui-generic-entity-row";
 import { createEntityNotFoundWarning } from "../components/hui-warning";
-import { ActionRowConfig, LovelaceRow } from "./types";
+import type { ActionRowConfig, LovelaceRow } from "./types";
+import { showMoreInfoDialog } from "../../../dialogs/more-info/show-ha-more-info-dialog";
+import { confirmAction } from "../common/confirm-action";
 
 @customElement("hui-script-entity-row")
 class HuiScriptEntityRow extends LitElement implements LovelaceRow {
@@ -53,12 +50,11 @@ class HuiScriptEntityRow extends LitElement implements LovelaceRow {
         ${stateObj.state === "on"
           ? html`<mwc-button @click=${this._cancelScript}>
               ${stateObj.attributes.mode !== "single" &&
-              (stateObj.attributes.current || 0) > 0
-                ? this.hass.localize(
-                    "ui.card.script.cancel_multiple",
-                    "number",
-                    stateObj.attributes.current
-                  )
+              stateObj.attributes.current &&
+              stateObj.attributes.current > 0
+                ? this.hass.localize("ui.card.script.cancel_multiple", {
+                    number: stateObj.attributes.current,
+                  })
                 : this.hass.localize("ui.card.script.cancel")}
             </mwc-button>`
           : ""}
@@ -76,22 +72,35 @@ class HuiScriptEntityRow extends LitElement implements LovelaceRow {
     `;
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      mwc-button:last-child {
-        margin-right: -0.57em;
-      }
-    `;
-  }
+  static styles = css`
+    mwc-button:last-child {
+      margin-right: -0.57em;
+      margin-inline-end: -0.57em;
+      margin-inline-start: initial;
+    }
+  `;
 
   private _cancelScript(ev): void {
     ev.stopPropagation();
     this._callService("turn_off");
   }
 
-  private _runScript(ev): void {
+  private async _runScript(ev): Promise<void> {
     ev.stopPropagation();
-    this._callService("turn_on");
+
+    if (hasScriptFields(this.hass!, this._config!.entity)) {
+      showMoreInfoDialog(this, { entityId: this._config!.entity });
+    } else if (
+      !this._config?.confirmation ||
+      (await confirmAction(
+        this,
+        this.hass!,
+        this._config.confirmation,
+        this._config.action_name || this.hass!.localize("ui.card.script.run")
+      ))
+    ) {
+      this._callService("turn_on");
+    }
   }
 
   private _callService(service: string): void {

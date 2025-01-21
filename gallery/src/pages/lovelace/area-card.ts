@@ -1,8 +1,10 @@
-import { html, LitElement, PropertyValues, TemplateResult } from "lit";
+import type { PropertyValues, TemplateResult } from "lit";
+import { html, LitElement } from "lit";
 import { customElement, query } from "lit/decorators";
 import { getEntity } from "../../../../src/fake_data/entity";
 import { provideHass } from "../../../../src/fake_data/provide_hass";
 import "../../components/demo-cards";
+import { mockIcons } from "../../../../demo/src/stubs/icons";
 
 const ENTITIES = [
   getEntity("light", "bed_light", "on", {
@@ -146,6 +148,7 @@ class DemoArea extends LitElement {
         entity_id: "binary_sensor.kitchen_door",
       },
     ]);
+    mockIcons(hass);
   }
 }
 

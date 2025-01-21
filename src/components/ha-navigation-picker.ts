@@ -1,27 +1,25 @@
-import { ComboBoxLitRenderer } from "@vaadin/combo-box/lit";
-import { css, html, LitElement, PropertyValues, TemplateResult } from "lit";
+import "@material/mwc-list/mwc-list-item";
+import type { ComboBoxLitRenderer } from "@vaadin/combo-box/lit";
+import type { PropertyValues, TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { fireEvent } from "../common/dom/fire_event";
 import { titleCase } from "../common/string/title-case";
-import {
-  fetchConfig,
-  LovelaceConfig,
-  LovelaceViewConfig,
-} from "../data/lovelace";
-import { ValueChangedEvent, HomeAssistant, PanelInfo } from "../types";
+import { fetchConfig } from "../data/lovelace/config/types";
+import type { LovelaceViewRawConfig } from "../data/lovelace/config/view";
+import type { HomeAssistant, PanelInfo, ValueChangedEvent } from "../types";
 import "./ha-combo-box";
 import type { HaComboBox } from "./ha-combo-box";
 import "./ha-icon";
 
-type NavigationItem = {
+interface NavigationItem {
   path: string;
   icon: string;
   title: string;
-};
+}
 
 const DEFAULT_ITEMS: NavigationItem[] = [];
 
-// eslint-disable-next-line lit/prefer-static-styles
 const rowRenderer: ComboBoxLitRenderer<NavigationItem> = (item) => html`
   <mwc-list-item graphic="icon" .twoline=${!!item.title}>
     <ha-icon .icon=${item.icon} slot="graphic"></ha-icon>
@@ -32,7 +30,7 @@ const rowRenderer: ComboBoxLitRenderer<NavigationItem> = (item) => html`
 
 const createViewNavigationItem = (
   prefix: string,
-  view: LovelaceViewConfig,
+  view: LovelaceViewRawConfig,
   index: number
 ) => ({
   path: `/${prefix}/${view.path ?? index}`,
@@ -53,7 +51,7 @@ const createPanelNavigationItem = (hass: HomeAssistant, panel: PanelInfo) => ({
 
 @customElement("ha-navigation-picker")
 export class HaNavigationPicker extends LitElement {
-  @property() public hass?: HomeAssistant;
+  @property({ attribute: false }) public hass?: HomeAssistant;
 
   @property() public label?: string;
 
@@ -121,7 +119,7 @@ export class HaNavigationPicker extends LitElement {
           panel.url_path === "lovelace" ? null : panel.url_path,
           true
         )
-          .then((config) => [panel.id, config] as [string, LovelaceConfig])
+          .then((config) => [panel.id, config] as [string, typeof config])
           .catch((_) => [panel.id, undefined] as [string, undefined])
       )
     );
@@ -135,7 +133,7 @@ export class HaNavigationPicker extends LitElement {
 
       const config = panelViewConfig.get(panel.id);
 
-      if (!config) continue;
+      if (!config || !("views" in config)) continue;
 
       config.views.forEach((view, index) =>
         this.navigationItems.push(
@@ -198,19 +196,19 @@ export class HaNavigationPicker extends LitElement {
     return this.value || "";
   }
 
-  static get styles() {
-    return css`
-      ha-icon,
-      ha-svg-icon {
-        color: var(--primary-text-color);
-        position: relative;
-        bottom: 0px;
-      }
-      *[slot="prefix"] {
-        margin-right: 8px;
-      }
-    `;
-  }
+  static styles = css`
+    ha-icon,
+    ha-svg-icon {
+      color: var(--primary-text-color);
+      position: relative;
+      bottom: 0px;
+    }
+    *[slot="prefix"] {
+      margin-right: 8px;
+      margin-inline-end: 8px;
+      margin-inline-start: initial;
+    }
+  `;
 }
 
 declare global {

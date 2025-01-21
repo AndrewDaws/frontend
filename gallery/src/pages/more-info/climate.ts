@@ -1,17 +1,16 @@
-import { html, LitElement, PropertyValues, TemplateResult } from "lit";
+import type { PropertyValues, TemplateResult } from "lit";
+import { html, LitElement } from "lit";
 import { customElement, property, query } from "lit/decorators";
 import "../../../../src/components/ha-card";
 import "../../../../src/dialogs/more-info/more-info-content";
 import { getEntity } from "../../../../src/fake_data/entity";
-import {
-  MockHomeAssistant,
-  provideHass,
-} from "../../../../src/fake_data/provide_hass";
+import type { MockHomeAssistant } from "../../../../src/fake_data/provide_hass";
+import { provideHass } from "../../../../src/fake_data/provide_hass";
 import "../../components/demo-more-infos";
 import { ClimateEntityFeature } from "../../../../src/data/climate";
 
 const ENTITIES = [
-  getEntity("climate", "thermostat", "heat", {
+  getEntity("climate", "radiator", "heat", {
     friendly_name: "Basic heater",
     hvac_modes: ["heat", "off"],
     hvac_mode: "heat",
@@ -30,6 +29,21 @@ const ENTITIES = [
     min_temp: 10,
     max_temp: 30,
     supported_features: ClimateEntityFeature.TARGET_TEMPERATURE,
+  }),
+  getEntity("climate", "fan", "fan_only", {
+    friendly_name: "Basic fan",
+    hvac_modes: ["fan_only", "off"],
+    hvac_mode: "fan_only",
+    fan_modes: ["low", "high"],
+    fan_mode: "low",
+    current_temperature: null,
+    temperature: null,
+    min_temp: 0,
+    max_temp: 1,
+    target_temp_step: 1,
+    supported_features:
+      // eslint-disable-next-line no-bitwise
+      ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.FAN_MODE,
   }),
   getEntity("climate", "hvac", "auto", {
     friendly_name: "Basic hvac",
@@ -65,6 +79,24 @@ const ENTITIES = [
     max_humidity: 100,
     humidity: 50,
   }),
+  getEntity("climate", "towel_dryer", "heat", {
+    friendly_name: "Preset only heater",
+    hvac_modes: ["heat", "off"],
+    hvac_mode: "heat",
+    preset_modes: [
+      "none",
+      "frost_protection",
+      "eco",
+      "comfort",
+      "comfort-1",
+      "comfort-2",
+    ],
+    preset_mode: "eco",
+    current_temperature: null,
+    min_temp: 7,
+    max_temp: 35,
+    supported_features: ClimateEntityFeature.PRESET_MODE,
+  }),
   getEntity("climate", "unavailable", "unavailable", {
     friendly_name: "Unavailable heater",
     hvac_modes: ["heat", "off"],
@@ -77,7 +109,7 @@ const ENTITIES = [
 
 @customElement("demo-more-info-climate")
 class DemoMoreInfoClimate extends LitElement {
-  @property() public hass!: MockHomeAssistant;
+  @property({ attribute: false }) public hass!: MockHomeAssistant;
 
   @query("demo-more-infos") private _demoRoot!: HTMLElement;
 

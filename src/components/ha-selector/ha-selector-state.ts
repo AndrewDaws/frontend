@@ -1,15 +1,15 @@
 import { html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
-import { StateSelector } from "../../data/selector";
+import type { StateSelector } from "../../data/selector";
 import { SubscribeMixin } from "../../mixins/subscribe-mixin";
-import { HomeAssistant } from "../../types";
+import type { HomeAssistant } from "../../types";
 import "../entity/ha-entity-state-picker";
 
 @customElement("ha-selector-state")
 export class HaSelectorState extends SubscribeMixin(LitElement) {
-  @property() public hass!: HomeAssistant;
+  @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public selector!: StateSelector;
+  @property({ attribute: false }) public selector!: StateSelector;
 
   @property() public value?: any;
 
@@ -21,7 +21,7 @@ export class HaSelectorState extends SubscribeMixin(LitElement) {
 
   @property({ type: Boolean }) public required = true;
 
-  @property() public context?: {
+  @property({ attribute: false }) public context?: {
     filter_attribute?: string;
     filter_entity?: string;
   };

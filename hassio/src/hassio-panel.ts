@@ -1,11 +1,10 @@
-import { css, CSSResultGroup, html, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
-import {
-  Supervisor,
-  supervisorCollection,
-} from "../../src/data/supervisor/supervisor";
+import type { Supervisor } from "../../src/data/supervisor/supervisor";
+import { supervisorCollection } from "../../src/data/supervisor/supervisor";
 import "../../src/layouts/hass-loading-screen";
-import { HomeAssistant, Route } from "../../src/types";
+import type { HomeAssistant, Route } from "../../src/types";
 import "./hassio-panel-router";
 
 @customElement("hassio-panel")
@@ -14,7 +13,7 @@ class HassioPanel extends LitElement {
 
   @property({ attribute: false }) public supervisor!: Supervisor;
 
-  @property({ type: Boolean }) public narrow!: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
   @property({ attribute: false }) public route!: Route;
 
@@ -40,15 +39,13 @@ class HassioPanel extends LitElement {
     `;
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host {
-        --app-header-background-color: var(--sidebar-background-color);
-        --app-header-text-color: var(--sidebar-text-color);
-        --app-header-border-bottom: 1px solid var(--divider-color);
-      }
-    `;
-  }
+  static styles = css`
+    :host {
+      --app-header-background-color: var(--sidebar-background-color);
+      --app-header-text-color: var(--sidebar-text-color);
+      --app-header-border-bottom: 1px solid var(--divider-color);
+    }
+  `;
 }
 
 declare global {

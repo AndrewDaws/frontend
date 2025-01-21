@@ -1,16 +1,10 @@
-import { HassConfig, HassEntity } from "home-assistant-js-websocket";
+import type { HassConfig, HassEntity } from "home-assistant-js-websocket";
 import { UNAVAILABLE, UNKNOWN } from "../../data/entity";
-import { EntityRegistryDisplayEntry } from "../../data/entity_registry";
-import { FrontendLocaleData, TimeZone } from "../../data/translation";
-import {
-  updateIsInstallingFromAttributes,
-  UPDATE_SUPPORT_PROGRESS,
-} from "../../data/update";
-import { HomeAssistant } from "../../types";
-import {
-  formatDuration,
-  UNIT_TO_MILLISECOND_CONVERT,
-} from "../datetime/duration";
+import type { EntityRegistryDisplayEntry } from "../../data/entity_registry";
+import type { FrontendLocaleData } from "../../data/translation";
+import { TimeZone } from "../../data/translation";
+import type { HomeAssistant } from "../../types";
+import { DURATION_UNITS, formatDuration } from "../datetime/format_duration";
 import { formatDate } from "../datetime/format_date";
 import { formatDateTime } from "../datetime/format_date_time";
 import { formatTime } from "../datetime/format_time";
@@ -19,33 +13,15 @@ import {
   getNumberFormatOptions,
   isNumericFromAttributes,
 } from "../number/format_number";
-import { blankBeforePercent } from "../translations/blank_before_percent";
-import { LocalizeFunc } from "../translations/localize";
+import { blankBeforeUnit } from "../translations/blank_before_unit";
+import type { LocalizeFunc } from "../translations/localize";
 import { computeDomain } from "./compute_domain";
-import { supportsFeatureFromAttributes } from "./supports-feature";
-
-export const computeStateDisplaySingleEntity = (
-  localize: LocalizeFunc,
-  stateObj: HassEntity,
-  locale: FrontendLocaleData,
-  config: HassConfig,
-  entity: EntityRegistryDisplayEntry | undefined,
-  state?: string
-): string =>
-  computeStateDisplayFromEntityAttributes(
-    localize,
-    locale,
-    config,
-    entity,
-    stateObj.entity_id,
-    stateObj.attributes,
-    state !== undefined ? state : stateObj.state
-  );
 
 export const computeStateDisplay = (
   localize: LocalizeFunc,
   stateObj: HassEntity,
   locale: FrontendLocaleData,
+  sensorNumericDeviceClasses: string[],
   config: HassConfig,
   entities: HomeAssistant["entities"],
   state?: string
@@ -53,10 +29,10 @@ export const computeStateDisplay = (
   const entity = entities?.[stateObj.entity_id] as
     | EntityRegistryDisplayEntry
     | undefined;
-
   return computeStateDisplayFromEntityAttributes(
     localize,
     locale,
+    sensorNumericDeviceClasses,
     config,
     entity,
     stateObj.entity_id,
@@ -68,6 +44,7 @@ export const computeStateDisplay = (
 export const computeStateDisplayFromEntityAttributes = (
   localize: LocalizeFunc,
   locale: FrontendLocaleData,
+  sensorNumericDeviceClasses: string[],
   config: HassConfig,
   entity: EntityRegistryDisplayEntry | undefined,
   entityId: string,
@@ -78,16 +55,30 @@ export const computeStateDisplayFromEntityAttributes = (
     return localize(`state.default.${state}`);
   }
 
+  const domain = computeDomain(entityId);
+  const is_number_domain =
+    domain === "counter" || domain === "number" || domain === "input_number";
   // Entities with a `unit_of_measurement` or `state_class` are numeric values and should use `formatNumber`
-  if (isNumericFromAttributes(attributes)) {
+  if (
+    isNumericFromAttributes(
+      attributes,
+      domain === "sensor" ? sensorNumericDeviceClasses : []
+    ) ||
+    is_number_domain
+  ) {
     // state is duration
     if (
       attributes.device_class === "duration" &&
       attributes.unit_of_measurement &&
-      UNIT_TO_MILLISECOND_CONVERT[attributes.unit_of_measurement]
+      DURATION_UNITS.includes(attributes.unit_of_measurement)
     ) {
       try {
-        return formatDuration(state, attributes.unit_of_measurement);
+        return formatDuration(
+          locale,
+          state,
+          attributes.unit_of_measurement,
+          entity?.display_precision
+        );
       } catch (_err) {
         // fallback to default
       }
@@ -108,19 +99,26 @@ export const computeStateDisplayFromEntityAttributes = (
         // fallback to default
       }
     }
-    const unit = !attributes.unit_of_measurement
-      ? ""
-      : attributes.unit_of_measurement === "%"
-      ? blankBeforePercent(locale) + "%"
-      : ` ${attributes.unit_of_measurement}`;
-    return `${formatNumber(
+
+    const value = formatNumber(
       state,
       locale,
       getNumberFormatOptions({ state, attributes } as HassEntity, entity)
-    )}${unit}`;
-  }
+    );
 
-  const domain = computeDomain(entityId);
+    const unit =
+      (entity?.translation_key &&
+        localize(
+          `component.${entity.platform}.entity.${domain}.${entity.translation_key}.unit_of_measurement`
+        )) ||
+      attributes.unit_of_measurement;
+
+    if (unit) {
+      return `${value}${blankBeforeUnit(unit, locale)}${unit}`;
+    }
+
+    return value;
+  }
 
   if (domain === "datetime") {
     const time = new Date(state);
@@ -169,29 +167,18 @@ export const computeStateDisplayFromEntityAttributes = (
     }
   }
 
-  // `counter` `number` and `input_number` domains do not have a unit of measurement but should still use `formatNumber`
-  if (
-    domain === "counter" ||
-    domain === "number" ||
-    domain === "input_number"
-  ) {
-    // Format as an integer if the value and step are integers
-    return formatNumber(
-      state,
-      locale,
-      getNumberFormatOptions({ state, attributes } as HassEntity, entity)
-    );
-  }
-
   // state is a timestamp
   if (
     [
       "button",
+      "conversation",
       "event",
       "image",
       "input_button",
+      "notify",
       "scene",
       "stt",
+      "tag",
       "tts",
       "wake_word",
     ].includes(domain) ||
@@ -202,27 +189,6 @@ export const computeStateDisplayFromEntityAttributes = (
     } catch (_err) {
       return state;
     }
-  }
-
-  if (domain === "update") {
-    // When updating, and entity does not support % show "Installing"
-    // When updating, and entity does support % show "Installing (xx%)"
-    // When update available, show the version
-    // When the latest version is skipped, show the latest version
-    // When update is not available, show "Up-to-date"
-    // When update is not available and there is no latest_version show "Unavailable"
-    return state === "on"
-      ? updateIsInstallingFromAttributes(attributes)
-        ? supportsFeatureFromAttributes(attributes, UPDATE_SUPPORT_PROGRESS) &&
-          typeof attributes.in_progress === "number"
-          ? localize("ui.card.update.installing_with_progress", {
-              progress: attributes.in_progress,
-            })
-          : localize("ui.card.update.installing")
-        : attributes.latest_version
-      : attributes.skipped_version === attributes.latest_version
-      ? attributes.latest_version ?? localize("state.default.unavailable")
-      : localize("ui.card.update.up_to_date");
   }
 
   return (

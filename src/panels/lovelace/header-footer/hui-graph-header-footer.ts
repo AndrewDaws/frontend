@@ -1,23 +1,20 @@
-import { HassEntity } from "home-assistant-js-websocket";
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  PropertyValues,
-  nothing,
-} from "lit";
+import type { HassEntity } from "home-assistant-js-websocket";
+import type { PropertyValues } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
 import { computeDomain } from "../../../common/entity/compute_domain";
 import "../../../components/ha-circular-progress";
 import { subscribeHistoryStatesTimeWindow } from "../../../data/history";
-import { HomeAssistant } from "../../../types";
+import type { HomeAssistant } from "../../../types";
 import { findEntities } from "../common/find-entities";
 import { coordinatesMinimalResponseCompressedState } from "../common/graph/coordinates";
 import "../components/hui-graph-base";
-import { LovelaceHeaderFooter, LovelaceHeaderFooterEditor } from "../types";
-import { GraphHeaderFooterConfig } from "./types";
+import type {
+  LovelaceHeaderFooter,
+  LovelaceHeaderFooterEditor,
+} from "../types";
+import type { GraphHeaderFooterConfig } from "./types";
 
 const MINUTE = 60000;
 const HOUR = 60 * MINUTE;
@@ -62,7 +59,7 @@ export class HuiGraphHeaderFooter
 
   @property() public type!: "header" | "footer";
 
-  @property() protected _config?: GraphHeaderFooterConfig;
+  @state() protected _config?: GraphHeaderFooterConfig;
 
   @state() private _coordinates?: number[][];
 
@@ -70,7 +67,7 @@ export class HuiGraphHeaderFooter
 
   private _interval?: number;
 
-  private _subscribed?: Promise<(() => Promise<void>) | void>;
+  private _subscribed?: Promise<(() => Promise<void>) | undefined>;
 
   public getCardSize(): number {
     return 3;
@@ -111,7 +108,10 @@ export class HuiGraphHeaderFooter
     if (!this._coordinates) {
       return html`
         <div class="container">
-          <ha-circular-progress active size="small"></ha-circular-progress>
+          <ha-circular-progress
+            indeterminate
+            size="small"
+          ></ha-circular-progress>
         </div>
       `;
     }
@@ -170,6 +170,7 @@ export class HuiGraphHeaderFooter
     ).catch((err) => {
       this._subscribed = undefined;
       this._error = err;
+      return undefined;
     });
     this._setRedrawTimer();
   }
@@ -213,25 +214,23 @@ export class HuiGraphHeaderFooter
     }
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      ha-circular-progress {
-        position: absolute;
-        top: calc(50% - 14px);
-      }
-      .container {
-        display: flex;
-        justify-content: center;
-        position: relative;
-        padding-bottom: 20%;
-      }
-      .info {
-        position: absolute;
-        top: calc(50% - 16px);
-        color: var(--secondary-text-color);
-      }
-    `;
-  }
+  static styles = css`
+    ha-circular-progress {
+      position: absolute;
+      top: calc(50% - 14px);
+    }
+    .container {
+      display: flex;
+      justify-content: center;
+      position: relative;
+      padding-bottom: 20%;
+    }
+    .info {
+      position: absolute;
+      top: calc(50% - 16px);
+      color: var(--secondary-text-color);
+    }
+  `;
 }
 
 declare global {

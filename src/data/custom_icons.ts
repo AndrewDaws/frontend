@@ -2,6 +2,7 @@ import { customIconsets } from "./custom_iconsets";
 
 export interface CustomIcon {
   path: string;
+  secondaryPath?: string;
   viewBox?: string;
 }
 
@@ -16,9 +17,7 @@ export interface CustomIconHelpers {
 }
 
 export interface CustomIconsWindow {
-  customIcons?: {
-    [key: string]: CustomIconHelpers;
-  };
+  customIcons?: Record<string, CustomIconHelpers>;
 }
 
 const customIconsWindow = window as CustomIconsWindow;

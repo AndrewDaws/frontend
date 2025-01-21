@@ -1,9 +1,11 @@
-import { HassEntity } from "home-assistant-js-websocket";
+import type { HassEntity } from "home-assistant-js-websocket";
 import { isComponentLoaded } from "../../common/config/is_component_loaded";
 import { computeDomain } from "../../common/entity/compute_domain";
-import { computeGroupDomain, GroupEntity } from "../../data/group";
+import type { GroupEntity } from "../../data/group";
+import { computeGroupDomain } from "../../data/group";
 import { CONTINUOUS_DOMAINS } from "../../data/logbook";
-import { HomeAssistant } from "../../types";
+import type { HomeAssistant } from "../../types";
+import { isNumericEntity } from "../../data/history";
 
 export const DOMAINS_NO_INFO = ["camera", "configurator"];
 /**
@@ -20,15 +22,21 @@ export const DOMAINS_WITH_NEW_MORE_INFO = [
   "alarm_control_panel",
   "cover",
   "climate",
+  "conversation",
   "fan",
   "humidifier",
   "input_boolean",
   "light",
   "lock",
   "siren",
+  "script",
   "switch",
+  "valve",
   "water_heater",
 ];
+/** Domains with full height more info dialog */
+export const DOMAINS_FULL_HEIGHT_MORE_INFO = ["update"];
+
 /** Domains with separate more info dialog. */
 export const DOMAINS_WITH_MORE_INFO = [
   "alarm_control_panel",
@@ -36,6 +44,7 @@ export const DOMAINS_WITH_MORE_INFO = [
   "camera",
   "climate",
   "configurator",
+  "conversation",
   "counter",
   "cover",
   "date",
@@ -61,6 +70,7 @@ export const DOMAINS_WITH_MORE_INFO = [
   "timer",
   "update",
   "vacuum",
+  "valve",
   "water_heater",
   "weather",
 ];
@@ -91,20 +101,27 @@ export const computeShowHistoryComponent = (
 
 export const computeShowLogBookComponent = (
   hass: HomeAssistant,
-  entityId: string
+  entityId: string,
+  sensorNumericalDeviceClasses: string[] = []
 ): boolean => {
   if (!isComponentLoaded(hass, "logbook")) {
     return false;
   }
 
   const stateObj = hass.states[entityId];
-  if (!stateObj || stateObj.attributes.unit_of_measurement) {
+  if (!stateObj) {
     return false;
   }
 
   const domain = computeDomain(entityId);
   if (
-    CONTINUOUS_DOMAINS.includes(domain) ||
+    (CONTINUOUS_DOMAINS.includes(domain) &&
+      isNumericEntity(
+        domain,
+        stateObj,
+        undefined,
+        sensorNumericalDeviceClasses
+      )) ||
     DOMAINS_MORE_INFO_NO_HISTORY.includes(domain)
   ) {
     return false;

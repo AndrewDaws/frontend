@@ -1,11 +1,12 @@
-import { html, LitElement, PropertyValues } from "lit";
+import type { PropertyValues } from "lit";
+import { html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { dynamicElement } from "../../common/dom/dynamic-element-directive";
+import type { Selector } from "../../data/selector";
 import {
   handleLegacyDeviceSelector,
   handleLegacyEntitySelector,
-  Selector,
 } from "../../data/selector";
 import type { HomeAssistant } from "../../types";
 
@@ -13,6 +14,7 @@ const LOAD_ELEMENTS = {
   action: () => import("./ha-selector-action"),
   addon: () => import("./ha-selector-addon"),
   area: () => import("./ha-selector-area"),
+  area_filter: () => import("./ha-selector-area-filter"),
   attribute: () => import("./ha-selector-attribute"),
   assist_pipeline: () => import("./ha-selector-assist-pipeline"),
   boolean: () => import("./ha-selector-boolean"),
@@ -21,6 +23,7 @@ const LOAD_ELEMENTS = {
   config_entry: () => import("./ha-selector-config-entry"),
   conversation_agent: () => import("./ha-selector-conversation-agent"),
   constant: () => import("./ha-selector-constant"),
+  country: () => import("./ha-selector-country"),
   date: () => import("./ha-selector-date"),
   datetime: () => import("./ha-selector-datetime"),
   device: () => import("./ha-selector-device"),
@@ -28,11 +31,17 @@ const LOAD_ELEMENTS = {
   entity: () => import("./ha-selector-entity"),
   statistic: () => import("./ha-selector-statistic"),
   file: () => import("./ha-selector-file"),
+  floor: () => import("./ha-selector-floor"),
+  label: () => import("./ha-selector-label"),
+  image: () => import("./ha-selector-image"),
+  background: () => import("./ha-selector-background"),
   language: () => import("./ha-selector-language"),
   navigation: () => import("./ha-selector-navigation"),
   number: () => import("./ha-selector-number"),
   object: () => import("./ha-selector-object"),
+  qr_code: () => import("./ha-selector-qr-code"),
   select: () => import("./ha-selector-select"),
+  selector: () => import("./ha-selector-selector"),
   state: () => import("./ha-selector-state"),
   backup_location: () => import("./ha-selector-backup-location"),
   stt: () => import("./ha-selector-stt"),
@@ -43,23 +52,26 @@ const LOAD_ELEMENTS = {
   icon: () => import("./ha-selector-icon"),
   media: () => import("./ha-selector-media"),
   theme: () => import("./ha-selector-theme"),
+  button_toggle: () => import("./ha-selector-button-toggle"),
+  trigger: () => import("./ha-selector-trigger"),
   tts: () => import("./ha-selector-tts"),
   tts_voice: () => import("./ha-selector-tts-voice"),
   location: () => import("./ha-selector-location"),
   color_temp: () => import("./ha-selector-color-temp"),
   ui_action: () => import("./ha-selector-ui-action"),
   ui_color: () => import("./ha-selector-ui-color"),
+  ui_state_content: () => import("./ha-selector-ui-state-content"),
 };
 
 const LEGACY_UI_SELECTORS = new Set(["ui-action", "ui-color"]);
 
 @customElement("ha-selector")
 export class HaSelector extends LitElement {
-  @property() public hass!: HomeAssistant;
+  @property({ attribute: false }) public hass!: HomeAssistant;
 
   @property() public name?: string;
 
-  @property() public selector!: Selector;
+  @property({ attribute: false }) public selector!: Selector;
 
   @property() public value?: any;
 
@@ -67,7 +79,8 @@ export class HaSelector extends LitElement {
 
   @property() public helper?: string;
 
-  @property() public localizeValue?: (key: string) => string;
+  @property({ attribute: false })
+  public localizeValue?: (key: string) => string;
 
   @property() public placeholder?: any;
 
@@ -75,7 +88,7 @@ export class HaSelector extends LitElement {
 
   @property({ type: Boolean }) public required = true;
 
-  @property() public context?: Record<string, any>;
+  @property({ attribute: false }) public context?: Record<string, any>;
 
   public async focus() {
     await this.updateComplete;

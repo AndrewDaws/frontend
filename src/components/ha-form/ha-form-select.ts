@@ -1,5 +1,6 @@
 import memoizeOne from "memoize-one";
-import { html, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
 import { fireEvent } from "../../common/dom/fire_event";
 import type { HomeAssistant } from "../../types";
@@ -17,7 +18,7 @@ export class HaFormSelect extends LitElement implements HaFormElement {
 
   @property({ attribute: false }) public schema!: HaFormSelectSchema;
 
-  @property() public data!: HaFormSelectData;
+  @property({ attribute: false }) public data!: HaFormSelectData;
 
   @property() public label?: string;
 

@@ -1,6 +1,5 @@
 import memoizeOne from "memoize-one";
-import { FrontendLocaleData } from "../../data/translation";
-import "../../resources/intl-polyfill";
+import type { FrontendLocaleData } from "../../data/translation";
 import { selectUnit } from "../util/select-unit";
 
 const formatRelTimeMem = memoizeOne(

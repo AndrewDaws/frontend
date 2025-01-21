@@ -1,38 +1,32 @@
-import { HassEntity, HassServiceTarget } from "home-assistant-js-websocket";
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  PropertyValues,
-  nothing,
-} from "lit";
+import type {
+  HassEntity,
+  HassServiceTarget,
+} from "home-assistant-js-websocket";
+import type { PropertyValues } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { ensureArray } from "../../common/array/ensure-array";
-import {
-  DeviceRegistryEntry,
-  getDeviceIntegrationLookup,
-} from "../../data/device_registry";
-import {
-  EntitySources,
-  fetchEntitySourcesWithCache,
-} from "../../data/entity_sources";
+import type { DeviceRegistryEntry } from "../../data/device_registry";
+import { getDeviceIntegrationLookup } from "../../data/device_registry";
+import type { EntitySources } from "../../data/entity_sources";
+import { fetchEntitySourcesWithCache } from "../../data/entity_sources";
+import type { TargetSelector } from "../../data/selector";
 import {
   filterSelectorDevices,
   filterSelectorEntities,
-  TargetSelector,
+  computeCreateDomains,
 } from "../../data/selector";
 import type { HomeAssistant } from "../../types";
 import "../ha-target-picker";
 
 @customElement("ha-selector-target")
 export class HaTargetSelector extends LitElement {
-  @property() public hass!: HomeAssistant;
+  @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public selector!: TargetSelector;
+  @property({ attribute: false }) public selector!: TargetSelector;
 
-  @property() public value?: HassServiceTarget;
+  @property({ type: Object }) public value?: HassServiceTarget;
 
   @property() public label?: string;
 
@@ -41,6 +35,8 @@ export class HaTargetSelector extends LitElement {
   @property({ type: Boolean }) public disabled = false;
 
   @state() private _entitySources?: EntitySources;
+
+  @state() private _createDomains: string[] | undefined;
 
   private _deviceIntegrationLookup = memoizeOne(getDeviceIntegrationLookup);
 
@@ -68,6 +64,9 @@ export class HaTargetSelector extends LitElement {
         this._entitySources = sources;
       });
     }
+    if (changedProperties.has("selector")) {
+      this._createDomains = computeCreateDomains(this.selector);
+    }
   }
 
   protected render() {
@@ -75,14 +74,16 @@ export class HaTargetSelector extends LitElement {
       return nothing;
     }
 
-    return html`<ha-target-picker
-      .hass=${this.hass}
-      .value=${this.value}
-      .helper=${this.helper}
-      .deviceFilter=${this._filterDevices}
-      .entityFilter=${this._filterEntities}
-      .disabled=${this.disabled}
-    ></ha-target-picker>`;
+    return html` ${this.label ? html`<label>${this.label}</label>` : nothing}
+      <ha-target-picker
+        .hass=${this.hass}
+        .value=${this.value}
+        .helper=${this.helper}
+        .deviceFilter=${this._filterDevices}
+        .entityFilter=${this._filterEntities}
+        .disabled=${this.disabled}
+        .createDomains=${this._createDomains}
+      ></ha-target-picker>`;
   }
 
   private _filterEntities = (entity: HassEntity): boolean => {
@@ -112,13 +113,11 @@ export class HaTargetSelector extends LitElement {
     );
   };
 
-  static get styles(): CSSResultGroup {
-    return css`
-      ha-target-picker {
-        display: block;
-      }
-    `;
-  }
+  static styles = css`
+    ha-target-picker {
+      display: block;
+    }
+  `;
 }
 
 declare global {

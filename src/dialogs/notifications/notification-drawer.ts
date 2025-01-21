@@ -1,19 +1,18 @@
 import "@material/mwc-button";
-import { UnsubscribeFunc } from "home-assistant-js-websocket";
+import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import { LitElement, html, css, nothing } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { fireEvent } from "../../common/dom/fire_event";
 import { computeDomain } from "../../common/entity/compute_domain";
 import "../../components/ha-icon-button-prev";
-import {
-  PersistentNotification,
-  subscribeNotifications,
-} from "../../data/persistent_notification";
-import { HomeAssistant } from "../../types";
+import type { PersistentNotification } from "../../data/persistent_notification";
+import { subscribeNotifications } from "../../data/persistent_notification";
+import type { HomeAssistant } from "../../types";
 import "./notification-item";
 import "../../components/ha-header-bar";
 import "../../components/ha-drawer";
 import type { HaDrawer } from "../../components/ha-drawer";
+import { computeRTLDirection } from "../../common/util/compute_rtl";
 
 @customElement("notification-drawer")
 export class HuiNotificationDrawer extends LitElement {
@@ -34,7 +33,7 @@ export class HuiNotificationDrawer extends LitElement {
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    window.addEventListener("location-changed", this.closeDialog);
+    window.removeEventListener("location-changed", this.closeDialog);
   }
 
   showDialog({ narrow }) {
@@ -92,7 +91,12 @@ export class HuiNotificationDrawer extends LitElement {
     });
 
     return html`
-      <ha-drawer type="modal" open @MDCDrawer:closed=${this._dialogClosed}>
+      <ha-drawer
+        type="modal"
+        open
+        @MDCDrawer:closed=${this._dialogClosed}
+        .direction=${computeRTLDirection(this.hass)}
+      >
         <ha-header-bar>
           <div slot="title">
             ${this.hass.localize("ui.notification_drawer.title")}
@@ -157,6 +161,8 @@ export class HuiNotificationDrawer extends LitElement {
       padding-top: 16px;
       padding-left: env(safe-area-inset-left);
       padding-right: env(safe-area-inset-right);
+      padding-inline-start: env(safe-area-inset-left);
+      padding-inline-end: env(safe-area-inset-right);
       padding-bottom: env(safe-area-inset-bottom);
       height: calc(100% - 1px - var(--header-height));
       box-sizing: border-box;

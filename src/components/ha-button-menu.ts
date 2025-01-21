@@ -1,8 +1,10 @@
 import type { Button } from "@material/mwc-button";
 import "@material/mwc-menu";
 import type { Corner, Menu, MenuCorner } from "@material/mwc-menu";
-import { css, CSSResultGroup, html, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property, query } from "lit/decorators";
+import { mainWindow } from "../common/dom/get_main_window";
 import { FOCUS_TARGET } from "../dialogs/make-dialog-manager";
 import type { HaIconButton } from "./ha-icon-button";
 
@@ -12,7 +14,8 @@ export class HaButtonMenu extends LitElement {
 
   @property() public corner: Corner = "BOTTOM_START";
 
-  @property() public menuCorner: MenuCorner = "START";
+  @property({ attribute: "menu-corner" }) public menuCorner: MenuCorner =
+    "START";
 
   @property({ type: Number }) public x: number | null = null;
 
@@ -25,6 +28,8 @@ export class HaButtonMenu extends LitElement {
   @property({ type: Boolean }) public disabled = false;
 
   @property({ type: Boolean }) public fixed = false;
+
+  @property({ type: Boolean, attribute: "no-anchor" }) public noAnchor = false;
 
   @query("mwc-menu", true) private _menu?: Menu;
 
@@ -66,7 +71,7 @@ export class HaButtonMenu extends LitElement {
   protected firstUpdated(changedProps): void {
     super.firstUpdated(changedProps);
 
-    if (document.dir === "rtl") {
+    if (mainWindow.document.dir === "rtl") {
       this.updateComplete.then(() => {
         this.querySelectorAll("mwc-list-item").forEach((item) => {
           const style = document.createElement("style");
@@ -82,7 +87,7 @@ export class HaButtonMenu extends LitElement {
     if (this.disabled) {
       return;
     }
-    this._menu!.anchor = this;
+    this._menu!.anchor = this.noAnchor ? null : this;
     this._menu!.show();
   }
 
@@ -98,17 +103,15 @@ export class HaButtonMenu extends LitElement {
     }
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host {
-        display: inline-block;
-        position: relative;
-      }
-      ::slotted([disabled]) {
-        color: var(--disabled-text-color);
-      }
-    `;
-  }
+  static styles = css`
+    :host {
+      display: inline-block;
+      position: relative;
+    }
+    ::slotted([disabled]) {
+      color: var(--disabled-text-color);
+    }
+  `;
 }
 
 declare global {

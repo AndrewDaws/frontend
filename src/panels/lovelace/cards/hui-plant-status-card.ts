@@ -4,29 +4,23 @@ import {
   mdiWaterPercent,
   mdiWhiteBalanceSunny,
 } from "@mdi/js";
-import { HassEntity } from "home-assistant-js-websocket";
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  PropertyValues,
-  nothing,
-} from "lit";
+import type { HassEntity } from "home-assistant-js-websocket";
+import type { PropertyValues } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import { applyThemesOnElement } from "../../../common/dom/apply_themes_on_element";
 import { fireEvent } from "../../../common/dom/fire_event";
-import { batteryIcon } from "../../../common/entity/battery_icon";
+import { batteryLevelIcon } from "../../../common/entity/battery_icon";
 import { computeStateName } from "../../../common/entity/compute_state_name";
 import "../../../components/ha-card";
 import "../../../components/ha-svg-icon";
-import { HomeAssistant } from "../../../types";
+import type { HomeAssistant } from "../../../types";
 import { actionHandler } from "../common/directives/action-handler-directive";
 import { findEntities } from "../common/find-entities";
 import { hasConfigOrEntityChanged } from "../common/has-changed";
 import { createEntityNotFoundWarning } from "../components/hui-warning";
-import { LovelaceCard, LovelaceCardEditor } from "../types";
-import { PlantAttributeTarget, PlantStatusCardConfig } from "./types";
+import type { LovelaceCard, LovelaceCardEditor } from "../types";
+import type { PlantAttributeTarget, PlantStatusCardConfig } from "./types";
 
 const SENSOR_ICONS = {
   moisture: mdiWaterPercent,
@@ -129,7 +123,7 @@ class HuiPlantStatusCard extends LitElement implements LovelaceCard {
           </div>
         </div>
         <div class="content">
-          ${this.computeAttributes(stateObj).map(
+          ${this._computeAttributes(stateObj).map(
             (item) => html`
               <div
                 class="attributes"
@@ -138,10 +132,14 @@ class HuiPlantStatusCard extends LitElement implements LovelaceCard {
                 tabindex="0"
                 .value=${item}
               >
-                <div>
-                  <ha-svg-icon
-                    .path=${this.computeIcon(item, stateObj.attributes.battery)}
-                  ></ha-svg-icon>
+                <div class="icon">
+                  ${item === "battery"
+                    ? html`<ha-icon
+                        .icon=${batteryLevelIcon(stateObj.attributes.battery)}
+                      ></ha-icon>`
+                    : html`<ha-svg-icon
+                        .path=${SENSOR_ICONS[item]}
+                      ></ha-svg-icon>`}
                 </div>
                 <div
                   class=${stateObj.attributes.problem.indexOf(item) === -1
@@ -161,100 +159,95 @@ class HuiPlantStatusCard extends LitElement implements LovelaceCard {
     `;
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      ha-card {
-        height: 100%;
-        box-sizing: border-box;
-      }
-      .banner {
-        display: flex;
-        align-items: flex-end;
-        background-repeat: no-repeat;
-        background-size: cover;
-        background-position: center;
-        padding-top: 12px;
-      }
+  static styles = css`
+    ha-card {
+      height: 100%;
+      box-sizing: border-box;
+    }
+    .banner {
+      display: flex;
+      align-items: flex-end;
+      background-repeat: no-repeat;
+      background-size: cover;
+      background-position: center;
+      padding-top: 12px;
+    }
 
-      .has-plant-image .banner {
-        padding-top: 30%;
-      }
+    .has-plant-image .banner {
+      padding-top: 30%;
+    }
 
-      .header {
-        /* start paper-font-headline style */
-        font-family: "Roboto", "Noto", sans-serif;
-        -webkit-font-smoothing: antialiased; /* OS X subpixel AA bleed bug */
-        text-rendering: optimizeLegibility;
-        font-size: 24px;
-        font-weight: 400;
-        letter-spacing: -0.012em;
-        /* end paper-font-headline style */
+    .header {
+      /* start paper-font-headline style */
+      font-family: "Roboto", "Noto", sans-serif;
+      -webkit-font-smoothing: antialiased; /* OS X subpixel AA bleed bug */
+      text-rendering: optimizeLegibility;
+      font-size: 24px;
+      font-weight: 400;
+      letter-spacing: -0.012em;
+      /* end paper-font-headline style */
 
-        line-height: 40px;
-        padding: 8px 16px;
-      }
+      line-height: 40px;
+      padding: 8px 16px;
+    }
 
-      .has-plant-image .header {
-        font-size: 16px;
-        font-weight: 500;
-        line-height: 16px;
-        padding: 16px;
-        color: white;
-        width: 100%;
-        background: rgba(0, 0, 0, var(--dark-secondary-opacity));
-      }
+    .has-plant-image .header {
+      font-size: 16px;
+      font-weight: 500;
+      line-height: 16px;
+      padding: 16px;
+      color: white;
+      width: 100%;
+      background: rgba(0, 0, 0, var(--dark-secondary-opacity));
+    }
 
-      .content {
-        display: flex;
-        justify-content: space-between;
-        padding: 16px 32px 24px 32px;
-      }
+    .content {
+      display: flex;
+      justify-content: space-between;
+      padding: 16px 32px 24px 32px;
+    }
 
-      .has-plant-image .content {
-        padding-bottom: 16px;
-      }
+    .has-plant-image .content {
+      padding-bottom: 16px;
+    }
 
-      ha-svg-icon {
-        color: var(--paper-item-icon-color);
-        margin-bottom: 8px;
-      }
+    .icon {
+      margin-bottom: 8px;
+    }
 
-      .attributes {
-        cursor: pointer;
-      }
+    ha-icon,
+    ha-svg-icon {
+      color: var(--paper-item-icon-color);
+    }
 
-      .attributes:focus {
-        outline: none;
-        background: var(--divider-color);
-        border-radius: 100%;
-      }
+    .attributes {
+      cursor: pointer;
+    }
 
-      .attributes div {
-        text-align: center;
-      }
+    .attributes:focus {
+      outline: none;
+      background: var(--divider-color);
+      border-radius: 100%;
+    }
 
-      .problem {
-        color: var(--error-color);
-        font-weight: bold;
-      }
+    .attributes div {
+      text-align: center;
+    }
 
-      .uom {
-        color: var(--secondary-text-color);
-      }
-    `;
-  }
+    .problem {
+      color: var(--error-color);
+      font-weight: bold;
+    }
 
-  private computeAttributes(stateObj: HassEntity): string[] {
+    .uom {
+      color: var(--secondary-text-color);
+    }
+  `;
+
+  private _computeAttributes(stateObj: HassEntity): string[] {
     return Object.keys(SENSOR_ICONS).filter(
       (key) => key in stateObj.attributes
     );
-  }
-
-  private computeIcon(attr: string, batLvl: number): string {
-    if (attr === "battery") {
-      return batteryIcon(batLvl);
-    }
-    return SENSOR_ICONS[attr];
   }
 
   private _handleMoreInfo(ev: Event): void {

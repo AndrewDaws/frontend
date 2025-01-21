@@ -1,11 +1,12 @@
 import { mdiClose, mdiMagnify } from "@mdi/js";
-import { css, CSSResultGroup, html, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property, query } from "lit/decorators";
 import "./ha-icon-button";
 import "./ha-svg-icon";
 import "./ha-textfield";
 import type { HaTextField } from "./ha-textfield";
-import { HomeAssistant } from "../types";
+import type { HomeAssistant } from "../types";
 import { fireEvent } from "../common/dom/fire_event";
 
 @customElement("search-input")
@@ -17,8 +18,8 @@ class SearchInput extends LitElement {
   @property({ type: Boolean })
   public suffix = false;
 
-  @property({ type: Boolean })
-  public autofocus = false;
+  // eslint-disable-next-line lit/no-native-attributes
+  @property({ type: Boolean }) public autofocus = false;
 
   @property({ type: String })
   public label?: string;
@@ -74,30 +75,28 @@ class SearchInput extends LitElement {
     this._filterChanged("");
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host {
-        display: inline-flex;
-      }
-      ha-svg-icon,
-      ha-icon-button {
-        color: var(--primary-text-color);
-      }
-      ha-svg-icon {
-        outline: none;
-      }
-      .clear-button {
-        --mdc-icon-size: 20px;
-      }
-      ha-textfield {
-        display: inherit;
-      }
-      .trailing {
-        display: flex;
-        align-items: center;
-      }
-    `;
-  }
+  static styles = css`
+    :host {
+      display: inline-flex;
+    }
+    ha-svg-icon,
+    ha-icon-button {
+      color: var(--primary-text-color);
+    }
+    ha-svg-icon {
+      outline: none;
+    }
+    .clear-button {
+      --mdc-icon-size: 20px;
+    }
+    ha-textfield {
+      display: inherit;
+    }
+    .trailing {
+      display: flex;
+      align-items: center;
+    }
+  `;
 }
 
 declare global {

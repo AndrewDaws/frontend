@@ -1,17 +1,19 @@
 import "@material/mwc-list/mwc-list-item";
-import { html, LitElement, PropertyValues, TemplateResult } from "lit";
+import type { PropertyValues, TemplateResult } from "lit";
+import { html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import "../../components/ha-select";
 import "../../components/ha-settings-row";
-import { fetchDashboards, LovelaceDashboard } from "../../data/lovelace";
+import type { LovelaceDashboard } from "../../data/lovelace/dashboard";
+import { fetchDashboards } from "../../data/lovelace/dashboard";
 import { setDefaultPanel } from "../../data/panel";
-import { HomeAssistant } from "../../types";
+import type { HomeAssistant } from "../../types";
 
 @customElement("ha-pick-dashboard-row")
 class HaPickDashboardRow extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public narrow!: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
   @state() private _dashboards?: LovelaceDashboard[];
 

@@ -1,21 +1,15 @@
 import { mdiAlert } from "@mdi/js";
 import type { HassEntity } from "home-assistant-js-websocket";
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  PropertyValues,
-  nothing,
-} from "lit";
+import type { CSSResultGroup, PropertyValues } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { property, state } from "lit/decorators";
 import { ifDefined } from "lit/directives/if-defined";
 import { styleMap } from "lit/directives/style-map";
 import { computeDomain } from "../../common/entity/compute_domain";
 import { computeStateDomain } from "../../common/entity/compute_state_domain";
 import {
-  stateColorCss,
   stateColorBrightness,
+  stateColorCss,
 } from "../../common/entity/state_color";
 import { iconColorCSS } from "../../common/style/icon_color_css";
 import { cameraUrlWithWidthHeight } from "../../data/camera";
@@ -26,20 +20,22 @@ import "../ha-state-icon";
 export class StateBadge extends LitElement {
   public hass?: HomeAssistant;
 
-  @property() public stateObj?: HassEntity;
+  @property({ attribute: false }) public stateObj?: HassEntity;
 
-  @property() public overrideIcon?: string;
+  @property({ attribute: false }) public overrideIcon?: string;
 
-  @property() public overrideImage?: string;
+  @property({ attribute: false }) public overrideImage?: string;
 
-  @property({ type: Boolean }) public stateColor?: boolean;
+  // Cannot be a boolean attribute because undefined is treated different than
+  // false.  When it is undefined, state is still colored for light entities.
+  @property({ attribute: false }) public stateColor?: boolean;
 
   @property() public color?: string;
 
-  @property({ type: Boolean, reflect: true, attribute: "icon" })
-  private _showIcon = true;
+  // @todo Consider reworking to eliminate need for attribute since it is manipulated internally
+  @property({ type: Boolean, reflect: true }) public icon = true;
 
-  @state() private _iconStyle: { [name: string]: string | undefined } = {};
+  @state() private _iconStyle: Record<string, string | undefined> = {};
 
   connectedCallback(): void {
     super.connectedCallback();
@@ -70,7 +66,7 @@ export class StateBadge extends LitElement {
     const domain = this.stateObj
       ? computeStateDomain(this.stateObj)
       : undefined;
-    return this.stateColor || (domain === "light" && this.stateColor !== false);
+    return this.stateColor ?? domain === "light";
   }
 
   protected render() {
@@ -83,22 +79,23 @@ export class StateBadge extends LitElement {
       </div>`;
     }
 
-    if (!this._showIcon) {
+    if (!this.icon) {
       return nothing;
     }
 
     const domain = stateObj ? computeStateDomain(stateObj) : undefined;
 
     return html`<ha-state-icon
+      .hass=${this.hass}
       style=${styleMap(this._iconStyle)}
       data-domain=${ifDefined(domain)}
       data-state=${ifDefined(stateObj?.state)}
       .icon=${this.overrideIcon}
-      .state=${stateObj}
+      .stateObj=${stateObj}
     ></ha-state-icon>`;
   }
 
-  public willUpdate(changedProps: PropertyValues) {
+  public willUpdate(changedProps: PropertyValues<this>) {
     super.willUpdate(changedProps);
     if (
       !changedProps.has("stateObj") &&
@@ -111,83 +108,83 @@ export class StateBadge extends LitElement {
     }
     const stateObj = this.stateObj;
 
-    const iconStyle: { [name: string]: string } = {};
-    const hostStyle: Partial<CSSStyleDeclaration> = {
-      backgroundImage: "",
-    };
+    const iconStyle: Record<string, string> = {};
+    let backgroundImage = "";
 
-    this._showIcon = true;
+    this.icon = true;
 
-    if (stateObj && this.overrideImage === undefined) {
-      // hide icon if we have entity picture
-      if (
-        (stateObj.attributes.entity_picture_local ||
-          stateObj.attributes.entity_picture) &&
-        !this.overrideIcon
-      ) {
-        let imageUrl =
-          stateObj.attributes.entity_picture_local ||
-          stateObj.attributes.entity_picture;
+    if (stateObj) {
+      const domain = computeDomain(stateObj.entity_id);
+      if (this.overrideImage === undefined) {
+        // hide icon if we have entity picture
+        if (
+          (stateObj.attributes.entity_picture_local ||
+            stateObj.attributes.entity_picture) &&
+          !this.overrideIcon
+        ) {
+          let imageUrl =
+            stateObj.attributes.entity_picture_local ||
+            stateObj.attributes.entity_picture;
+          if (this.hass) {
+            imageUrl = this.hass.hassUrl(imageUrl);
+          }
+          if (domain === "camera") {
+            imageUrl = cameraUrlWithWidthHeight(imageUrl, 80, 80);
+          }
+          backgroundImage = `url(${imageUrl})`;
+          this.icon = false;
+        } else if (this.color) {
+          // Externally provided overriding color wins over state color
+          iconStyle.color = this.color;
+        } else if (this._stateColor) {
+          const color = stateColorCss(stateObj);
+          if (color) {
+            iconStyle.color = color;
+          }
+          if (stateObj.attributes.rgb_color) {
+            iconStyle.color = `rgb(${stateObj.attributes.rgb_color.join(",")})`;
+          }
+          if (stateObj.attributes.brightness) {
+            const brightness = stateObj.attributes.brightness;
+            if (typeof brightness !== "number") {
+              const errorMessage = `Type error: state-badge expected number, but type of ${
+                stateObj.entity_id
+              }.attributes.brightness is ${typeof brightness} (${brightness})`;
+              // eslint-disable-next-line
+              console.warn(errorMessage);
+            }
+            iconStyle.filter = stateColorBrightness(stateObj);
+          }
+          if (stateObj.attributes.hvac_action) {
+            const hvacAction = stateObj.attributes.hvac_action;
+            if (hvacAction in CLIMATE_HVAC_ACTION_TO_MODE) {
+              iconStyle.color = stateColorCss(
+                stateObj,
+                CLIMATE_HVAC_ACTION_TO_MODE[hvacAction]
+              )!;
+            } else {
+              delete iconStyle.color;
+            }
+          }
+        }
+      } else if (this.overrideImage) {
+        let imageUrl = this.overrideImage;
         if (this.hass) {
           imageUrl = this.hass.hassUrl(imageUrl);
         }
-        const domain = computeDomain(stateObj.entity_id);
-        if (domain === "camera") {
-          imageUrl = cameraUrlWithWidthHeight(imageUrl, 80, 80);
-        }
-        hostStyle.backgroundImage = `url(${imageUrl})`;
-        this._showIcon = false;
-        if (domain === "update") {
-          hostStyle.borderRadius = "0";
-        }
-        if (domain === "media_player") {
-          hostStyle.borderRadius = "8%";
-        }
-      } else if (this.color) {
-        // Externally provided overriding color wins over state color
-        iconStyle.color = this.color;
-      } else if (this._stateColor) {
-        const color = stateColorCss(stateObj);
-        if (color) {
-          iconStyle.color = color;
-        }
-        if (stateObj.attributes.rgb_color) {
-          iconStyle.color = `rgb(${stateObj.attributes.rgb_color.join(",")})`;
-        }
-        if (stateObj.attributes.brightness) {
-          const brightness = stateObj.attributes.brightness;
-          if (typeof brightness !== "number") {
-            const errorMessage = `Type error: state-badge expected number, but type of ${
-              stateObj.entity_id
-            }.attributes.brightness is ${typeof brightness} (${brightness})`;
-            // eslint-disable-next-line
-            console.warn(errorMessage);
-          }
-          iconStyle.filter = stateColorBrightness(stateObj);
-        }
-        if (stateObj.attributes.hvac_action) {
-          const hvacAction = stateObj.attributes.hvac_action;
-          if (hvacAction in CLIMATE_HVAC_ACTION_TO_MODE) {
-            iconStyle.color = stateColorCss(
-              stateObj,
-              CLIMATE_HVAC_ACTION_TO_MODE[hvacAction]
-            )!;
-          } else {
-            delete iconStyle.color;
-          }
-        }
+        backgroundImage = `url(${imageUrl})`;
+        this.icon = false;
       }
-    } else if (this.overrideImage) {
-      let imageUrl = this.overrideImage;
-      if (this.hass) {
-        imageUrl = this.hass.hassUrl(imageUrl);
+
+      if (domain === "update") {
+        this.style.borderRadius = "0";
+      } else if (domain === "media_player" || domain === "camera") {
+        this.style.borderRadius = "8%";
       }
-      hostStyle.backgroundImage = `url(${imageUrl})`;
-      this._showIcon = false;
     }
 
     this._iconStyle = iconStyle;
-    Object.assign(this.style, hostStyle);
+    this.style.backgroundImage = backgroundImage;
   }
 
   static get styles(): CSSResultGroup {

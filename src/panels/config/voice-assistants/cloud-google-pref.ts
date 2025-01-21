@@ -1,6 +1,6 @@
 import "@material/mwc-button";
 import { mdiHelpCircle } from "@mdi/js";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { fireEvent } from "../../../common/dom/fire_event";
@@ -8,16 +8,18 @@ import { isEmptyFilter } from "../../../common/entity/entity_filter";
 import "../../../components/ha-alert";
 import "../../../components/ha-card";
 import "../../../components/ha-settings-row";
+import "../../../components/ha-switch";
 import type { HaSwitch } from "../../../components/ha-switch";
 import "../../../components/ha-textfield";
 import type { HaTextField } from "../../../components/ha-textfield";
-import { CloudStatusLoggedIn, updateCloudPref } from "../../../data/cloud";
+import type { CloudStatusLoggedIn } from "../../../data/cloud";
+import { updateCloudPref } from "../../../data/cloud";
+import type { ExposeEntitySettings } from "../../../data/expose";
 import {
-  ExposeEntitySettings,
   getExposeNewEntities,
   setExposeNewEntities,
 } from "../../../data/expose";
-import { HomeAssistant } from "../../../types";
+import type { HomeAssistant } from "../../../types";
 import { brandsUrl } from "../../../util/brands-url";
 import { showSaveSuccessToast } from "../../../util/toast-saved-success";
 
@@ -72,6 +74,7 @@ export class CloudGooglePref extends LitElement {
               type: "icon",
               darkOptimized: this.hass.themes?.darkMode,
             })}
+            crossorigin="anonymous"
             referrerpolicy="no-referrer"
           />${this.hass.localize("ui.panel.config.cloud.account.google.title")}
         </h1>
@@ -267,7 +270,7 @@ export class CloudGooglePref extends LitElement {
         "cloud.google_assistant",
         toggle.checked
       );
-    } catch (err: any) {
+    } catch (_err: any) {
       toggle.checked = !toggle.checked;
     }
   }
@@ -277,7 +280,7 @@ export class CloudGooglePref extends LitElement {
     try {
       await updateCloudPref(this.hass, { google_enabled: toggle.checked! });
       fireEvent(this, "ha-refresh-cloud-status");
-    } catch (err: any) {
+    } catch (_err: any) {
       toggle.checked = !toggle.checked;
     }
   }
@@ -317,58 +320,55 @@ export class CloudGooglePref extends LitElement {
     }
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      a {
-        color: var(--primary-color);
-      }
-      .header-actions {
-        position: absolute;
-        right: 24px;
-        top: 24px;
-        display: flex;
-        flex-direction: row;
-      }
-      :host([dir="rtl"]) .header-actions {
-        right: auto;
-        left: 24px;
-      }
-      .header-actions .icon-link {
-        margin-top: -16px;
-        margin-inline-end: 8px;
-        margin-right: 8px;
-        direction: var(--direction);
-        color: var(--secondary-text-color);
-      }
-      ha-settings-row {
-        padding: 0;
-      }
-      ha-textfield {
-        width: 250px;
-        display: block;
-        margin-top: 8px;
-      }
-      .card-actions {
-        display: flex;
-      }
-      .card-actions a {
-        text-decoration: none;
-      }
-      .warning {
-        color: var(--error-color);
-      }
-      .card-header {
-        display: flex;
-        align-items: center;
-      }
-      img {
-        height: 28px;
-        margin-right: 16px;
-        margin-inline-end: 16px;
-        margin-inline-start: initial;
-      }
-    `;
-  }
+  static styles = css`
+    a {
+      color: var(--primary-color);
+    }
+    .header-actions {
+      position: absolute;
+      right: 24px;
+      inset-inline-end: 24px;
+      inset-inline-start: initial;
+      top: 24px;
+      display: flex;
+      flex-direction: row;
+    }
+    .header-actions .icon-link {
+      margin-top: -16px;
+      margin-right: 8px;
+      margin-inline-end: 8px;
+      margin-inline-start: initial;
+      direction: var(--direction);
+      color: var(--secondary-text-color);
+    }
+    ha-settings-row {
+      padding: 0;
+    }
+    ha-textfield {
+      width: 250px;
+      display: block;
+      margin-top: 8px;
+    }
+    .card-actions {
+      display: flex;
+    }
+    .card-actions a {
+      text-decoration: none;
+    }
+    .warning {
+      color: var(--error-color);
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+    }
+    img {
+      height: 28px;
+      margin-right: 16px;
+      margin-inline-end: 16px;
+      margin-inline-start: initial;
+    }
+  `;
 }
 
 declare global {

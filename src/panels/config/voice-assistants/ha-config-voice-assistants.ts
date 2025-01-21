@@ -1,18 +1,14 @@
 import { consume } from "@lit-labs/context";
 import { mdiDevices, mdiMicrophone } from "@mdi/js";
-import { PropertyValues } from "lit";
+import type { PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators";
-import { CloudStatus } from "../../../data/cloud";
+import type { CloudStatus } from "../../../data/cloud";
 import { entitiesContext } from "../../../data/context";
-import {
-  ExposeEntitySettings,
-  listExposedEntities,
-} from "../../../data/expose";
-import {
-  HassRouterPage,
-  RouterOptions,
-} from "../../../layouts/hass-router-page";
-import { HomeAssistant } from "../../../types";
+import type { ExposeEntitySettings } from "../../../data/expose";
+import { listExposedEntities } from "../../../data/expose";
+import type { RouterOptions } from "../../../layouts/hass-router-page";
+import { HassRouterPage } from "../../../layouts/hass-router-page";
+import type { HomeAssistant } from "../../../types";
 
 export const voiceAssistantTabs = [
   {
@@ -33,9 +29,9 @@ class HaConfigVoiceAssistants extends HassRouterPage {
 
   @property({ attribute: false }) public cloudStatus!: CloudStatus;
 
-  @property() public narrow!: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
-  @property() public isWide!: boolean;
+  @property({ attribute: "is-wide", type: Boolean }) public isWide = false;
 
   @state()
   @consume({ context: entitiesContext, subscribe: true })
@@ -52,7 +48,7 @@ class HaConfigVoiceAssistants extends HassRouterPage {
   }
 
   public disconnectedCallback(): void {
-    super.connectedCallback();
+    super.disconnectedCallback();
     this.removeEventListener(
       "exposed-entities-changed",
       this._fetchExposedEntities
@@ -74,6 +70,11 @@ class HaConfigVoiceAssistants extends HassRouterPage {
       debug: {
         tag: "assist-debug",
         load: () => import("./debug/assist-debug"),
+      },
+      assist: {
+        tag: "ha-config-voice-assistants-assist-devices",
+        load: () =>
+          import("./assist/ha-config-voice-assistants-assist-devices"),
       },
     },
   };

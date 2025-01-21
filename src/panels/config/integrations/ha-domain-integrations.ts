@@ -1,4 +1,4 @@
-import { RequestSelectedDetail } from "@material/mwc-list/mwc-list-item-base";
+import type { RequestSelectedDetail } from "@material/mwc-list/mwc-list-item-base";
 import { css, html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators";
 import { isComponentLoaded } from "../../../common/config/is_component_loaded";
@@ -11,15 +11,15 @@ import { shouldHandleRequestSelectedEvent } from "../../../common/mwc/handle-req
 import { navigate } from "../../../common/navigate";
 import { caseInsensitiveStringCompare } from "../../../common/string/compare";
 import { localizeConfigFlowTitle } from "../../../data/config_flow";
-import { DataEntryFlowProgress } from "../../../data/data_entry_flow";
+import type { DataEntryFlowProgress } from "../../../data/data_entry_flow";
 import {
   domainToName,
   fetchIntegrationManifest,
 } from "../../../data/integration";
-import { Brand, Integration } from "../../../data/integrations";
+import type { Brand, Integration } from "../../../data/integrations";
 import { showConfigFlowDialog } from "../../../dialogs/config-flow/show-dialog-config-flow";
 import { haStyle } from "../../../resources/styles";
-import { HomeAssistant } from "../../../types";
+import type { HomeAssistant } from "../../../types";
 import { brandsUrl } from "../../../util/brands-url";
 import "./ha-integration-list-item";
 import { showYamlIntegrationDialog } from "./show-add-integration-dialog";
@@ -61,6 +61,7 @@ class HaDomainIntegrations extends LitElement {
                       useFallback: true,
                       darkOptimized: this.hass.themes?.darkMode,
                     })}
+                    crossorigin="anonymous"
                     referrerpolicy="no-referrer"
                   />
                   <span
@@ -83,7 +84,7 @@ class HaDomainIntegrations extends LitElement {
       ${this.integration?.iot_standards
         ? this.integration.iot_standards
             .filter((standard) =>
-              (PROTOCOL_INTEGRATIONS as ReadonlyArray<string>).includes(
+              (PROTOCOL_INTEGRATIONS as readonly string[]).includes(
                 standardToDomain[standard] || standard
               )
             )
@@ -106,6 +107,7 @@ class HaDomainIntegrations extends LitElement {
                     useFallback: true,
                     darkOptimized: this.hass.themes?.darkMode,
                   })}
+                  crossorigin="anonymous"
                   referrerpolicy="no-referrer"
                 />
                 <span
@@ -151,7 +153,7 @@ class HaDomainIntegrations extends LitElement {
                 </ha-integration-list-item>`
             )
         : ""}
-      ${(PROTOCOL_INTEGRATIONS as ReadonlyArray<string>).includes(this.domain)
+      ${(PROTOCOL_INTEGRATIONS as readonly string[]).includes(this.domain)
         ? html`<mwc-list-item
             graphic="medium"
             .domain=${this.domain}
@@ -168,6 +170,7 @@ class HaDomainIntegrations extends LitElement {
                 useFallback: true,
                 darkOptimized: this.hass.themes?.darkMode,
               })}
+              crossorigin="anonymous"
               referrerpolicy="no-referrer"
             />
             <span
@@ -234,7 +237,6 @@ class HaDomainIntegrations extends LitElement {
       ["cloud", "google_assistant", "alexa"].includes(domain) &&
       isComponentLoaded(this.hass, "cloud")
     ) {
-      fireEvent(this, "close-dialog");
       navigate("/config/cloud");
       return;
     }

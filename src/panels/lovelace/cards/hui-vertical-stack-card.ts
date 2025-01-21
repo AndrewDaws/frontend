@@ -1,4 +1,5 @@
-import { css, CSSResultGroup } from "lit";
+import type { CSSResultGroup } from "lit";
+import { css } from "lit";
 import { computeCardSize } from "../common/compute-card-size";
 import { HuiStackCard } from "./hui-stack-card";
 
@@ -8,7 +9,7 @@ class HuiVerticalStackCard extends HuiStackCard {
       return 0;
     }
 
-    const promises: Array<Promise<number> | number> = [];
+    const promises: (Promise<number> | number)[] = [];
 
     for (const element of this._cards) {
       promises.push(computeCardSize(element));
@@ -27,18 +28,7 @@ class HuiVerticalStackCard extends HuiStackCard {
           display: flex;
           flex-direction: column;
           height: 100%;
-        }
-        #root > * {
-          margin: var(
-            --vertical-stack-card-margin,
-            var(--stack-card-margin, 4px 0)
-          );
-        }
-        #root > *:first-child {
-          margin-top: 0;
-        }
-        #root > *:last-child {
-          margin-bottom: 0;
+          gap: var(--vertical-stack-card-gap, var(--stack-card-gap, 8px));
         }
       `,
     ];

@@ -1,8 +1,10 @@
-import { html, LitElement, PropertyValues, TemplateResult } from "lit";
+import type { PropertyValues, TemplateResult } from "lit";
+import { html, LitElement } from "lit";
 import { customElement, query } from "lit/decorators";
 import { getEntity } from "../../../../src/fake_data/entity";
 import { provideHass } from "../../../../src/fake_data/provide_hass";
 import "../../components/demo-cards";
+import { mockIcons } from "../../../../demo/src/stubs/icons";
 
 const ENTITIES = [
   getEntity("light", "bed_light", "on", {
@@ -286,11 +288,11 @@ const CONFIGS = [
     config: `
 - type: entities
   entities:
-    - type: call-service
+    - type: perform-action
       icon: mdi:power
       name: Bed light
       action_name: Toggle light
-      service: light.toggle
+      action: light.toggle
       data:
         entity_id: light.bed_light
     - type: section
@@ -323,6 +325,7 @@ class DemoEntities extends LitElement {
     hass.updateTranslations(null, "en");
     hass.updateTranslations("lovelace", "en");
     hass.addEntities(ENTITIES);
+    mockIcons(hass);
   }
 }
 

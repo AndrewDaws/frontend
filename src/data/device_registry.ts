@@ -1,50 +1,58 @@
-import { Connection, createCollection } from "home-assistant-js-websocket";
-import type { Store } from "home-assistant-js-websocket/dist/store";
 import { computeStateName } from "../common/entity/compute_state_name";
 import { caseInsensitiveStringCompare } from "../common/string/compare";
-import { debounce } from "../common/util/debounce";
 import type { HomeAssistant } from "../types";
+import type { ConfigEntry } from "./config_entries";
 import type {
   EntityRegistryDisplayEntry,
   EntityRegistryEntry,
 } from "./entity_registry";
 import type { EntitySources } from "./entity_sources";
+import type { RegistryEntry } from "./registry";
 
-export interface DeviceRegistryEntry {
+export {
+  fetchDeviceRegistry,
+  subscribeDeviceRegistry,
+} from "./ws-device_registry";
+
+export interface DeviceRegistryEntry extends RegistryEntry {
   id: string;
   config_entries: string[];
-  connections: Array<[string, string]>;
-  identifiers: Array<[string, string]>;
+  connections: [string, string][];
+  identifiers: [string, string][];
   manufacturer: string | null;
   model: string | null;
+  model_id: string | null;
   name: string | null;
+  labels: string[];
   sw_version: string | null;
   hw_version: string | null;
+  serial_number: string | null;
   via_device_id: string | null;
   area_id: string | null;
   name_by_user: string | null;
   entry_type: "service" | null;
   disabled_by: "user" | "integration" | "config_entry" | null;
   configuration_url: string | null;
+  primary_config_entry: string | null;
 }
 
-export interface DeviceEntityDisplayLookup {
-  [deviceId: string]: EntityRegistryDisplayEntry[];
-}
+export type DeviceEntityDisplayLookup = Record<
+  string,
+  EntityRegistryDisplayEntry[]
+>;
 
-export interface DeviceEntityLookup {
-  [deviceId: string]: EntityRegistryEntry[];
-}
+export type DeviceEntityLookup = Record<string, EntityRegistryEntry[]>;
 
 export interface DeviceRegistryEntryMutableParams {
   area_id?: string | null;
   name_by_user?: string | null;
   disabled_by?: string | null;
+  labels?: string[];
 }
 
 export const fallbackDeviceName = (
   hass: HomeAssistant,
-  entities: EntityRegistryEntry[] | string[]
+  entities: EntityRegistryEntry[] | EntityRegistryDisplayEntry[] | string[]
 ) => {
   for (const entity of entities || []) {
     const entityId = typeof entity === "string" ? entity : entity.entity_id;
@@ -59,18 +67,16 @@ export const fallbackDeviceName = (
 export const computeDeviceName = (
   device: DeviceRegistryEntry,
   hass: HomeAssistant,
-  entities?: EntityRegistryEntry[] | string[]
+  entities?: EntityRegistryEntry[] | EntityRegistryDisplayEntry[] | string[]
 ) =>
   device.name_by_user ||
   device.name ||
   (entities && fallbackDeviceName(hass, entities)) ||
-  hass.localize(
-    "ui.panel.config.devices.unnamed_device",
-    "type",
-    hass.localize(
+  hass.localize("ui.panel.config.devices.unnamed_device", {
+    type: hass.localize(
       `ui.panel.config.devices.type.${device.entry_type || "device"}`
-    )
-  );
+    ),
+  });
 
 export const devicesInArea = (devices: DeviceRegistryEntry[], areaId: string) =>
   devices.filter((device) => device.area_id === areaId);
@@ -96,39 +102,6 @@ export const removeConfigEntryFromDevice = (
     device_id: deviceId,
     config_entry_id: configEntryId,
   });
-
-export const fetchDeviceRegistry = (conn: Connection) =>
-  conn.sendMessagePromise<DeviceRegistryEntry[]>({
-    type: "config/device_registry/list",
-  });
-
-const subscribeDeviceRegistryUpdates = (
-  conn: Connection,
-  store: Store<DeviceRegistryEntry[]>
-) =>
-  conn.subscribeEvents(
-    debounce(
-      () =>
-        fetchDeviceRegistry(conn).then((devices) =>
-          store.setState(devices, true)
-        ),
-      500,
-      true
-    ),
-    "device_registry_updated"
-  );
-
-export const subscribeDeviceRegistry = (
-  conn: Connection,
-  onChange: (devices: DeviceRegistryEntry[]) => void
-) =>
-  createCollection<DeviceRegistryEntry[]>(
-    "_dr",
-    fetchDeviceRegistry,
-    subscribeDeviceRegistryUpdates,
-    conn,
-    onChange
-  );
 
 export const sortDeviceRegistryByName = (
   entries: DeviceRegistryEntry[],
@@ -172,9 +145,11 @@ export const getDeviceEntityDisplayLookup = (
 
 export const getDeviceIntegrationLookup = (
   entitySources: EntitySources,
-  entities: EntityRegistryDisplayEntry[]
-): Record<string, string[]> => {
-  const deviceIntegrations: Record<string, string[]> = {};
+  entities: EntityRegistryDisplayEntry[] | EntityRegistryEntry[],
+  devices?: DeviceRegistryEntry[],
+  configEntries?: ConfigEntry[]
+): Record<string, Set<string>> => {
+  const deviceIntegrations: Record<string, Set<string>> = {};
 
   for (const entity of entities) {
     const source = entitySources[entity.entity_id];
@@ -182,10 +157,22 @@ export const getDeviceIntegrationLookup = (
       continue;
     }
 
-    if (!deviceIntegrations[entity.device_id!]) {
-      deviceIntegrations[entity.device_id!] = [];
+    deviceIntegrations[entity.device_id!] =
+      deviceIntegrations[entity.device_id!] || new Set<string>();
+    deviceIntegrations[entity.device_id!].add(source.domain);
+  }
+  // Lookup devices that have no entities
+  if (devices && configEntries) {
+    for (const device of devices) {
+      for (const config_entry_id of device.config_entries) {
+        const entry = configEntries.find((e) => e.entry_id === config_entry_id);
+        if (entry?.domain) {
+          deviceIntegrations[device.id] =
+            deviceIntegrations[device.id] || new Set<string>();
+          deviceIntegrations[device.id].add(entry.domain);
+        }
+      }
     }
-    deviceIntegrations[entity.device_id!].push(source.domain);
   }
   return deviceIntegrations;
 };

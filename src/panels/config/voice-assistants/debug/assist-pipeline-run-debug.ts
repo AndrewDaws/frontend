@@ -1,4 +1,5 @@
-import { css, html, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property, query, state } from "lit/decorators";
 import { extractSearchParam } from "../../../../common/url/search-params";
 import "../../../../components/ha-assist-pipeline-picker";
@@ -8,11 +9,11 @@ import type { HaCheckbox } from "../../../../components/ha-checkbox";
 import "../../../../components/ha-formfield";
 import "../../../../components/ha-textfield";
 import type { HaTextField } from "../../../../components/ha-textfield";
-import {
+import type {
   PipelineRun,
   PipelineRunOptions,
-  runDebugAssistPipeline,
 } from "../../../../data/assist_pipeline";
+import { runDebugAssistPipeline } from "../../../../data/assist_pipeline";
 import {
   showAlertDialog,
   showPromptDialog,
@@ -28,7 +29,7 @@ import "./assist-render-pipeline-run";
 export class AssistPipelineRunDebug extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property({ type: Boolean }) public narrow!: boolean;
+  @property({ type: Boolean }) public narrow = false;
 
   @state() private _pipelineRuns: PipelineRun[] = [];
 
@@ -50,7 +51,9 @@ export class AssistPipelineRunDebug extends LitElement {
       <hass-subpage
         .narrow=${this.narrow}
         .hass=${this.hass}
-        header="Assist Pipeline"
+        .header=${this.hass.localize(
+          "ui.panel.config.voice_assistants.debug.pipeline.header"
+        )}
       >
         ${this._pipelineRuns.length > 0
           ? html`
@@ -59,13 +62,13 @@ export class AssistPipelineRunDebug extends LitElement {
                 @click=${this._clearConversation}
                 .disabled=${!this._finished}
               >
-                Clear
+                ${this.hass.localize("ui.common.clear")}
               </ha-button>
               <ha-button
                 slot="toolbar-icon"
                 @click=${this._downloadConversation}
               >
-                Download
+                ${this.hass.localize("ui.common.download")}
               </ha-button>
             `
           : ""}
@@ -81,7 +84,9 @@ export class AssistPipelineRunDebug extends LitElement {
                   ></ha-assist-pipeline-picker>
                   <div class="start-buttons">
                     <ha-button raised @click=${this._runTextPipeline}>
-                      Run Text Pipeline
+                      ${this.hass.localize(
+                        "ui.panel.config.voice_assistants.debug.pipeline.run_text_pipeline"
+                      )}
                     </ha-button>
                     <ha-button
                       raised
@@ -90,7 +95,9 @@ export class AssistPipelineRunDebug extends LitElement {
                       // @ts-ignore-next-line
                       !(window.AudioContext || window.webkitAudioContext)}
                     >
-                      Run Audio Pipeline
+                      ${this.hass.localize(
+                        "ui.panel.config.voice_assistants.debug.pipeline.run_audio_pipeline"
+                      )}
                     </ha-button>
                     <ha-button
                       raised
@@ -99,39 +106,58 @@ export class AssistPipelineRunDebug extends LitElement {
                       // @ts-ignore-next-line
                       !(window.AudioContext || window.webkitAudioContext)}
                     >
-                      Run Audio Pipeline with Wake Word detection
+                      ${this.hass.localize(
+                        "ui.panel.config.voice_assistants.debug.pipeline.run_audio_with_wake"
+                      )}
                     </ha-button>
                   </div>
                 `
               : this._pipelineRuns[0].init_options!.start_stage === "intent"
-              ? html`
-                  <ha-textfield
-                    id="continue-conversation-text"
-                    label="Response"
-                    .disabled=${!this._finished}
-                    @keydown=${this._handleContinueKeyDown}
-                  ></ha-textfield>
-                  <ha-button
-                    @click=${this._runTextPipeline}
-                    .disabled=${!this._finished}
-                  >
-                    Send
-                  </ha-button>
-                `
-              : this._finished
-              ? html`
-                  <ha-button @click=${this._runAudioPipeline}>
-                    Continue talking
-                  </ha-button>
-                `
-              : html`
-                  <ha-formfield label="Continue conversation">
-                    <ha-checkbox
-                      id="continue-conversation"
-                      checked
-                    ></ha-checkbox>
-                  </ha-formfield>
-                `}
+                ? html`
+                    <ha-textfield
+                      id="continue-conversation-text"
+                      .label=${this.hass.localize(
+                        "ui.panel.config.voice_assistants.debug.pipeline.response"
+                      )}
+                      .disabled=${!this._finished}
+                      @keydown=${this._handleContinueKeyDown}
+                    ></ha-textfield>
+                    <ha-button
+                      @click=${this._runTextPipeline}
+                      .disabled=${!this._finished}
+                    >
+                      ${this.hass.localize(
+                        "ui.panel.config.voice_assistants.debug.pipeline.send"
+                      )}
+                    </ha-button>
+                  `
+                : this._finished
+                  ? this._pipelineRuns[0].init_options!.start_stage ===
+                    "wake_word"
+                    ? html`
+                        <ha-button @click=${this._runAudioWakeWordPipeline}>
+                          ${this.hass.localize(
+                            "ui.panel.config.voice_assistants.debug.pipeline.continue_listening"
+                          )}
+                        </ha-button>
+                      `
+                    : html`<ha-button @click=${this._runAudioPipeline}>
+                        ${this.hass.localize(
+                          "ui.panel.config.voice_assistants.debug.pipeline.continue_talking"
+                        )}
+                      </ha-button>`
+                  : html`
+                      <ha-formfield
+                        .label=${this.hass.localize(
+                          "ui.panel.config.voice_assistants.debug.pipeline.continue_conversation"
+                        )}
+                      >
+                        <ha-checkbox
+                          id="continue-conversation"
+                          checked
+                        ></ha-checkbox>
+                      </ha-formfield>
+                    `}
           </div>
 
           ${this._pipelineRuns.map((run) =>
@@ -164,8 +190,12 @@ export class AssistPipelineRunDebug extends LitElement {
       text = textfield.value;
     } else {
       text = await showPromptDialog(this, {
-        title: "Input text",
-        confirmText: "Run",
+        title: this.hass.localize(
+          "ui.panel.config.voice_assistants.debug.pipeline.input_text"
+        ),
+        confirmText: this.hass.localize(
+          "ui.panel.config.voice_assistants.debug.pipeline.run"
+        ),
       });
     }
 
@@ -242,7 +272,7 @@ export class AssistPipelineRunDebug extends LitElement {
         }
 
         // Play audio when we're done.
-        if (updatedRun.stage === "done") {
+        if (updatedRun.stage === "done" && !updatedRun.error) {
           const url = updatedRun.tts!.tts_output!.url;
           const audio = new Audio(url);
           audio.addEventListener("ended", () => {
@@ -256,7 +286,10 @@ export class AssistPipelineRunDebug extends LitElement {
             }
           });
           audio.play();
-        } else if (updatedRun.stage === "error") {
+        } else if (
+          (updatedRun.stage === "done" && updatedRun.error) ||
+          updatedRun.stage === "error"
+        ) {
           this._finished = true;
         }
       },
@@ -373,7 +406,9 @@ export class AssistPipelineRunDebug extends LitElement {
       );
     } catch (err: any) {
       await showAlertDialog(this, {
-        title: "Error starting pipeline",
+        title: this.hass.localize(
+          "ui.panel.config.voice_assistants.debug.pipeline.error_starting"
+        ),
         text: err.message || err,
       });
     }
@@ -434,6 +469,7 @@ export class AssistPipelineRunDebug extends LitElement {
         align-items: center;
         flex-wrap: wrap;
         margin: 0 16px 16px;
+        direction: var(--direction);
       }
       ha-assist-pipeline-picker {
         display: block;

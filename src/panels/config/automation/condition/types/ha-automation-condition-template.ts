@@ -13,8 +13,8 @@ export class HaTemplateCondition extends LitElement {
 
   @property({ type: Boolean }) public disabled = false;
 
-  public static get defaultConfig() {
-    return { value_template: "" };
+  public static get defaultConfig(): TemplateCondition {
+    return { condition: "template", value_template: "" };
   }
 
   protected render() {
@@ -43,13 +43,11 @@ export class HaTemplateCondition extends LitElement {
     handleChangeEvent(this, ev);
   }
 
-  static get styles() {
-    return css`
-      p {
-        margin-top: 0;
-      }
-    `;
-  }
+  static styles = css`
+    p {
+      margin-top: 0;
+    }
+  `;
 }
 
 declare global {

@@ -5,7 +5,7 @@ import {
   mdiFanSpeed2,
   mdiFanSpeed3,
 } from "@mdi/js";
-import {
+import type {
   HassEntityAttributeBase,
   HassEntityBase,
 } from "home-assistant-js-websocket";
@@ -17,6 +17,8 @@ export const enum FanEntityFeature {
   OSCILLATE = 2,
   DIRECTION = 4,
   PRESET_MODE = 8,
+  TURN_OFF = 16,
+  TURN_ON = 32,
 }
 
 interface FanEntityAttributes extends HassEntityAttributeBase {
@@ -89,8 +91,8 @@ export function computeFanSpeedIcon(
   return speed === "on"
     ? mdiFan
     : speed === "off"
-    ? mdiFanOff
-    : [mdiFanSpeed1, mdiFanSpeed2, mdiFanSpeed3][index - 1];
+      ? mdiFanOff
+      : [mdiFanSpeed1, mdiFanSpeed2, mdiFanSpeed3][index - 1];
 }
 export const FAN_SPEED_COUNT_MAX_FOR_BUTTONS = 4;
 

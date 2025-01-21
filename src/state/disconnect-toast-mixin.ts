@@ -1,17 +1,16 @@
+import type { UnsubscribeFunc } from "home-assistant-js-websocket";
 import {
   STATE_NOT_RUNNING,
   STATE_RUNNING,
   STATE_STARTING,
-  UnsubscribeFunc,
 } from "home-assistant-js-websocket";
-import {
-  BootstrapIntegrationsTimings,
-  subscribeBootstrapIntegrations,
-} from "../data/bootstrap_integrations";
+import type { BootstrapIntegrationsTimings } from "../data/bootstrap_integrations";
+import { subscribeBootstrapIntegrations } from "../data/bootstrap_integrations";
 import { domainToName } from "../data/integration";
-import { Constructor } from "../types";
+import type { Constructor } from "../types";
 import { showToast } from "../util/toast";
-import { HassBaseEl } from "./hass-base-mixin";
+import type { HassBaseEl } from "./hass-base-mixin";
+import { navigate } from "../common/navigate";
 
 export default <T extends Constructor<HassBaseEl>>(superClass: T) =>
   class extends superClass {
@@ -28,40 +27,62 @@ export default <T extends Constructor<HassBaseEl>>(superClass: T) =>
     updated(changedProperties) {
       super.updated(changedProperties);
       const oldHass = changedProperties.get("hass");
-      if (
-        !changedProperties.has("hass") ||
-        !this.hass!.config ||
-        oldHass?.config?.state === this.hass!.config.state
-      ) {
+      if (!changedProperties.has("hass") || !this.hass!.config) {
         return;
       }
-      if (this.hass!.config.state === STATE_NOT_RUNNING) {
-        showToast(this, {
-          message:
-            this.hass!.localize("ui.notification_toast.starting") ||
-            "Home Assistant is starting, not everything will be available until it is finished.",
-          duration: 0,
-          dismissable: false,
-          action: {
-            text:
-              this.hass!.localize("ui.notification_toast.dismiss") || "Dismiss",
-            action: () => {
-              this._unsubscribeBootstrapIntegrations();
+      if (oldHass?.config?.state !== this.hass!.config.state) {
+        if (this.hass!.config.state === STATE_NOT_RUNNING) {
+          showToast(this, {
+            message:
+              this.hass!.localize("ui.notification_toast.starting") ||
+              "Home Assistant is starting, not everything will be available until it is finished.",
+            duration: -1,
+            dismissable: false,
+            action: {
+              text:
+                this.hass!.localize("ui.notification_toast.dismiss") ||
+                "Dismiss",
+              action: () => {
+                this._unsubscribeBootstrapIntegrations();
+              },
             },
-          },
-        });
-        this._subscribeBootstrapIntegrations();
-      } else if (
-        oldHass?.config &&
-        oldHass.config.state === STATE_NOT_RUNNING &&
-        (this.hass!.config.state === STATE_STARTING ||
-          this.hass!.config.state === STATE_RUNNING)
+          });
+          this._subscribeBootstrapIntegrations();
+        } else if (
+          oldHass?.config &&
+          oldHass.config.state === STATE_NOT_RUNNING &&
+          (this.hass!.config.state === STATE_STARTING ||
+            this.hass!.config.state === STATE_RUNNING)
+        ) {
+          this._unsubscribeBootstrapIntegrations();
+          showToast(this, {
+            message: this.hass!.localize("ui.notification_toast.started"),
+            duration: 5000,
+          });
+        }
+      }
+      if (
+        this.hass!.config.safe_mode &&
+        oldHass?.config?.safe_mode !== this.hass!.config.safe_mode
       ) {
-        this._unsubscribeBootstrapIntegrations();
-        showToast(this, {
-          message: this.hass!.localize("ui.notification_toast.started"),
-          duration: 5000,
-        });
+        import("../dialogs/generic/show-dialog-box").then(
+          ({ showAlertDialog }) => {
+            showAlertDialog(this, {
+              title:
+                this.hass!.localize("ui.dialogs.safe_mode.title") ||
+                "Safe mode",
+              text:
+                this.hass!.localize("ui.dialogs.safe_mode.text") ||
+                "Home Assistant is running in safe mode, custom integrations and modules are not available. Restart Home Assistant to exit safe mode.",
+            });
+          }
+        );
+      }
+      if (
+        this.hass!.config.recovery_mode &&
+        oldHass?.config?.recovery_mode !== this.hass!.config.recovery_mode
+      ) {
+        navigate("/");
       }
     }
 
@@ -74,7 +95,7 @@ export default <T extends Constructor<HassBaseEl>>(superClass: T) =>
       }
       showToast(this, {
         message: "",
-        duration: 1,
+        duration: 0,
       });
     }
 
@@ -85,7 +106,7 @@ export default <T extends Constructor<HassBaseEl>>(superClass: T) =>
         this._disconnectedTimeout = undefined;
         showToast(this, {
           message: this.hass!.localize("ui.notification_toast.connection_lost"),
-          duration: 0,
+          duration: -1,
           dismissable: false,
         });
       }, 1000);
@@ -101,7 +122,7 @@ export default <T extends Constructor<HassBaseEl>>(superClass: T) =>
           message:
             this.hass!.localize("ui.notification_toast.wrapping_up_startup") ||
             `Wrapping up startup, not everything will be available until it is finished.`,
-          duration: 0,
+          duration: -1,
           dismissable: false,
           action: {
             text:
@@ -120,14 +141,13 @@ export default <T extends Constructor<HassBaseEl>>(superClass: T) =>
       )[0][0];
 
       showToast(this, {
+        id: "integration_starting",
         message:
-          this.hass!.localize(
-            "ui.notification_toast.integration_starting",
-            "integration",
-            domainToName(this.hass!.localize, integration)
-          ) ||
+          this.hass!.localize("ui.notification_toast.integration_starting", {
+            integration: domainToName(this.hass!.localize, integration),
+          }) ||
           `Starting ${integration}, not everything will be available until it is finished.`,
-        duration: 0,
+        duration: -1,
         dismissable: false,
         action: {
           text:

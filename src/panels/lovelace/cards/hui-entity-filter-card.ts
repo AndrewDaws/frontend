@@ -1,17 +1,28 @@
-import { PropertyValues, ReactiveElement } from "lit";
-import { property, state } from "lit/decorators";
-import { LovelaceCardConfig } from "../../../data/lovelace";
-import { HomeAssistant } from "../../../types";
+import type { PropertyValues } from "lit";
+import { ReactiveElement } from "lit";
+import { customElement, property, state } from "lit/decorators";
+import { fireEvent } from "../../../common/dom/fire_event";
+import type { LovelaceCardConfig } from "../../../data/lovelace/config/card";
+import type { HomeAssistant } from "../../../types";
 import { computeCardSize } from "../common/compute-card-size";
-import { evaluateFilter } from "../common/evaluate-filter";
+import { evaluateStateFilter } from "../common/evaluate-filter";
 import { findEntities } from "../common/find-entities";
 import { processConfigEntities } from "../common/process-config-entities";
-import { createCardElement } from "../create-element/create-card-element";
-import { EntityFilterEntityConfig } from "../entity-rows/types";
-import { LovelaceCard } from "../types";
-import { EntityFilterCardConfig } from "./types";
+import {
+  addEntityToCondition,
+  checkConditionsMet,
+  extractConditionEntityIds,
+} from "../common/validate-condition";
+import type { EntityFilterEntityConfig } from "../entity-rows/types";
+import type { LovelaceCard } from "../types";
+import type { HuiCard } from "./hui-card";
+import type { EntityFilterCardConfig } from "./types";
 
-class EntityFilterCard extends ReactiveElement implements LovelaceCard {
+@customElement("hui-entity-filter-card")
+export class HuiEntityFilterCard
+  extends ReactiveElement
+  implements LovelaceCard
+{
   public static getStubConfig(
     hass: HomeAssistant,
     entities: string[],
@@ -29,22 +40,27 @@ class EntityFilterCard extends ReactiveElement implements LovelaceCard {
     return {
       type: "entity-filter",
       entities: foundEntities,
-      state_filter: [
-        foundEntities[0] ? hass.states[foundEntities[0]].state : "",
-      ],
+      conditions: foundEntities[0]
+        ? [
+            {
+              condition: "state",
+              state: hass.states[foundEntities[0]].state,
+            },
+          ]
+        : [],
       card: { type: "entities" },
     };
   }
 
   @property({ attribute: false }) public hass?: HomeAssistant;
 
-  @property() public isPanel = false;
+  @property({ attribute: false }) public layout?: string;
 
-  @property() public editMode = false;
+  @property({ type: Boolean }) public preview = false;
 
   @state() private _config?: EntityFilterCardConfig;
 
-  private _element?: LovelaceCard;
+  private _element?: HuiCard;
 
   private _configEntities?: EntityFilterEntityConfig[];
 
@@ -57,12 +73,19 @@ class EntityFilterCard extends ReactiveElement implements LovelaceCard {
   }
 
   public setConfig(config: EntityFilterCardConfig): void {
-    if (!config.entities.length || !Array.isArray(config.entities)) {
+    if (
+      !config.entities ||
+      !config.entities.length ||
+      !Array.isArray(config.entities)
+    ) {
       throw new Error("Entities must be specified");
     }
 
     if (
-      !(config.state_filter && Array.isArray(config.state_filter)) &&
+      !(
+        (config.conditions && Array.isArray(config.conditions)) ||
+        (config.state_filter && Array.isArray(config.state_filter))
+      ) &&
       !config.entities.every(
         (entity) =>
           typeof entity === "object" &&
@@ -95,8 +118,8 @@ class EntityFilterCard extends ReactiveElement implements LovelaceCard {
   protected shouldUpdate(changedProps: PropertyValues): boolean {
     if (this._element) {
       this._element.hass = this.hass;
-      this._element.editMode = this.editMode;
-      this._element.isPanel = this.isPanel;
+      this._element.preview = this.preview;
+      this._element.layout = this.layout;
     }
 
     if (changedProps.has("_config")) {
@@ -123,40 +146,40 @@ class EntityFilterCard extends ReactiveElement implements LovelaceCard {
 
     const entitiesList = this._configEntities.filter((entityConf) => {
       const stateObj = this.hass!.states[entityConf.entity];
+      if (!stateObj) return false;
 
-      if (!stateObj) {
-        return false;
+      const conditions = entityConf.conditions ?? this._config!.conditions;
+      if (conditions) {
+        const conditionWithEntity = conditions.map((condition) =>
+          addEntityToCondition(condition, entityConf.entity)
+        );
+        return checkConditionsMet(conditionWithEntity, this.hass!);
       }
 
-      if (entityConf.state_filter) {
-        for (const filter of entityConf.state_filter) {
-          if (evaluateFilter(stateObj, filter)) {
-            return true;
-          }
-        }
-      } else {
-        for (const filter of this._config!.state_filter) {
-          if (evaluateFilter(stateObj, filter)) {
-            return true;
-          }
-        }
+      const filters = entityConf.state_filter ?? this._config!.state_filter;
+      if (filters) {
+        return filters.some((filter) => evaluateStateFilter(stateObj, filter));
       }
 
       return false;
     });
 
     if (entitiesList.length === 0 && this._config.show_empty === false) {
-      this.style.display = "none";
+      if (!this.hidden) {
+        this.style.display = "none";
+        this.toggleAttribute("hidden", true);
+        fireEvent(this, "card-visibility-changed", { value: false });
+      }
       return;
     }
 
     if (!this.lastChild) {
-      this._element.setConfig({
+      this._element.config = {
         ...this._baseCardConfig!,
         entities: entitiesList,
-      });
+      };
       this._oldEntities = entitiesList;
-    } else if (this._element.tagName !== "HUI-ERROR-CARD") {
+    } else {
       const isSame =
         this._oldEntities &&
         entitiesList.length === this._oldEntities.length &&
@@ -164,10 +187,10 @@ class EntityFilterCard extends ReactiveElement implements LovelaceCard {
 
       if (!isSame) {
         this._oldEntities = entitiesList;
-        this._element.setConfig({
+        this._element.config = {
           ...this._baseCardConfig!,
           entities: entitiesList,
-        });
+        };
       }
     }
 
@@ -176,7 +199,11 @@ class EntityFilterCard extends ReactiveElement implements LovelaceCard {
       this.appendChild(this._element);
     }
 
-    this.style.display = "block";
+    if (this.hidden) {
+      this.style.display = "block";
+      this.toggleAttribute("hidden", false);
+      fireEvent(this, "card-visibility-changed", { value: true });
+    }
   }
 
   private _haveEntitiesChanged(oldHass: HomeAssistant | null): boolean {
@@ -196,38 +223,40 @@ class EntityFilterCard extends ReactiveElement implements LovelaceCard {
       if (this.hass.states[config.entity] !== oldHass.states[config.entity]) {
         return true;
       }
+      if (config.conditions) {
+        const entityIds = extractConditionEntityIds(config.conditions);
+        for (const entityId of entityIds) {
+          if (this.hass.states[entityId] !== oldHass.states[entityId]) {
+            return true;
+          }
+        }
+      }
+    }
+
+    if (this._config?.conditions) {
+      const entityIds = extractConditionEntityIds(this._config?.conditions);
+      for (const entityId of entityIds) {
+        if (this.hass.states[entityId] !== oldHass.states[entityId]) {
+          return true;
+        }
+      }
     }
 
     return false;
   }
 
   private _createCardElement(cardConfig: LovelaceCardConfig) {
-    const element = createCardElement(cardConfig) as LovelaceCard;
-    if (this.hass) {
-      element.hass = this.hass;
-    }
-    element.isPanel = this.isPanel;
-    element.editMode = this.editMode;
-    element.addEventListener(
-      "ll-rebuild",
-      (ev) => {
-        ev.stopPropagation();
-        this._rebuildCard(element, cardConfig);
-      },
-      { once: true }
-    );
+    const element = document.createElement("hui-card");
+    element.hass = this.hass;
+    element.preview = this.preview;
+    element.config = cardConfig;
+    element.load();
     return element;
   }
+}
 
-  private _rebuildCard(
-    cardElToReplace: LovelaceCard,
-    config: LovelaceCardConfig
-  ): void {
-    const newCardEl = this._createCardElement(config);
-    if (cardElToReplace.parentElement) {
-      cardElToReplace.parentElement!.replaceChild(newCardEl, cardElToReplace);
-    }
-    this._element = newCardEl;
+declare global {
+  interface HTMLElementTagNameMap {
+    "hui-entity-filter-card": HuiEntityFilterCard;
   }
 }
-customElements.define("hui-entity-filter-card", EntityFilterCard);

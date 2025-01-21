@@ -1,12 +1,20 @@
-import { css, html, LitElement, TemplateResult, PropertyValues } from "lit";
+import type { TemplateResult, PropertyValues } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, property, query } from "lit/decorators";
 import { fireEvent } from "../../common/dom/fire_event";
 import type { HaTextField } from "../ha-textfield";
 import "../ha-textfield";
-import { HaFormElement, HaFormFloatData, HaFormFloatSchema } from "./types";
+import type {
+  HaFormElement,
+  HaFormFloatData,
+  HaFormFloatSchema,
+} from "./types";
+import type { LocalizeFunc } from "../../common/translations/localize";
 
 @customElement("ha-form-float")
 export class HaFormFloat extends LitElement implements HaFormElement {
+  @property({ attribute: false }) public localize?: LocalizeFunc;
+
   @property({ attribute: false }) public schema!: HaFormFloatSchema;
 
   @property({ attribute: false }) public data!: HaFormFloatData;
@@ -28,7 +36,7 @@ export class HaFormFloat extends LitElement implements HaFormElement {
   protected render(): TemplateResult {
     return html`
       <ha-textfield
-        type="numeric"
+        type="number"
         inputMode="decimal"
         .label=${this.label}
         .helper=${this.helper}
@@ -38,7 +46,9 @@ export class HaFormFloat extends LitElement implements HaFormElement {
         .required=${this.schema.required}
         .autoValidate=${this.schema.required}
         .suffix=${this.schema.description?.suffix}
-        .validationMessage=${this.schema.required ? "Required" : undefined}
+        .validationMessage=${this.schema.required
+          ? this.localize?.("ui.common.error_required")
+          : undefined}
         @input=${this._valueChanged}
       ></ha-textfield>
     `;
@@ -74,11 +84,6 @@ export class HaFormFloat extends LitElement implements HaFormElement {
 
     // Detect anything changed
     if (this.data === value) {
-      // parseFloat will drop invalid text at the end, in that case update textfield
-      const newRawValue = value === undefined ? "" : String(value);
-      if (source.value !== newRawValue) {
-        source.value = newRawValue;
-      }
       return;
     }
 

@@ -1,6 +1,7 @@
 import "../../../../src/components/ha-hs-color-picker";
 
-import { css, html, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, state } from "lit/decorators";
 
 import "../../../../src/components/ha-card";
@@ -57,8 +58,8 @@ export class DemoHaHsColorPicker extends LitElement {
           ></ha-hs-color-picker>
           <p>Hue : ${this.value[0]}</p>
           <ha-slider
+            labeled
             step="1"
-            pin
             min="0"
             max="360"
             .value=${this.value[0]}
@@ -67,18 +68,18 @@ export class DemoHaHsColorPicker extends LitElement {
           </ha-slider>
           <p>Saturation : ${this.value[1]}</p>
           <ha-slider
+            labeled
             step="0.01"
-            pin
             min="0"
             max="1"
             .value=${this.value[1]}
             @change=${this._saturationChanged}
           >
           </ha-slider>
-          <p>Color Brighness : ${this.brightness}</p>
+          <p>Color Brightness : ${this.brightness}</p>
           <ha-slider
+            labeled
             step="1"
-            pin
             min="0"
             max="255"
             .value=${this.brightness}
@@ -90,27 +91,25 @@ export class DemoHaHsColorPicker extends LitElement {
     `;
   }
 
-  static get styles() {
-    return css`
-      ha-card {
-        max-width: 600px;
-        margin: 24px auto;
-      }
-      .card-content {
-        display: flex;
-        align-items: center;
-        flex-direction: column;
-      }
-      ha-hs-color-picker {
-        width: 400px;
-      }
-      .value {
-        font-size: 22px;
-        font-weight: bold;
-        margin: 0 0 12px 0;
-      }
-    `;
-  }
+  static styles = css`
+    ha-card {
+      max-width: 600px;
+      margin: 24px auto;
+    }
+    .card-content {
+      display: flex;
+      align-items: center;
+      flex-direction: column;
+    }
+    ha-hs-color-picker {
+      width: 400px;
+    }
+    .value {
+      font-size: 22px;
+      font-weight: bold;
+      margin: 0 0 12px 0;
+    }
+  `;
 }
 
 declare global {

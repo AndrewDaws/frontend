@@ -1,6 +1,7 @@
 import "@lrnwebcomponents/simple-tooltip/simple-tooltip";
 import { mdiClose, mdiContentCopy } from "@mdi/js";
-import { css, CSSResultGroup, html, LitElement, nothing } from "lit";
+import type { CSSResultGroup } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import { property, state } from "lit/decorators";
 import { fireEvent } from "../../../common/dom/fire_event";
 import { copyToClipboard } from "../../../common/util/copy-clipboard";
@@ -9,11 +10,11 @@ import "../../../components/ha-dialog";
 import "../../../components/ha-dialog-header";
 import "../../../components/ha-icon-button";
 import "../../../components/ha-svg-icon";
+import type { IntegrationManifest } from "../../../data/integration";
 import {
   domainToName,
   fetchIntegrationManifest,
   integrationIssuesUrl,
-  IntegrationManifest,
 } from "../../../data/integration";
 import {
   getLoggedErrorIntegration,
@@ -69,13 +70,11 @@ class DialogSystemLogDetail extends LitElement {
         // Custom components with our official docs should not link to our docs
         !this._manifest.documentation.includes("://www.home-assistant.io"));
 
-    const title = this.hass.localize(
-      "ui.panel.config.logs.details",
-      "level",
-      html`<span class=${item.level}
+    const title = this.hass.localize("ui.panel.config.logs.details", {
+      level: html`<span class=${item.level}
         >${this.hass.localize(`ui.panel.config.logs.level.${item.level}`)}</span
-      >`
-    );
+      >`,
+    });
 
     return html`
       <ha-dialog open @closed=${this.closeDialog} hideActions .heading=${title}>
@@ -104,12 +103,17 @@ class DialogSystemLogDetail extends LitElement {
           : ""}
         <div class="contents" tabindex="-1" dialogInitialFocus>
           <p>
-            Logger: ${item.name}<br />
-            Source: ${item.source.join(":")}
+            ${this.hass.localize("ui.panel.config.logs.detail.logger")}:
+            ${item.name}<br />
+            ${this.hass.localize("ui.panel.config.logs.detail.source")}:
+            ${item.source.join(":")}
             ${integration
               ? html`
                   <br />
-                  Integration: ${domainToName(this.hass.localize, integration)}
+                  ${this.hass.localize(
+                    "ui.panel.config.logs.detail.integration"
+                  )}:
+                  ${domainToName(this.hass.localize, integration)}
                   ${!this._manifest ||
                   // Can happen with custom integrations
                   !showDocumentation
@@ -124,7 +128,9 @@ class DialogSystemLogDetail extends LitElement {
                             : this._manifest.documentation}
                           target="_blank"
                           rel="noreferrer"
-                          >documentation</a
+                          >${this.hass.localize(
+                            "ui.panel.config.logs.detail.documentation"
+                          )}</a
                         >${this._manifest.is_built_in ||
                         this._manifest.issue_tracker
                           ? html`,
@@ -135,7 +141,9 @@ class DialogSystemLogDetail extends LitElement {
                                 )}
                                 target="_blank"
                                 rel="noreferrer"
-                                >issues</a
+                                >${this.hass.localize(
+                                  "ui.panel.config.logs.detail.issues"
+                                )}</a
                               >`
                           : ""})
                       `}
@@ -144,16 +152,21 @@ class DialogSystemLogDetail extends LitElement {
             <br />
             ${item.count > 0
               ? html`
-                  First occurred:
+                  ${this.hass.localize(
+                    "ui.panel.config.logs.detail.first_occurred"
+                  )}:
                   ${formatSystemLogTime(
                     item.first_occurred,
                     this.hass!.locale,
                     this.hass!.config
                   )}
-                  (${item.count} occurrences) <br />
+                  (${item.count}
+                  ${this.hass.localize(
+                    "ui.panel.config.logs.detail.occurrences"
+                  )}) <br />
                 `
               : ""}
-            Last logged:
+            ${this.hass.localize("ui.panel.config.logs.detail.last_logged")}:
             ${formatSystemLogTime(
               item.timestamp,
               this.hass!.locale,
@@ -182,7 +195,7 @@ class DialogSystemLogDetail extends LitElement {
   private async _fetchManifest(integration: string) {
     try {
       this._manifest = await fetchIntegrationManifest(this.hass, integration);
-    } catch (err: any) {
+    } catch (_err: any) {
       // Ignore if loading manifest fails. Probably bad JSON in manifest
     }
   }

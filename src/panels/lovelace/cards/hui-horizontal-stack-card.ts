@@ -1,14 +1,17 @@
-import { css, CSSResultGroup } from "lit";
+import type { CSSResultGroup } from "lit";
+import { css } from "lit";
+import { customElement } from "lit/decorators";
 import { computeCardSize } from "../common/compute-card-size";
 import { HuiStackCard } from "./hui-stack-card";
 
-class HuiHorizontalStackCard extends HuiStackCard {
+@customElement("hui-horizontal-stack-card")
+export class HuiHorizontalStackCard extends HuiStackCard {
   public async getCardSize(): Promise<number> {
     if (!this._cards) {
       return 0;
     }
 
-    const promises: Array<Promise<number> | number> = [];
+    const promises: (Promise<number> | number)[] = [];
 
     for (const element of this._cards) {
       promises.push(computeCardSize(element));
@@ -26,20 +29,14 @@ class HuiHorizontalStackCard extends HuiStackCard {
         #root {
           display: flex;
           height: 100%;
+          gap: var(--horizontal-stack-card-gap, var(--stack-card-gap, 8px));
         }
-        #root > * {
+        #root > hui-card {
+          display: contents;
+        }
+        #root > hui-card > * {
           flex: 1 1 0;
-          margin: var(
-            --horizontal-stack-card-margin,
-            var(--stack-card-margin, 0 4px)
-          );
           min-width: 0;
-        }
-        #root > *:first-child {
-          margin-left: 0;
-        }
-        #root > *:last-child {
-          margin-right: 0;
         }
       `,
     ];
@@ -48,8 +45,6 @@ class HuiHorizontalStackCard extends HuiStackCard {
 
 declare global {
   interface HTMLElementTagNameMap {
-    "hui-horitzontal-stack-card": HuiHorizontalStackCard;
+    "hui-horizontal-stack-card": HuiHorizontalStackCard;
   }
 }
-
-customElements.define("hui-horizontal-stack-card", HuiHorizontalStackCard);

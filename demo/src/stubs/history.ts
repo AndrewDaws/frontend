@@ -1,6 +1,6 @@
-import { HassEntity } from "home-assistant-js-websocket";
-import { HistoryStates } from "../../../src/data/history";
-import { MockHomeAssistant } from "../../../src/fake_data/provide_hass";
+import type { HassEntity } from "home-assistant-js-websocket";
+import type { HistoryStates } from "../../../src/data/history";
+import type { MockHomeAssistant } from "../../../src/fake_data/provide_hass";
 
 const generateStateHistory = (
   state: HassEntity,
@@ -131,6 +131,7 @@ export const mockHistory = (mockHass: MockHomeAssistant) => {
         });
       }, 1);
 
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
       return () => {};
     }
   );

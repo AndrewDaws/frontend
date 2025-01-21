@@ -1,19 +1,18 @@
 import { STATE_NOT_RUNNING } from "home-assistant-js-websocket";
-import { html, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { html, LitElement } from "lit";
 import { customElement } from "lit/decorators";
 import "../../../components/ha-alert";
-import { HomeAssistant } from "../../../types";
+import type { HomeAssistant } from "../../../types";
 
 export const createEntityNotFoundWarning = (
   hass: HomeAssistant,
   entityId: string
 ) =>
   hass.config.state !== STATE_NOT_RUNNING
-    ? hass.localize(
-        "ui.panel.lovelace.warning.entity_not_found",
-        "entity",
-        entityId || "[empty]"
-      )
+    ? hass.localize("ui.panel.lovelace.warning.entity_not_found", {
+        entity: entityId || "[empty]",
+      })
     : hass.localize("ui.panel.lovelace.warning.starting");
 
 @customElement("hui-warning")

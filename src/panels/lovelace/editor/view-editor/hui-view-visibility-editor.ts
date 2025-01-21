@@ -1,21 +1,21 @@
 import "@material/mwc-list/mwc-list-item";
-import {
-  css,
-  CSSResultGroup,
-  html,
-  LitElement,
-  PropertyValues,
-  nothing,
-} from "lit";
+import type { PropertyValues } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators";
 import memoizeOne from "memoize-one";
 import { fireEvent } from "../../../../common/dom/fire_event";
 import { stringCompare } from "../../../../common/string/compare";
-import { HaSwitch } from "../../../../components/ha-switch";
+import type { HaSwitch } from "../../../../components/ha-switch";
 import "../../../../components/user/ha-user-badge";
-import { LovelaceViewConfig, ShowViewConfig } from "../../../../data/lovelace";
-import { fetchUsers, User } from "../../../../data/user";
-import { HomeAssistant } from "../../../../types";
+import "../../../../components/ha-list-item";
+import "../../../../components/ha-switch";
+import type {
+  LovelaceViewConfig,
+  ShowViewConfig,
+} from "../../../../data/lovelace/config/view";
+import type { User } from "../../../../data/user";
+import { fetchUsers } from "../../../../data/user";
+import type { HomeAssistant } from "../../../../types";
 
 declare global {
   interface HASSDomEvents {
@@ -35,7 +35,7 @@ export class HuiViewVisibilityEditor extends LitElement {
 
   @property({ attribute: false }) public hass!: HomeAssistant;
 
-  @property() public _config!: LovelaceViewConfig;
+  @state() private _config!: LovelaceViewConfig;
 
   @state() private _users!: User[];
 
@@ -52,7 +52,6 @@ export class HuiViewVisibilityEditor extends LitElement {
 
     fetchUsers(this.hass).then((users) => {
       this._users = users.filter((user) => !user.system_generated);
-      fireEvent(this, "iron-resize");
     });
   }
 
@@ -69,7 +68,7 @@ export class HuiViewVisibilityEditor extends LitElement {
       </p>
       ${this._sortedUsers(this._users).map(
         (user) => html`
-          <mwc-list-item graphic="avatar" hasMeta>
+          <ha-list-item graphic="avatar" hasMeta>
             <ha-user-badge
               slot="graphic"
               .hass=${this.hass}
@@ -79,10 +78,10 @@ export class HuiViewVisibilityEditor extends LitElement {
             <ha-switch
               slot="meta"
               .userId=${user.id}
-              @change=${this.valChange}
+              @change=${this._valChange}
               .checked=${this.checkUser(user.id)}
             ></ha-switch>
-          </mwc-list-item>
+          </ha-list-item>
         `
       )}
     `;
@@ -98,7 +97,7 @@ export class HuiViewVisibilityEditor extends LitElement {
     return (this._visible as ShowViewConfig[]).some((u) => u.user === userId);
   }
 
-  private valChange(ev: Event): void {
+  private _valChange(ev: Event): void {
     const userId = (ev.currentTarget as any).userId;
     const checked = (ev.currentTarget as HaSwitch).checked;
 
@@ -134,13 +133,11 @@ export class HuiViewVisibilityEditor extends LitElement {
     fireEvent(this, "view-visibility-changed", { visible: this._visible });
   }
 
-  static get styles(): CSSResultGroup {
-    return css`
-      :host {
-        display: block;
-      }
-    `;
-  }
+  static styles = css`
+    :host {
+      display: block;
+    }
+  `;
 }
 
 declare global {

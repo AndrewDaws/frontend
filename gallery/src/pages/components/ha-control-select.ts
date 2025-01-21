@@ -1,5 +1,6 @@
 import { mdiFanOff, mdiFanSpeed1, mdiFanSpeed2, mdiFanSpeed3 } from "@mdi/js";
-import { css, html, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, state } from "lit/decorators";
 import { ifDefined } from "lit/directives/if-defined";
 import { repeat } from "lit/directives/repeat";
@@ -135,7 +136,7 @@ export class DemoHaControlSelect extends LitElement {
                 class=${ifDefined(config.class)}
                 @value-changed=${this.handleValueChanged}
                 aria-labelledby=${id}
-                disabled=${ifDefined(config.disabled)}
+                ?disabled=${config.disabled}
               >
               </ha-control-select>
             </div>
@@ -156,7 +157,7 @@ export class DemoHaControlSelect extends LitElement {
                   class=${ifDefined(config.class)}
                   @value-changed=${this.handleValueChanged}
                   aria-labelledby=${id}
-                  disabled=${ifDefined(config.disabled)}
+                  ?disabled=${config.disabled}
                 >
                 </ha-control-select>
               `;
@@ -167,42 +168,40 @@ export class DemoHaControlSelect extends LitElement {
     `;
   }
 
-  static get styles() {
-    return css`
-      ha-card {
-        max-width: 600px;
-        margin: 24px auto;
-      }
-      pre {
-        margin-top: 0;
-        margin-bottom: 8px;
-      }
-      p {
-        margin: 0;
-      }
-      label {
-        font-weight: 600;
-      }
-      .custom {
-        --mdc-icon-size: 24px;
-        --control-select-color: var(--state-fan-active-color);
-        --control-select-thickness: 100px;
-        --control-select-border-radius: 24px;
-      }
-      .vertical-selects {
-        height: 300px;
-        display: flex;
-        flex-direction: row;
-        justify-content: space-between;
-      }
-      p.title {
-        margin-bottom: 12px;
-      }
-      .vertical-selects > *:not(:last-child) {
-        margin-right: 4px;
-      }
-    `;
-  }
+  static styles = css`
+    ha-card {
+      max-width: 600px;
+      margin: 24px auto;
+    }
+    pre {
+      margin-top: 0;
+      margin-bottom: 8px;
+    }
+    p {
+      margin: 0;
+    }
+    label {
+      font-weight: 600;
+    }
+    .custom {
+      --mdc-icon-size: 24px;
+      --control-select-color: var(--state-fan-active-color);
+      --control-select-thickness: 130px;
+      --control-select-border-radius: 36px;
+    }
+    .vertical-selects {
+      height: 300px;
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+    }
+    p.title {
+      margin-bottom: 12px;
+    }
+    .vertical-selects > *:not(:last-child) {
+      margin-right: 4px;
+    }
+  `;
 }
 
 declare global {

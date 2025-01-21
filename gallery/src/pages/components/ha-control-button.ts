@@ -4,7 +4,8 @@ import {
   mdiFanSpeed3,
   mdiLightbulb,
 } from "@mdi/js";
-import { css, html, LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement } from "lit/decorators";
 import { ifDefined } from "lit/directives/if-defined";
 import { repeat } from "lit/directives/repeat";
@@ -13,12 +14,12 @@ import "../../../../src/components/ha-card";
 import "../../../../src/components/ha-svg-icon";
 import "../../../../src/components/ha-control-button-group";
 
-type Button = {
+interface Button {
   label: string;
   icon?: string;
   class?: string;
   disabled?: boolean;
-};
+}
 
 const buttons: Button[] = [
   {
@@ -34,10 +35,10 @@ const buttons: Button[] = [
   },
 ];
 
-type ButtonGroup = {
+interface ButtonGroup {
   vertical?: boolean;
   class?: string;
-};
+}
 
 const buttonGroups: ButtonGroup[] = [
   {},
@@ -59,7 +60,7 @@ export class DemoHaBarButton extends LitElement {
               <ha-control-button
                 class=${ifDefined(btn.class)}
                 label=${ifDefined(btn.label)}
-                disabled=${ifDefined(btn.disabled)}
+                ?disabled=${btn.disabled}
               >
                 <ha-svg-icon .path=${btn.icon || mdiLightbulb}></ha-svg-icon>
               </ha-control-button>
@@ -136,53 +137,51 @@ export class DemoHaBarButton extends LitElement {
     `;
   }
 
-  static get styles() {
-    return css`
-      ha-card {
-        max-width: 600px;
-        margin: 24px auto;
-      }
-      pre {
-        margin-top: 0;
-        margin-bottom: 8px;
-      }
-      p {
-        margin: 0;
-      }
-      label {
-        font-weight: 600;
-      }
-      .custom {
-        --control-button-icon-color: var(--primary-color);
-        --control-button-background-color: var(--primary-color);
-        --control-button-background-opacity: 0.2;
-        --control-button-border-radius: 18px;
-        height: 100px;
-        width: 100px;
-      }
-      .custom-group {
-        --control-button-group-thickness: 100px;
-        --control-button-group-border-radius: 18px;
-        --control-button-group-spacing: 20px;
-      }
-      .custom-group ha-control-button {
-        --control-button-border-radius: 18px;
-        --mdc-icon-size: 32px;
-      }
-      .vertical-buttons {
-        height: 300px;
-        display: flex;
-        flex-direction: row;
-        justify-content: space-between;
-      }
-      p.title {
-        margin-bottom: 12px;
-      }
-      .vertical-switches > *:not(:last-child) {
-        margin-right: 4px;
-      }
-    `;
-  }
+  static styles = css`
+    ha-card {
+      max-width: 600px;
+      margin: 24px auto;
+    }
+    pre {
+      margin-top: 0;
+      margin-bottom: 8px;
+    }
+    p {
+      margin: 0;
+    }
+    label {
+      font-weight: 600;
+    }
+    .custom {
+      --control-button-icon-color: var(--primary-color);
+      --control-button-background-color: var(--primary-color);
+      --control-button-background-opacity: 0.2;
+      --control-button-border-radius: 18px;
+      height: 100px;
+      width: 100px;
+    }
+    .custom-group {
+      --control-button-group-thickness: 100px;
+      --control-button-group-border-radius: 36px;
+      --control-button-group-spacing: 20px;
+    }
+    .custom-group ha-control-button {
+      --control-button-border-radius: 18px;
+      --mdc-icon-size: 32px;
+    }
+    .vertical-buttons {
+      height: 300px;
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+    }
+    p.title {
+      margin-bottom: 12px;
+    }
+    .vertical-switches > *:not(:last-child) {
+      margin-right: 4px;
+    }
+  `;
 }
 
 declare global {

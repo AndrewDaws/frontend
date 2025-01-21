@@ -1,32 +1,42 @@
-import { showAlertDialog } from "../../../dialogs/generic/show-dialog-box";
-import { HomeAssistant } from "../../../types";
-import { showDeleteSuccessToast } from "../../../util/toast-deleted-success";
-import { Lovelace } from "../types";
-import { showDeleteCardDialog } from "./card-editor/show-delete-card-dialog";
-import { deleteCard, insertCard } from "./config-util";
+import type { HomeAssistant } from "../../../types";
+import type { Lovelace } from "../types";
+import { deleteCard } from "./config-util";
+import type { LovelaceCardPath } from "./lovelace-path";
 
-export async function confDeleteCard(
-  element: HTMLElement,
+export interface DeleteCardParams {
+  path: LovelaceCardPath;
+  silent: boolean;
+}
+
+export async function performDeleteCard(
   hass: HomeAssistant,
   lovelace: Lovelace,
-  path: [number, number]
+  params: DeleteCardParams
 ): Promise<void> {
-  const cardConfig = lovelace.config.views[path[0]].cards![path[1]];
-  showDeleteCardDialog(element, {
-    cardConfig,
-    deleteCard: async () => {
-      try {
-        const newLovelace = deleteCard(lovelace.config, path);
-        await lovelace.saveConfig(newLovelace);
-        const action = async () => {
-          await lovelace.saveConfig(insertCard(newLovelace, path, cardConfig));
-        };
-        showDeleteSuccessToast(element, hass!, action);
-      } catch (err: any) {
-        showAlertDialog(element, {
-          text: `Deleting failed: ${err.message}`,
-        });
-      }
-    },
-  });
+  try {
+    const { path, silent } = params;
+    const oldConfig = lovelace.config;
+    const newConfig = deleteCard(oldConfig, path);
+    await lovelace.saveConfig(newConfig);
+
+    if (silent) {
+      return;
+    }
+
+    const action = async () => {
+      lovelace.saveConfig(oldConfig);
+    };
+
+    lovelace.showToast({
+      message: hass.localize("ui.common.successfully_deleted"),
+      duration: 8000,
+      action: { action, text: hass.localize("ui.common.undo") },
+    });
+  } catch (err: any) {
+    // eslint-disable-next-line no-console
+    console.error(err);
+    lovelace.showToast({
+      message: hass.localize("ui.common.deleting_failed"),
+    });
+  }
 }
